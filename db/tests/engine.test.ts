@@ -152,6 +152,23 @@ describe("Quick start", () => {
     });
   });
 
+  it("goal (Lean or Build) is a setting inside every package (PLN-10)", async () => {
+    await inRollback(db, async (tx) => {
+      await setAllPrices(tx);
+      const ops = await staffActor(tx, "nebiyou@questmeals.demo");
+      const pkgs = await tx.select().from(s.packages);
+      let i = 20;
+      for (const pkg of pkgs) for (const goal of ["lean", "build"] as const) {
+        const c = await newClient(tx, `+2519220000${i++}`);
+        await tx.update(s.nutritionProfiles).set({ goal }).where(eq(s.nutritionProfiles.clientId, c.id));
+        const r = await createSubscription({ db: tx, actor: ops, now: at("2026-10-20T07:00:00Z") },
+          { clientId: c.id, packageId: pkg.id, deliveryOption: "daily", billingPeriod: "weekly", termMonths: 1, start: "next_week" });
+        expect(r.subscription.goal).toBe(goal);
+        expect(r.subscription.startDate).toBe("2026-10-26");
+      }
+    });
+  });
+
   it("missing prices block a quote", async () => {
     await inRollback(db, async (tx) => {
       const ops = await staffActor(tx, "nebiyou@questmeals.demo");
