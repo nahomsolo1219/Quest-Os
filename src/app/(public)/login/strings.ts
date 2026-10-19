@@ -1,0 +1,15 @@
+export const S = {
+  title: "Sign in",
+  clientTab: "Client",
+  staffTab: "Staff",
+  phone: "Phone number",
+  phoneHint: "For example 0911 234 567",
+  email: "Email",
+  password: "Password",
+  submit: "Sign in",
+  invalidPhone: "Enter an Ethiopian mobile number starting 09 or 07.",
+  failed: "Phone number or password is not right. Ask the Quest Meals team to reset your password if you forgot it.",
+  failedStaff: "Email or password is not right.",
+  noAccount: "New to Quest Meals?",
+  signup: "Start your plan",
+};

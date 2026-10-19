@@ -1,0 +1,23 @@
+// User-facing strings for owner settings.
+export const S = {
+  title: "Settings",
+  tabs: { pricing: "Pricing", nutrition: "Nutrition", schedule: "Schedule", packages: "Packages", swaps: "Swap table", areas: "Areas", ingredients: "Ingredients", changes: "Change log" },
+  pricingIntro: "Inputs of the pricing formula. New prices apply at each client's next renewal (prices are locked for 4 months).",
+  nutritionIntro: "Calculator and portion-engine defaults. After a change, press Recompute on the profile table.",
+  scheduleIntro: "Service days, cutoffs and quick-start capacity. Changes apply from the next lock.",
+  packagesIntro: "What each package includes. Price changes apply at renewal.",
+  swapsIntro: "The like-for-like swap table clients choose from. Anything else goes to the nutritionist.",
+  areasIntro: "Delivery areas in route order. Inactive areas are hidden from sign-up.",
+  ingredientsIntro: "Price per purchase unit and nutrition values. A client price cannot be published while any ingredient on their menu has no price.",
+  changesIntro: "Who changed settings, prices, packages, swap rules and areas, newest first.",
+  saved: "Settings saved and logged.",
+  packageSaved: "Package saved and logged.",
+  ruleSaved: "Swap rule saved and logged.",
+  ruleCreated: "Swap rule added.",
+  areaSaved: "Area saved.",
+  areaAdded: "Area added.",
+  areaMoved: "Order updated.",
+  priceSaved: "Price saved. A price history row was added.",
+  nutritionSaved: "Nutrition values saved. Recompute the profile table to update portions.",
+  missing: (n: number) => (n === 0 ? "Every ingredient has a price." : `${n} ingredient${n === 1 ? "" : "s"} missing a price`),
+};

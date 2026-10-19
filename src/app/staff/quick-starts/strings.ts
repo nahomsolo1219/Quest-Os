@@ -1,0 +1,16 @@
+export const S = {
+  title: "Quick starts",
+  description: (time: string) => `New clients starting the next service day. Paid by ${time} = added to tomorrow's production sheet at ${time}.`,
+  capacityTitle: "Capacity per start date",
+  capacityEmpty: "No quick starts booked from today.",
+  emptyTitle: "No quick starts",
+  emptyBody: "Onboard a lead and choose \"Tomorrow (quick start)\" as the start. They appear here until their quick-start period ends.",
+  stage: { pending_payment: "Waiting for payment", receipt_waiting: "Receipt to confirm", paid: "Paid — added at 18:00", added: "Added to production" },
+  provisional: "Provisional size — nutritionist to confirm within 48 h",
+  confirmBy: (t: string) => `confirm by ${t}`,
+  start: "Starts",
+  period: "Billed through",
+  amount: "Amount",
+  dueBy: "Pay by",
+  full: "Full",
+} as const;

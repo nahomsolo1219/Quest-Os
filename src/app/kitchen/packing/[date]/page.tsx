@@ -1,0 +1,79 @@
+import { EmptyState } from "@/components/shell/empty-state";
+import { PageHeader } from "@/components/shell/page-header";
+import { PrintButton } from "@/components/kitchen/print-button";
+import { SheetNav } from "@/components/kitchen/sheet-nav";
+import { qty, SLOT_LABEL } from "@/components/kitchen/format";
+import { Badge } from "@/components/ui/badge";
+import { profileLabel } from "@/domain/format";
+import { formatDate } from "@/domain/time";
+import { cn } from "@/lib/utils";
+import { requirePageActor, serviceCtx } from "@/server/session";
+import { packingForDate } from "@/server/services/kitchen";
+import { cookDateParam } from "../../params";
+import { S } from "../../strings";
+
+export const dynamic = "force-dynamic";
+export const metadata = { title: "Packing list" };
+
+export default async function PackingPage({ params }: { params: Promise<{ date: string }> }) {
+  const date = await cookDateParam(params);
+  const actor = await requirePageActor("owner", "operations", "kitchen");
+  const list = await packingForDate(await serviceCtx(actor), date);
+  const withConflicts = list.filter((c) => c.hasConflicts).length;
+
+  return (
+    <div className="mx-auto max-w-5xl">
+      <SheetNav date={date} current="packing" />
+      <PageHeader title={`${S.packing} · ${formatDate(date, "long")}`}
+        description={list.length ? <>{list.length} clients{withConflicts ? <> · <span className="font-semibold text-red-700">{withConflicts} with allergy or dislike conflicts</span></> : null}</> : undefined}
+        actions={list.length ? <PrintButton /> : null} />
+      {list.length === 0 ? <EmptyState title={S.emptyDay}>{S.emptyDayBody}</EmptyState> : (
+        <div className="grid gap-4 lg:grid-cols-2 print:block">
+          {list.map((c) => (
+            <section key={c.clientId} aria-label={c.name}
+              className={cn("print-avoid-break rounded-xl border bg-card p-4 print:mb-3", c.hasConflicts && "border-2 border-red-600")}>
+              <header className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <h2 className="text-lg font-bold">{c.name}</h2>
+                  <p className="text-sm text-muted-foreground">
+                    {c.delivery === "pickup" ? S.pickup : `${S.delivery}${c.areaName ? ` · ${c.areaName}` : ""}`}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {c.isQuickStart ? <Badge variant="secondary">{S.quickStart}</Badge> : null}
+                  {c.injeraSeparate ? <Badge variant="outline" className="border-amber-500 text-amber-800">{S.injera}</Badge> : null}
+                </div>
+              </header>
+              {c.allergies.length ? <p className="mt-1 text-sm font-semibold text-red-700">Allergies: {c.allergies.join(", ")}</p> : null}
+              {c.hasConflicts ? (
+                <div role="alert" className="mt-2 rounded-md bg-red-50 p-2 text-sm text-red-800">
+                  <p className="font-bold">{S.conflict}</p>
+                  <ul className="list-disc pl-5">{c.conflicts.map((x) => <li key={x}>{x}</li>)}</ul>
+                </div>
+              ) : null}
+              <ul className="mt-3 space-y-3">
+                {c.meals.map((m) => (
+                  <li key={`${m.serviceDate}|${m.slot}`} className="border-t pt-2">
+                    <p className="text-sm">
+                      <span className="font-semibold">{SLOT_LABEL[m.slot]}: {m.mealName}</span>{" "}
+                      <span className="text-muted-foreground">· {profileLabel(m.profile)}{m.serviceDate !== date ? ` · for ${formatDate(m.serviceDate)}` : ""} · eat by {formatDate(m.eatBy)}</span>
+                    </p>
+                    <ul className="mt-1 text-sm">
+                      {m.items.map((it) => (
+                        <li key={it.partName} className={cn("flex justify-between gap-2", it.swapped && "font-semibold text-amber-800")}>
+                          <span>{it.partName}{it.swapped && !it.partName.includes("→") ? " (swap)" : ""}</span>
+                          <span className="tabular-nums">{qty(it.qty, it.unit)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    {m.conflicts.length ? <p className="mt-1 text-sm font-semibold text-red-700">{m.conflicts.join("; ")}</p> : null}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
