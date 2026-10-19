@@ -133,6 +133,25 @@ describe("Quick start", () => {
     });
   });
 
+  it("Thursday: weekly lock running before the quick-start lock still gives the quick start its days", async () => {
+    await inRollback(db, async (tx) => {
+      await setAllPrices(tx);
+      const ops = await staffActor(tx, "nebiyou@questmeals.demo");
+      const c = await newClient(tx, "+251922000009");
+      const ctx: Ctx = { db: tx, actor: ops, now: at("2026-10-22T10:00:00Z") }; // Thursday 13:00 Addis
+      const [pkg] = await tx.select().from(s.packages).where(eq(s.packages.code, "essential"));
+      const q = await createSubscription(ctx, { clientId: c.id, packageId: pkg.id, deliveryOption: "pickup", billingPeriod: "weekly", termMonths: 1, start: "quick_start" });
+      expect(q.subscription.startDate).toBe("2026-10-23");
+      expect(q.invoice.periodEnd).toBe("2026-11-01");
+      const p = await submitPayment(ctx, { invoiceId: q.invoice.id, method: "cash" });
+      await confirmPayment(ctx, p.id);
+      await runJob(tx as never, "thursday-lock", THU_LOCK);
+      await runJob(tx as never, "daily-quick-start", THU_LOCK);
+      expect(await count(tx, "order_days", `client_id = '${c.id}'`)).toBe(10); // Fri, Sat, Sun + next week
+      expect(await count(tx, "invoices", `client_id = '${c.id}' and period_start = '2026-10-26'`)).toBe(0); // covered by the quick-start invoice
+    });
+  });
+
   it("missing prices block a quote", async () => {
     await inRollback(db, async (tx) => {
       const ops = await staffActor(tx, "nebiyou@questmeals.demo");

@@ -125,7 +125,10 @@ export async function lockQuickStarts({ db, now }: Snapshot) {
   for (const sub of subs) {
     const [qsInv] = await db.select().from(invoices).where(and(eq(invoices.subscriptionId, sub.id), eq(invoices.kind, "quick_start")));
     if (!qsInv) continue;
-    const [already] = await db.select({ id: orderDays.id }).from(orderDays).where(eq(orderDays.clientId, sub.clientId)).limit(1);
+    // Already added by an earlier run of this lock (quick-start days exist). The weekly lock may have created the
+    // following week's days first when both run at Thursday 18:00 — that does not count, and those dates are kept.
+    const [already] = await db.select({ id: orderDays.id }).from(orderDays)
+      .where(and(eq(orderDays.clientId, sub.clientId), eq(orderDays.isQuickStart, true))).limit(1);
     if (already) continue;
     let startDate = sub.startDate;
     let periodEnd = sub.quickStartPeriodEnd ?? addDays(weekStartOf(sub.startDate), 6);
