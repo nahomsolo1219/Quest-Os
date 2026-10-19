@@ -37,3 +37,4 @@ One line per decision the spec did not settle, with the reason. Newest sections 
 - D025 On-time delivery = drop marked delivered on its drop date at or before the delivery deadline setting (default 12:00 Addis).
 - D026 Savory snack alternative uses 2 eggs, 100 g cucumber and mitmita (seasoning); the cucumber weight was not in the spec.
 - D027 Extra protein add-on is a standing add-on per meal slot (applies to that slot's meal every day), priced per portion with the spec formula and added to the client's food cost.
+- D028 Gomen → mixed sautéed veg is seeded as cabbage 60% / carrot 40% of the same grams (the Menu A side ratio is 120:80).
