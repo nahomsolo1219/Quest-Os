@@ -102,15 +102,15 @@ All tables: `id uuid primary key default gen_random_uuid()`, `created_at timesta
 - `nutrition_profiles`: client_id, bmr int, tdee int, suggested_kcal int, suggested_size size, suggested_protein_g int, suggested_carb_g int, suggested_fat_g int, kcal_target int, size size, goal goal, protein_g int, carb_g int, fat_g int, is_override bool, provisional bool (quick start: set by calculator, awaiting nutritionist), set_by_user_id null (null = calculator), set_at timestamptz, is_current bool. Partial unique index: one is_current per client.
 
 ### Menu and recipes
-- `ingredients`: id, name unique, food_group, purchase_unit, grams_per_unit int (kg 1000, litre: oil 920 / milk 1030 / vanilla 1000, piece: egg 50, injera 120), nutrition_basis text check in ('per_100g','per_piece'), kcal numeric(7,2), protein_g, carb_g, fat_g numeric(7,2), cost_per_unit_birr int null (per purchase unit; null = "price missing"), supplier text null, stock_ingredient_id uuid null -> ingredients (egg white -> eggs: consumes 1 egg per white), tracked_in_stock bool, short_shelf_life bool (fish, injera -> eat within 2 days), is_seasoning bool.
+- `ingredients`: id, slug unique (natural key from the seed, e.g. `chicken-breast`), name unique, food_group, purchase_unit, grams_per_unit int (kg 1000, litre: oil 920 / milk 1030 / vanilla 1000, piece: egg 50, injera 120), nutrition_basis text check in ('per_100g','per_piece'), kcal numeric(7,2), protein_g, carb_g, fat_g numeric(7,2), cost_per_unit_birr int null (per purchase unit; null = "price missing"), supplier text null, stock_ingredient_id uuid null -> ingredients (egg white -> eggs: consumes 1 egg per white), tracked_in_stock bool, short_shelf_life bool (fish, injera -> eat within 2 days), is_seasoning bool.
 - `ingredient_prices`: ingredient_id, cost_per_unit_birr int, source text ('purchase','manual'), purchase_id null, set_by_user_id, set_at. (price history)
-- `meals`: id, code text unique (e.g. A_BREAKFAST, SAVORY_SNACK), menu menu_code null (null for the savory alternative), slot, name, description, keeps_days int, sort.
-- `parts`: id, meal_id -> meals, name, category part_category, unit text check in ('g','piece'), base_qty numeric(8,1), sort, notes. (a part is one component of one meal)
-- `part_ingredients`: part_id -> parts, ingredient_id -> ingredients, qty numeric(8,1) (grams or pieces at base). A part's ingredients sum to its base_qty (grams) or are 1:1 for pieces.
-- `pantry_items` are listed in `meals.description`/recipe card text, not tracked.
+- `meals`: id, code text unique (e.g. A_BREAKFAST, SAVORY_SNACK), menu menu_code null (null for the savory alternative), slot, name, description, keeps_days int, pantry text[] (recipe-card pantry items, not tracked), sort.
+- `parts`: id, meal_id -> meals, name, category part_category, unit text check in ('g','piece'), base_qty numeric(8,1), sort, notes. unique(meal_id, name). (a part is one component of one meal)
+- `part_ingredients`: part_id -> parts, ingredient_id -> ingredients, qty numeric(8,1) (grams or pieces at base), unique(part_id, ingredient_id). A part's ingredients sum to its base_qty (grams) or are 1:1 for pieces.
+- Pantry items live in `meals.pantry` (shown on recipe cards), not tracked in stock.
 - `profile_portions`: part_id, profile, qty int (grams rounded to 5, or whole pieces), computed_qty int, is_manual bool, updated_by_user_id, updated_at. unique(part_id, profile).
 - `profile_day_results`: menu menu_code, profile, kcal int, protein_g int, carb_g int, fat_g int, factors jsonb {protein, carb, fat}, flagged bool, flag_reason text, computed_at. unique(menu, profile).
-- `swap_rules`: id, code unique, label, from_kind text ('ingredient','slot'), from_ingredient_ids uuid[] (any of), from_meal_codes text[] null (restrict to meals, e.g. chili only), from_slot slot null, to_ingredient_id null, to_meal_id null (savory snack), qty_mode text ('same','fixed','multiply','add'), qty_value numeric(8,1) null, cost_mode text ('zero','price_difference'), active bool, sort.
+- `swap_rules`: id, code unique, label, from_kind text ('ingredient','slot'), from_ingredient_ids uuid[] (any of), from_meal_codes text[] null (restrict to meals, e.g. chili only), from_slot slot null, to_ingredient_id null, to_ingredient_split jsonb null ([{ ingredientId, fraction }], fractions sum to 1, overrides to_ingredient_id; gomen -> cabbage 0.6 / carrot 0.4), to_meal_id null (savory snack), qty_mode text ('same','fixed','multiply','add'), qty_value numeric(8,1) null, cost_mode text ('zero','price_difference'), active bool, sort.
 - `client_swaps`: client_id, swap_rule_id null (null = custom request needing nutritionist), custom_request text null, status swap_status, effective_week_start date, ended_week_start date null, requested_by_user_id, decided_by_user_id null, decided_at null, note.
 - `client_addons`: client_id, kind text ('extra_protein'), slot slot, effective_week_start, ended_week_start null, price_birr_per_portion int, created_by.
 
@@ -118,14 +118,14 @@ All tables: `id uuid primary key default gen_random_uuid()`, `created_at timesta
 - `packages`: id, code package_code unique, name, swap_limit int, checkin_interval_days int (30/14/7), coaching text, delivery_options delivery_option[], service_fee_month_birr int default 0, priority_slot bool, sort, active.
 - `subscriptions`: id, client_id, package_id, goal, delivery_option, billing_period, start_date date, end_date date, term_months int, price_day_birr int, price_month_birr int, plan_price_birr int, price_breakdown jsonb (the full domain pricing result), price_locked_until date, discount_month_birr int default 0, discount_reason text, discount_by_user_id null, status subscription_status, is_quick_start bool, quick_start_period_end date null, is_demo.
 - `pauses`: subscription_id, client_id, start_week date (Monday), weeks int > 0, requested_by_user_id, created_at. Applying a pause moves `subscriptions.end_date` by 7 × weeks days (business rule 6).
-- `invoices`: id, client_id, subscription_id, kind invoice_kind, period_start date, period_end date (inclusive), service_days int, amount_birr int, status invoice_status, due_at timestamptz, credit_applied_birr int default 0, is_demo. unique(subscription_id, kind, period_start).
+- `invoices`: id, client_id, subscription_id (not null), kind invoice_kind, period_start date, period_end date (inclusive), service_days int, amount_birr int, status invoice_status, due_at timestamptz, credit_applied_birr int default 0, is_demo. unique(subscription_id, kind, period_start).
 - `payments`: id, invoice_id, client_id, amount_birr, method payment_method, reference text, receipt_key text null, status payment_status, submitted_at, confirmed_by_user_id null, confirmed_at null, rejection_reason null, is_demo.
 - `account_credits`: client_id, amount_birr int (positive = client is owed), reason, applied_invoice_id null.
 
 ### Orders, kitchen
 - `weekly_orders`: id, client_id, subscription_id, week_start date, profile, status order_status, is_quick_start bool, locked_at timestamptz, delivery_option, skip_reason text null, is_demo. unique(client_id, week_start).
 - `order_days`: id, weekly_order_id, client_id, service_date date (the menu day eaten), cook_date date, drop_date date, menu menu_code, is_quick_start bool. unique(client_id, service_date).
-- `order_meals`: id, order_day_id, client_id, meal_id, slot, profile, items jsonb (array of { partId, partName, category, unit, qty, ingredients: [{ingredientId, name, qty}] } after swaps/add-ons), kcal int, protein_g int, carb_g int, fat_g int, conflicts text[] (allergy/dislike conflicts left after swaps), cook_date, eat_by date.
+- `order_meals`: id, order_day_id, client_id, meal_id, slot (unique(order_day_id, slot)), profile, items jsonb (array of { partId, partName, category, unit, qty, ingredients: [{ingredientId, name, qty}] } after swaps/add-ons), kcal int, protein_g int, carb_g int, fat_g int, conflicts text[] (allergy/dislike conflicts left after swaps), cook_date, eat_by date.
 - `purchases`: ingredient_id, qty int (grams or pieces), total_price_birr int, supplier, purchased_on date, by_user_id, is_demo.
 - `stock_counts`: ingredient_id, count_date date, qty int, by_user_id, is_demo. unique(ingredient_id, count_date).
 - `waste_log`: ingredient_id, qty int, reason, logged_on date, by_user_id.
@@ -138,7 +138,7 @@ All tables: `id uuid primary key default gen_random_uuid()`, `created_at timesta
 - `partner_contributions`: partner_user_id -> user, contributed_on date, type contribution_type, amount_birr int null, hours numeric(6,1) null, note, created_by, is_demo.
 
 ### Notifications, jobs, telegram
-- `notifications`: user_id, kind text, title, body, link text null, dedupe_key text unique, read_at null, telegram_status text ('none','pending','sent','failed','digest'), created_at.
+- `notifications`: user_id, kind text, title, body, link text null, dedupe_key text unique null, read_at null, telegram_status text ('none','pending','sent','failed','digest'), created_at.
 - `job_runs`: job text, run_key text (Addis date or week), started_at, finished_at null, summary jsonb. unique(job, run_key).
 - `telegram_links`: user_id unique, chat_id text null, token_hash text null, token_expires_at null, linked_at null.
 
@@ -194,7 +194,10 @@ assertCan(actor: Actor | null, permission: Permission): asserts actor is Actor  
 assertOwnClient(actor: Actor, clientId: string): void  // staff with clients.read pass; client must match actor.clientId
 class ForbiddenError extends Error {}
 PERMISSIONS: Record<Permission, Role[]>   // single source of truth, mirrors the table above
+// also: PUBLIC_PERMISSIONS (anon), assertClientAccess (= assertOwnClient), assertCanForClient(actor, clientId, staffPerm, ownPerm),
+// canUpdateDrop(actor, drop, today), isStaff, hasRole, homePathFor(roles), loadActor(db, userId)
 ```
+Permission names are the keys of `PERMISSIONS` in `src/server/authz/index.ts` (e.g. `clients.readOwn`, `swaps.approve`, `orders.lock`, `delivery.update`, `community.coach`); `*Own` permissions must be paired with `assertClientAccess` / `assertCanForClient`.
 
 ## 5. Routes and screens per role
 
