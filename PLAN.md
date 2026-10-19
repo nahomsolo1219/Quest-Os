@@ -213,116 +213,148 @@ Jobs: `POST /api/jobs/{tuesday-reminder|thursday-last-call|thursday-lock|friday-
 
 ## 6. Domain functions (src/domain) and signatures
 
+Everything is exported from `src/domain/index.ts` (import a module path such as `@/domain/pricing` to keep bundles small). Plain data only: records (`Record<id, …>`) instead of Maps, `DateStr` = `'YYYY-MM-DD'` Addis business date, instants are `Date` (UTC). Shared types: `types.ts` (enums, `Ingredient`, `Part`, `Meal`, `ResolvedItem` (+ optional `baseQty`), `ResolvedMeal`, `Macros`); settings: `settings.ts`.
+
 ```ts
-// time.ts — the ONLY place time zones are handled (date-fns-tz)
-export const ADDIS_TZ = 'Africa/Addis_Ababa';
-type DateStr = string; // 'YYYY-MM-DD'
-addisDate(instant: Date): DateStr
-addisTime(instant: Date): string                       // 'HH:mm'
-addisInstant(date: DateStr, time: string): Date         // Addis wall time -> UTC instant
-isoWeekday(date: DateStr): 1|2|3|4|5|6|7               // Mon=1
-weekStartOf(date: DateStr): DateStr                    // Monday
-addDays(date: DateStr, n: number): DateStr
-daysBetween(a: DateStr, b: DateStr): number
-formatDate(date: DateStr, style?: 'short'|'long'): string
+// time.ts — the ONLY place time zones are handled (date-fns-tz). DateStr maths is TZ-independent (UTC epoch days).
+ADDIS_TZ = 'Africa/Addis_Ababa'
+addisDate(instant: Date): DateStr;  addisTime(instant): 'HH:mm';  addisMinutes(instant): number
+addisInstant(date: DateStr, time: 'HH:mm'): Date        // Addis wall time -> UTC instant
+startOfAddisDay(date): Date
+isoWeekday(date): 1..7 (Mon=1);  weekStartOf(date): Monday;  addDays(date, n);  addMonths(date, n) (clamps month end)
+daysBetween(a, b): b − a;  compareDates;  minDate(...);  maxDate(...);  datesInRange(a, b);  isWithin(d, a, b)
+monthStartOf(date);  monthEndOf(date);  isDateStr(s)
+formatDate(date, 'short'|'long'): "Thu 22 Oct" | "Thursday, 22 October 2026";  formatAddisDateTime(instant): "Thu 22 Oct, 18:00"
 
-// money.ts, phone.ts, format.ts
-formatBirr(n: number): string                          // "58,400 ETB"
-roundToNearest(n: number, step: number): number
-normalizeEthiopianPhone(input: string): string | null  // +2519XXXXXXXX / +2517XXXXXXXX
-displayName(first: string, last: string): string       // "Dagi K."
-
-// settings.ts — Zod schemas + defaults for every settings key (pricing, nutrition, schedule, community, delivery)
+// money.ts, phone.ts, format.ts, contrast.ts
+formatBirr(n): "58,400 ETB";  roundToNearest(n, step) (halves up);  ceilTo(n, step);  floorTo(n, step);  roundDecimals(n, d)
+normalizeEthiopianPhone(input): '+2519XXXXXXXX' | '+2517XXXXXXXX' | null;  formatEthiopianPhone(e164): "+251 91 123 4567"
+displayName(first, last): "Dagi K.";  profileLabel(profile): "M-Lean";  signed(n, decimals): "−3.2" (U+2212)
+BRAND_COLORS, BRAND_TEXT_PAIRS;  relativeLuminance(hex);  contrastRatio(hexA, hexB)   // WCAG 2.x
 
 // nutrition.ts
-bmr(i: { sex; weightKg; heightCm; age }): number
-tdee(bmr: number, activity: Activity): number
-goalKcal(tdee: number, goal: Goal, s: NutritionSettings): number
-pickSize(kcal: number, goal: Goal, s: NutritionSettings): Size
-macroGrams(kcal: number, goal: Goal, s: NutritionSettings): { proteinG; carbG; fatG }
-suggestNutrition(intake, s): { bmr; tdee; targetKcal; size; sizeKcal; proteinG; carbG; fatG }
-profileOf(size: Size, goal: Goal): Profile
+bmr({ sex, weightKg, heightCm, age }): number                    // unrounded Mifflin-St Jeor
+tdee(bmr, activity, s: NutritionSettings);  goalKcal(tdee, goal, s)
+pickSize(kcal, goal, s): Size                                      // ties: lean -> smaller, build -> larger
+macroGrams(kcal, goal, s): { proteinG; carbG; fatG }               // whole grams, 4/4/9
+macroTargets(kcal, goal, s)                                        // unrounded
+suggestNutrition({ sex, weightKg, heightCm, age, activity, goal }, s):
+  { bmr; tdee; targetKcal; size; sizeKcal; profile; proteinG; carbG; fatG }   // integers; macros from sizeKcal
+profileOf(size, goal): Profile;  sizeAndGoalOf(profile): { size; goal }
 
-// recipes.ts — plain types for Ingredient, Part, PartIngredient, Meal, MenuDay and:
-partMacros(part, qty, ingredients): Macros
-mealMacros(meal, qtyByPartId, ingredients): Macros
-ingredientUse(meal, qtyByPartId): { ingredientId; qty }[]    // egg whites -> eggs via stockIngredientId
-mealCost(uses, ingredients, buffers?): { costBirr: number; missing: string[] } // float birr, missing price names
+// recipes.ts
+type IngredientIndex = Record<id, Ingredient>; type QtyByPartId = Record<partId, number>
+indexIngredients(list);  ZERO_MACROS;  addMacros;  sumMacros;  scaleMacros;  roundMacros (whole kcal / grams)
+ingredientMacros(ing, qty);  itemMacros(item, ingredients)         // seasoning parts / seasoning ingredients excluded
+partIngredientsAt(part, qty);  resolvePart(part, qty?);  resolveMeal(meal, qtyByPartId?): ResolvedMeal
+partMacros(part, qty, ingredients);  mealMacros(resolved, ingredients);  baseMealMacros(meal, ingredients, qtyByPartId?)
+ingredientUse(items | resolvedMeal, ingredients, { trackedOnly? }): { ingredientId; qty }[]   // egg white -> eggs 1:1
+lineCost(ing, qty, ingredients?): number | null                    // piece: n × price; kg/litre: g ÷ gramsPerUnit × price
+mealCost(uses, ingredients, buffers?): { costBirr|null; bufferedBirr|null; lines; missing: string[] }
+isShortShelfLife(items, ingredients);  sortBySlot(list);  SLOT_ORDER
 
 // portions.ts
-computeProfilePortions(menuDay: MenuDayInput, profile: Profile, s: NutritionSettings, manual?: Map<partId, qty>):
-  { qtyByPartId: Map; factors: { protein; carb; fat }; totals: Macros; flagged: boolean; flagReason?: string }
-roundPortion(qty: number, unit: 'g'|'piece'): number
+portionGroupOf(category): 'protein'|'carb'|'fat'|'fixed'|'untracked'
+roundPortion(qty, unit, step = 5);  clampedRound(part, factor, s)  // stays inside [factorMin, factorMax] × base
+computeProfilePortions(day: { menu; meals: Meal[] }, profile, ingredients, s: NutritionSettings, manual?: QtyByPartId):
+  { menu; profile; qtyByPartId; computedQtyByPartId; manualPartIds; factors: { protein; carb; fat };
+    totals: Macros; target: Macros; deviation: { kcal; protein; carb; fat }; clamped; flagged; flagReason? }
 
 // swaps.ts
-applySwaps(meal: ResolvedMeal, swaps: SwapRule[], addons: Addon[], savoryMeal?: ResolvedMeal): ResolvedMeal  // returns items after swaps
-countStandingSwaps(clientSwaps): number
-checkSwapRequest(pkg, activeSwaps, rule | null): { ok: true } | { ok: false; reason: 'limit' | 'needs_approval' }
-extraProteinPrice(ingredientCostPer50g: number, buffer: number, marginFloor: number): number // ceil to 10
-findConflicts(allergies: string[], dislikes: string[], meal: ResolvedMeal, ingredientNames): Conflict[]
+type SwapRule = { id; code; label; fromKind; fromIngredientIds; fromMealCodes; fromSlot; toIngredientId; toIngredientSplit?;
+                  toMealId; qtyMode: 'same'|'fixed'|'multiply'|'add'; qtyValue; costMode; active; sort }
+type Addon = { kind: 'extra_protein'; slot; grams? }
+applySwaps(meal: ResolvedMeal, rules: SwapRule[], addons: Addon[], ctx: { ingredients; replacementMeals?; roundGramsTo?; extraProteinGrams? }): ResolvedMeal
+applyAddons(meal, addons, ctx);  mainProteinItem(meal): ResolvedItem | null;  swapTouchesMeal(rule, meal)
+extraProteinPrice(cost, buffer, marginFloor): number              // up to the nearest 10
+type ClientSwap = { swapRuleId|null; status; effectiveWeekStart; endedWeekStart|null }
+swapActiveInWeek(swap, weekStart);  countStandingSwaps(clientSwaps, weekStart)
+checkSwapRequest({ swapLimit }, clientSwaps, ruleId|null, weekStart): { ok: true } | { ok: false; reason: 'limit'|'needs_approval'|'duplicate' }
+findConflicts(allergies, dislikes, meal: ResolvedMeal, ingredients): { term; kind; item; on: 'ingredient'|'part'|'meal' }[]
+conflictText(c): "Allergy: peanut (Peanut butter)";  conflictWords(term);  termMatches(term, text);  CONFLICT_SYNONYMS
 
 // pricing.ts
-priceClient(i: { weekMenu: ResolvedMeal[][] (7 days), ingredients, settings: PricingSettings, deliveryOption, pkg }):
-  { ok: true; foodDay; bufferedFoodDay; deliveryDay; consultDay; fixedDay; priceDay; priceMonth; planPrice; priceDayBirr }
-  | { ok: false; missing: string[] }                    // blocks publishing a price
-quickStartAmount(priceDay: number, serviceDays: number): number   // round to nearest 10
-periodAmount(planPrice: number, serviceDays: number, s): number   // weekly / partial periods, nearest 10
-priceLockedUntil(start: DateStr): DateStr                // + 4 months
+priceClient({ weekMenu: ResolvedMeal[][] (7 days), ingredients, settings: PricingSettings, deliveryOption, serviceFeeMonthBirr }):
+  { ok: true; foodDay; bufferedFoodDay; deliveryDay; consultDay; fixedDay; priceDay; priceDayBirr; priceMonth; planPrice; lines }
+  | { ok: false; missing: string[] }                               // blocks publishing a price
+priceFromFoodDay(bufferedFoodDay, deliveryOption, serviceFeeMonthBirr, s)   // same formula from a known food cost
+quickStartAmount(priceDay, serviceDays, s?): number               // nearest 10
+periodAmount({ planPriceBirr, discountMonthBirr?, serviceDays, isFullMonth }, s): number   // D021
+priceLockedUntil(start, months = 4): DateStr
 
 // schedule.ts
-menuForDate(date, s: ScheduleSettings): MenuCode
-isServiceDay(date, s): boolean
-weeklyCutoff(weekStart: DateStr, s): Date                // Thursday 18:00 Addis of the PREVIOUS week
-nextLockableWeek(now: Date, s): DateStr                  // first week whose cutoff has not passed
-changeEffectiveWeek(now, s): DateStr                     // = nextLockableWeek
-mealDatesForWeek(weekStart, s): { serviceDate; cookDate; dropDate; menu }[]  // Sunday folded into Saturday when Sunday is not a service day
-quickStartPlan(now: Date, s, takenByDate: Record<DateStr, number>): { startDate; periodEnd; serviceDays; lockAt: Date; capacityShifted: boolean }
-dropsFor(option: DeliveryOption, dates): { dropDate; serviceDates; slot }[]
+menuForDate(date, s);  isServiceDay(date, s);  nextServiceDay(date, s);  serviceDaysBetween(a, b, s): DateStr[]
+weeklyCutoff(weekStart, s): Date                  // Thursday 18:00 Addis of the PREVIOUS week
+nextLockableWeek(now, s): DateStr                 // first Monday whose cutoff is strictly after now
+changeEffectiveWeek(now, s) = nextLockableWeek;  weekLockedAt(now, s) = nextLockableWeek − 7
+type MealDate = { serviceDate; cookDate; dropDate; menu }
+mealDatesForWeek(weekStart, s): MealDate[]        // Sunday folded into Saturday when Sunday is not a service day
+mealDatesBetween(start, end, s): MealDate[]
+quickStartPlan(now, s, takenByDate): { startDate; periodEnd; serviceDays; mealDates; lockAt: Date; capacityShifted } | null
+dropsFor(option, mealDates): { dropDate; serviceDates; slot: null|'breakfast'|'lunch'|'dinner_snack'; kind: 'delivery'|'pickup' }[]
+alignToDrops(option, mealDates): MealDate[]      // cook = drop date of the drop that carries the meal
 
 // subscriptions.ts
-applyPause(sub: { endDate }, startWeek: DateStr, weeks: number, now, s): { endDate } | error (not whole weeks / after cutoff)
-invoicePeriods(sub, fromDate, toDate): { start; end; kind }[]
+applyPause({ endDate }, startWeek, weeks, now, s): { ok: true; startWeek; endWeek; weeks; endDate }
+  | { ok: false; reason: 'not_monday'|'not_whole_weeks'|'after_cutoff'|'after_end' }
+isPausedWeek(pauses: { startWeek; weeks }[], weekStart)
+invoicePeriods({ startDate, endDate, billingPeriod, billingAnchor? }, s, from?, to?): { start; end; kind; isFullMonth; serviceDays }[]
+invoiceAmount(period, { planPriceBirr, discountMonthBirr? }, pricing)
 coveredDates(invoices (paid), dates): Set<DateStr>
+nextInvoicesToGenerate(sub, existing, lockWeek, { schedule, pricing }): (period & { amountBirr; dueAt })[];  nextInvoiceToGenerate(...)
+subscriptionEndDate(start, termMonths);  renewEndDate(endDate, termMonths)
 
 // orders.ts
-lockWeek(i: { weekStart; now; clients: LockClient[]; menu; portions; swapRules; ingredients; settings }): { orders: LockedOrder[]; summary: { locked; skippedUnpaid; paused } }
-buildOrderDays(client, dates, ...): OrderDayDraft[]      // shared by weekly lock and quick start
+type MenuData = { meals; portions: Partial<Record<Profile, QtyByPartId>>; swapRules; ingredients }
+type OrderClient = { clientId; firstName; lastName; allergies; dislikes; profile; deliveryOption; swapRuleIds; addons }
+buildClientMeal(meal, client, mealDate, data, s): OrderMealDraft  // portions -> swaps -> add-ons -> macros, conflicts, eat-by
+buildOrderDays(client, mealDates, data, s): OrderDayDraft[]        // shared by weekly lock and quick start
+lockWeek({ weekStart, clients: LockClient[], data, settings }): { orders: LockedOrder[]; summary: { locked; skippedUnpaid; paused; meals } }
+  // LockClient = OrderClient + { subscription: { id; status; startDate; endDate }; pauses; paidInvoices; existingServiceDates? }
 
 // production.ts
-productionSheet(meals: OrderMealRow[], cookDate): { parts: { partName; category; unit; perProfile: { profile; qty; count; total }[]; total }[]; mealsCount }
-packingList(meals, clients): { client; items; conflicts }[]
-labels(meals, clients): Label[]                          // eat-by = cook + 3, or + 2 if fish/injera
-eatBy(cookDate, shortShelfLife: boolean): DateStr
+eatBy(cookDate, shortShelfLife, s?): DateStr      // + freshnessDays (3) or + shortShelfLifeDays (2)
+productionSheet(meals: OrderMealRow[], cookDate): { cookDate; mealsCount; rows: { mealId; mealName; slot; partName; category; unit;
+  perProfile: { profile; qty; count; total }[]; total }[]; ingredients: { ingredientId; qty }[] }
+packingList(meals, clients): { clientId; name; allergies; meals; conflicts; hasConflicts }[]
+labels(meals, clients): { name; mealName; slot; profile; profileLabel; kcal; proteinG; carbG; fatG; serviceDate; cookDate; eatBy; allergyNote; reheat }[]
 
 // shopping.ts
-requiredIngredients(meals: OrderMealRow[], ingredients): Map<ingredientId, qty>   // egg whites counted as eggs
-stockOnHand(i: { lastCount; purchasesSince; wasteSince; usedSince }): number
-shoppingList(required, onHand, ingredients): { ingredientId; name; needQty; onHand; buyQty; buyUnits: number; unit; costBirr | null }[] // never negative
+requiredIngredients(meals, ingredients): Record<ingredientId, qty>          // egg whites as eggs, stock-tracked only
+stockOnHand({ lastCount, purchasesSince, wasteSince, usedSince }): number   // never negative
+toPurchaseUnits(qty, unit, gramsPerUnit)                                    // up to 0.1 kg / litre, whole pieces
+shoppingList(required, onHand, ingredients, { includeCovered?, suppliers? }):
+  { lines: { ingredientId; name; needQty; onHand; buyQty; buyUnits; unit; costBirr | null }[]; totalBirr; missingPrices }
 
 // delivery.ts
-groupDropsByArea(drops): { area; drops }[]
-reorder(drops, fromIndex, toIndex): drops
+groupDropsByArea(drops: { id; areaId; areaName; areaSort; routePosition }[]): { areaId; areaName; drops }[]
+reorder(drops, fromIndex, toIndex): drops (route positions renumbered 1..n)
 
 // kpis.ts
-dashboardKpis(i): { activeClients; newThisMonth; churnedThisMonth; churnRate; mrr; invoiced; collected; foodCost; foodCostPct; marginEstimate; onTimePct; quickStartsThisWeek }
-mealRatingAverages(ratings, since): { mealId; avg; count }[]
-clientsNeedingAttention(i): { clientId; reasons: ('unpaid'|'allergy_conflict'|'no_checkin_2w')[] }[]
+dashboardKpis({ month, today, clients, subscriptions, invoices, payments, purchases, drops, pricing, schedule }):
+  { activeClients; newThisMonth; churnedThisMonth; churnRate; mrr; invoiced; collected; foodCost; foodCostPct|null;
+    marginEstimate; deliveryCost; onTimePct|null; quickStartsThisWeek }
+mealRatingAverages(ratings, today, days = 28): { mealId; avg; count }[]
+clientsNeedingAttention({ now, today, clients, invoices, currentOrderConflicts, lastCheckins }): { clientId; reasons: ('unpaid'|'allergy_conflict'|'no_checkin_2w')[] }[]
 
 // community.ts
-communityAccess(m: { roles; clientStatus; endedAt; mutedUntil }, now): 'none'|'read'|'react'|'full'
-progressSummary(checkins): { kgChange; weeks } | null    // "−3.2 kg in 4 weeks"
-streak(checkinDates, today): number
-leaderboard(checkins): { userId; days }[]
+communityAccess({ roles; clientStatus; endedAt; mutedUntil }, now, s?): 'none'|'read'|'react'|'full'
+canRead / canReact / canPost(level);  communityPowers(roles): { moderate; pin; challenges; markAnswer; coachBadge }
+progressSummary(checkins): { kgChange; weeks } | null;  formatProgress(p): "−3.2 kg in 4 weeks"
+streak(checkinDates, today): number;  leaderboard(checkins): { userId; days }[]
 
 // checkins.ts
-renewalRemindersDue(subs, today): { subscriptionId; daysLeft: 5|1 }[]
-checkinDue(client, today): boolean
+renewalRemindersDue(subs, today, daysBefore = [5, 1]): { subscriptionId; daysLeft }[]
+checkinDue({ checkInWeekday, status? }, today): boolean;  lastCheckinOlderThan(last, today, days): boolean
+
+// seed-data.ts (reference data, SPEC docs 4-6) and seed-domain.ts (the same as domain types, ids = slugs / meal codes)
+seedIngredients(prices?);  seedMeals();  seedMenuDay(menu);  seedSwapRules()
 ```
 
 ## 7. Domain rules decided here (also in DECISIONS.md)
 
 - Cook date = drop date. Daily and three-drops: each service day is its own cook day. Sunday's meals (when Sunday is not a service day and `sundayWithSaturday` is on) are cooked and dropped Saturday. Every-3-days: drops group up to 3 consecutive meal dates. Weekly delivery stays a pricing option but no package offers it and it cannot be enabled while the freshness rule is 3 days.
-- Quick start: start = next service day after the quick-start lock (today 18:00 if paid by then). Period runs from start to the end of the week locked by the first weekly cutoff after the lock, so the client never falls between a lock they missed and the cycle. Amount = price_day × service days in period, nearest 10. Capacity per start date (default 5); if full, the next date with room.
+- Quick start: start = next service day after the quick-start lock (today 18:00 if paid by then). Period runs from start to the Sunday before the first week that a weekly cutoff strictly after the client's lock will lock (a weekly lock at the same instant does not include them), so the client never falls between a lock they missed and the cycle (Monday sign-up -> this Sunday; Friday -> end of next week; D017, D104). Amount = price_day × service days in period, nearest 10. Capacity per start date (default 5); if full, the next date with room.
 - Weekly lock covers week W+1 at Thursday 18:00 of W. A day is cooked only if it is covered by a paid invoice; a week with no covered days is `skipped_unpaid`. Paused week -> `paused`.
 - Billing: weekly invoices cover Monday–Sunday weeks; monthly invoices cover calendar months from the start date. Both are generated at the Thursday lock for the period starting in the week after next, due at that period's cutoff. Amount for a full month = plan_price − discount; for any other period = round10((plan_price − discount) × service days ÷ 26).
 - Subscription term: default 1 month, options 1–4 months; price locked 4 months from start; renew = extend end_date by the term.

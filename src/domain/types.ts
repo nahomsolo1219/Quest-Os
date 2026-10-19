@@ -144,6 +144,8 @@ export type ResolvedItem = {
   unit: "g" | "piece";
   qty: number;
   ingredients: { ingredientId: string; qty: number }[];
+  /** base-recipe qty of the part this item came from (lets swaps scale fixed amounts to the profile) */
+  baseQty?: number;
   /** set when this item came from a swap or add-on */
   source?: { kind: "swap" | "addon"; code: string };
 };
