@@ -18,11 +18,11 @@ import { generateInvoicesForSubscription, takeDaysOffInvoice, voidInvoice } from
 
 type Snapshot = { db: DbOrTx; now: Date };
 
-async function insertOrderDays(db: DbOrTx, weeklyOrderId: string, clientId: string, profile: Profile, days: OrderDayDraft[], isQuickStart: boolean, kitchenNotes: string[] = []) {
+async function insertOrderDays(db: DbOrTx, weeklyOrderId: string, clientId: string, profile: Profile, days: OrderDayDraft[], isQuickStart: boolean, kitchenNotes: string[] = [], deliveryOption: DeliveryOption | null = null) {
   let meals = 0;
   for (const d of days) {
     const [day] = await db.insert(orderDays).values({
-      weeklyOrderId, clientId, serviceDate: d.serviceDate, cookDate: d.cookDate, dropDate: d.dropDate, menu: d.menu, isQuickStart,
+      weeklyOrderId, clientId, serviceDate: d.serviceDate, cookDate: d.cookDate, dropDate: d.dropDate, menu: d.menu, isQuickStart, deliveryOption,
     }).onConflictDoNothing().returning();
     if (!day) continue; // already ordered (idempotent)
     if (d.meals.length) {
@@ -96,7 +96,7 @@ export async function lockWeekOrders({ db, now }: Snapshot, weekStart: DateStr) 
       if (!created && (row.status !== "locked" || o.status !== "locked")) { summary.alreadyLocked++; return; }
       const name = `${plans.get(o.clientId)?.firstName ?? ""} ${plans.get(o.clientId)?.lastName?.[0] ?? ""}.`;
       if (o.status === "locked") {
-        const added = await insertOrderDays(tx, row.id, o.clientId, o.profile, o.days, false, plans.get(o.clientId)?.kitchenNotes ?? []);
+        const added = await insertOrderDays(tx, row.id, o.clientId, o.profile, o.days, false, plans.get(o.clientId)?.kitchenNotes ?? [], o.deliveryOption);
         summary.meals += added;
         if (created || added > 0) summary.locked++; else summary.alreadyLocked++;
       } else if (o.status === "paused") { summary.paused++; summary.pausedNames.push(name); }
@@ -290,7 +290,7 @@ export async function lockQuickStarts({ db, now }: Snapshot) {
           [row] = await tx.update(weeklyOrders).set({ status: "locked", isQuickStart: true, subscriptionId: sub.id, skipReason: null, lockedAt: now,
             deliveryOption: sub.deliveryOption, profile: plan.profile }).where(eq(weeklyOrders.id, row.id)).returning();
         }
-        summary.meals += await insertOrderDays(tx, row.id, sub.clientId, plan.profile, wdays, true);
+        summary.meals += await insertOrderDays(tx, row.id, sub.clientId, plan.profile, wdays, true, [], sub.deliveryOption);
       }
     });
     summary.added++;
@@ -305,7 +305,7 @@ const QUICK_START_EXPIRY_MS = 72 * 60 * 60 * 1000;
 
 /** Creates delivery / pick-up drops for order days in [from, to] (idempotent; address snapshot at creation). */
 export async function ensureDrops(db: DbOrTx, from: DateStr, to: DateStr, addressAsOf?: Date) {
-  const days = await db.select({ day: orderDays, option: weeklyOrders.deliveryOption }).from(orderDays)
+  const days = await db.select({ day: orderDays, option: sql<DeliveryOption>`coalesce(${orderDays.deliveryOption}, ${weeklyOrders.deliveryOption})` }).from(orderDays)
     .innerJoin(weeklyOrders, eq(weeklyOrders.id, orderDays.weeklyOrderId))
     .where(and(gte(orderDays.dropDate, from), lte(orderDays.dropDate, to), eq(weeklyOrders.status, "locked")));
   if (days.length === 0) return 0;
@@ -317,8 +317,11 @@ export async function ensureDrops(db: DbOrTx, from: DateStr, to: DateStr, addres
         gt(auditLog.createdAt, addressAsOf))).orderBy(asc(auditLog.createdAt))
     : [];
   let created = 0;
-  for (const clientId of clientIds) {
-    const mine = days.filter((d) => d.day.clientId === clientId);
+  // drops are planned per client AND delivery option: each day carries the option of the plan that ordered it
+  const groups = new Map<string, typeof days>();
+  for (const d of days) groups.set(`${d.day.clientId}|${d.option}`, [...(groups.get(`${d.day.clientId}|${d.option}`) ?? []), d]);
+  for (const mine of groups.values()) {
+    const clientId = mine[0].day.clientId;
     const option = mine[0].option as DeliveryOption;
     const found = cs.find((x) => x.c.id === clientId)!;
     const info = { ...found, c: { ...found.c } };

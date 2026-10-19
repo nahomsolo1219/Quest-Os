@@ -49,6 +49,9 @@ export const orderDays = pgTable(
     dropDate: date("drop_date", { mode: "string" }).notNull(),
     menu: menuCodeEnum("menu").notNull(),
     isQuickStart: boolean("is_quick_start").notNull().default(false),
+    /** the delivery option of the plan that ordered this day (a returning client's quick start can share a week row
+     * with their previous plan); null on rows from before this column = the weekly order's option */
+    deliveryOption: deliveryOptionEnum("delivery_option"),
     ...timestamps(),
   },
   (t) => [

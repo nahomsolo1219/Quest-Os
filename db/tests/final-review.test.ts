@@ -541,3 +541,33 @@ describe("final review, tenth pass", () => {
     });
   });
 });
+
+describe("final review, eleventh pass", () => {
+  it("quick-start days added to the old plan's locked week use the new plan's delivery option", async () => {
+    await inRollback(db, async (tx) => {
+      await setAllPrices(tx);
+      const ops = await actorByEmail(tx, "nebiyou@questmeals.demo");
+      const sub = await activeWeekly(tx);
+      await tx.update(s.subscriptions).set({ endDate: "2026-10-28", deliveryOption: "daily" }).where(eq(s.subscriptions.id, sub.id));
+      const [inv] = await tx.select().from(s.invoices).where(and(eq(s.invoices.subscriptionId, sub.id), eq(s.invoices.periodStart, "2026-10-26")));
+      if (inv.status === "issued") {
+        const p = await submitPayment({ db: tx, actor: ops, now: at("2026-10-21T07:00:00Z") }, { invoiceId: inv.id, method: "cash" });
+        await confirmPayment({ db: tx, actor: ops, now: at("2026-10-21T07:00:00Z") }, p.id);
+      }
+      await runJob(tx as never, "thursday-lock", THU_LOCK);
+      await runJob(tx as never, "daily-renewals", at("2026-10-29T06:00:00Z"));
+      const [pkg] = await tx.select().from(s.packages).where(eq(s.packages.code, "essential"));
+      const thu10 = at("2026-10-29T07:00:00Z");
+      const q = await createSubscription({ db: tx, actor: ops, now: thu10 }, { clientId: sub.clientId, packageId: pkg.id, deliveryOption: "pickup", billingPeriod: "weekly", termMonths: 1, start: "quick_start" });
+      const p = await submitPayment({ db: tx, actor: ops, now: thu10 }, { invoiceId: q.invoice.id, method: "cash" });
+      await confirmPayment({ db: tx, actor: ops, now: thu10 }, p.id);
+      await runJob(tx as never, "thursday-lock", at("2026-10-29T15:00:05Z"));
+      const drops = await tx.select().from(s.deliveryDrops).where(eq(s.deliveryDrops.clientId, sub.clientId));
+      const kindOn = (date: string) => [...new Set(drops.filter((d) => d.serviceDates.includes(date)).map((d) => d.kind))];
+      expect(kindOn("2026-10-26")).toEqual(["delivery"]); // old plan: daily delivery
+      for (const date of ["2026-10-30", "2026-10-31", "2026-11-01"]) expect(kindOn(date)).toEqual(["pickup"]); // new plan: pickup
+      const days = await tx.select().from(s.orderDays).where(and(eq(s.orderDays.clientId, sub.clientId), eq(s.orderDays.serviceDate, "2026-10-31")));
+      expect(days[0].deliveryOption).toBe("pickup");
+    });
+  });
+});
