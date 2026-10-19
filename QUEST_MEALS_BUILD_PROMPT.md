@@ -161,9 +161,12 @@ These are the business records. Design the actual schema yourself (see the instr
 | Part | Choice | Why |
 | --- | --- | --- |
 | App | Next.js (App Router, TypeScript, strict mode), installable PWA | One codebase for staff and clients |
-| Database, login, files | Supabase: Postgres, Auth, Storage, Row Level Security | Role-based access, receipt and photo storage, low cost |
+| Database | Railway Postgres, accessed with Drizzle ORM and SQL migrations | Everything on one platform; typed queries |
+| Login | Better Auth (self-hosted in the app, sessions stored in the same Postgres) | Email + password for staff, phone + password for clients, no third-party auth service |
+| Files | Railway Bucket (S3-compatible) through the AWS S3 SDK, private objects served by short-lived signed URLs | Receipt photos, community photos, avatars |
 | Styling | Tailwind CSS and shadcn/ui | Fast, consistent, accessible components |
-| Hosting | Railway for the Next.js app, Supabase cloud for data | Railway is already in use for the pricing tool |
+| Hosting | Railway only: the Next.js app service, the Postgres database, the bucket and cron services, all in one Railway project. Code lives on GitHub (nahomsolo1219/Quest-Os) and Railway deploys from it | The team wants all infrastructure on Railway and GitHub, nothing else |
+| Scheduled jobs | Railway cron services that call the app's secured job routes | Same platform |
 | Notifications | Telegram bot for staff and for clients who opt in; in-app notifications for everyone | Telegram is widely used in Ethiopia and free |
 | Payments | Manual: Telebirr / CBE / cash, receipt upload, ops confirms | No gateway; deliberately out of scope |
 | Printing | Print-ready HTML pages with print CSS (A4 sheets and label sheets) | Works with any printer |
@@ -489,7 +492,7 @@ Features:
 
 <document index="8" name="notifications_and_schedules">
 
-Scheduled jobs (all times Africa/Addis_Ababa). Implement them as idempotent API routes protected by a secret, triggered by a scheduler (Railway cron service or Supabase pg_cron calling the route). Running a job twice must not double-lock, double-charge or double-notify.
+Scheduled jobs (all times Africa/Addis_Ababa). Implement them as idempotent API routes protected by a secret, triggered by Railway cron services calling the route. Running a job twice must not double-lock, double-charge or double-notify.
 
 | When | Job |
 | --- | --- |
@@ -528,13 +531,13 @@ State files (create these in milestone 0 and keep them current):
 
 After any compaction or if you lose track: run `pwd`, read `PROGRESS.md`, `features.json` and `git log --oneline -20`, run the test suite, and continue from the first unfinished item.
 
-Explore first, then plan, then build. Before milestone 1, write `PLAN.md`: the folder structure, the database schema (tables, key columns, relationships, RLS policy per table), the list of routes and screens per role, the domain functions and their signatures, the scheduled jobs, and the test plan. Then build against that plan, updating it when reality differs.
+Explore first, then plan, then build. Before milestone 1, write `PLAN.md`: the folder structure, the database schema (tables, key columns, relationships, which roles may read and write each table), the list of routes and screens per role, the domain functions and their signatures, the scheduled jobs, and the test plan. Then build against that plan, updating it when reality differs.
 </how_to_work>
 
 <subagents>
 Create these project subagents in `.claude/agents/` during milestone 0, then use them. Keep their descriptions short and specific so delegation is reliable. Use subagents when work can run in parallel or would flood your context (reading many files, long test output, independent screens); do simple, sequential or tightly coupled work yourself. Give each subagent a self-contained brief: the files it owns, the spec sections it must satisfy (by heading in `SPEC.md`), the `features.json` ids it is responsible for, and the command that proves it is done. Subagents must not edit files owned by another running subagent; split work by folder to avoid conflicts.
 
-1. `db-engineer` (tools: Read, Write, Edit, Bash, Grep, Glob). Owns `supabase/` (migrations, seed, RLS policies, storage buckets, SQL tests). Writes migrations, seeds the menu, ingredients, swap table, packages and settings from `SPEC.md`, and writes RLS tests proving each role can see and change only what it should.
+1. `db-engineer` (tools: Read, Write, Edit, Bash, Grep, Glob). Owns `db/` (Drizzle schema, SQL migrations, seed, database tests) and `src/server/authz/` (the role-permission checks). Writes migrations, seeds the menu, ingredients, swap table, packages and settings from `SPEC.md`, and writes authorization tests proving each role can see and change only what it should.
 2. `domain-engineer` (tools: Read, Write, Edit, Bash, Grep, Glob). Owns `src/domain/`: pure TypeScript functions with no framework or database imports: nutrition (BMR, TDEE, size, macros), portion profiles, meal macros and cost, pricing, swaps and allergy checks, cutoffs and quick-start dates in the Addis time zone, order locking, production aggregation, shopping list, labels data, KPIs. Writes Vitest unit tests for every function, including edge cases listed in the test plan.
 3. `ui-builder` (tools: Read, Write, Edit, Bash, Grep, Glob). Builds screens in `src/app/` and `src/components/` for one area at a time (staff, kitchen, delivery, client, community), using shadcn/ui, mobile first. Runs typecheck and lint before reporting.
 4. `qa-tester` (tools: Read, Write, Edit, Bash, Grep, Glob). Owns `e2e/` and `scripts/simulate-week.ts`. Writes Playwright tests for the main flows per role, takes screenshots at phone width (390 px) and laptop width (1280 px), reviews them for broken layouts, and reports failures with evidence (test output and screenshot paths).
@@ -547,18 +550,19 @@ Use `domain-engineer` and `db-engineer` in parallel once `PLAN.md` exists. Run `
 Work through these in order. Each milestone ends with: all its tests passing, `features.json` updated, `PROGRESS.md` updated, a `spec-reviewer` pass, fixes, and a git commit.
 
 Milestone 0: Foundation
-- Initialise git, Next.js (App Router, TypeScript strict, ESLint), Tailwind, shadcn/ui, Vitest, Playwright, Supabase CLI project.
+- Initialise git, Next.js (App Router, TypeScript strict, ESLint), Tailwind, shadcn/ui, Vitest, Playwright, Drizzle ORM and drizzle-kit, Better Auth, AWS S3 SDK.
 - Write `SPEC.md`, `features.json`, `PLAN.md`, `DECISIONS.md`, `PROGRESS.md`, and a short `CLAUDE.md` (commands, folder ownership, the Addis time zone rule, "money is integer birr", "pure domain logic lives in src/domain").
-- Write `scripts/init.sh`: installs dependencies, starts local Supabase, applies migrations and seed, starts the dev server. Write npm scripts: `typecheck`, `lint`, `test`, `test:e2e`, `db:reset`, `simulate:week`, `verify` (runs typecheck, lint, unit tests, SQL tests, e2e and the week simulation in order and exits non-zero on any failure).
+- Write `scripts/init.sh`: installs dependencies, starts a local Postgres (Docker if available, otherwise PGlite or an embedded Postgres), applies migrations and seed, starts the dev server. Write npm scripts: `typecheck`, `lint`, `test`, `test:e2e`, `db:reset`, `simulate:week`, `verify` (runs typecheck, lint, unit tests, SQL tests, e2e and the week simulation in order and exits non-zero on any failure).
 - Create the five subagents.
-- If Docker or the Supabase CLI is not available in this environment, record it in `DECISIONS.md` and use a local Postgres (or PGlite) for tests with the same migrations, keeping Supabase-specific pieces (auth, storage, RLS on `auth.uid()`) behind a thin adapter so the app still targets Supabase in production.
+- If Docker is not available in this environment, record it in `DECISIONS.md` and use PGlite or an embedded Postgres for development and tests with the same migrations. For files, use a local-folder storage adapter in development and tests and the Railway Bucket (S3 API) in production, selected by environment variables.
+- Do not use Supabase, Firebase, Vercel, Clerk, Auth0 or any other hosted service. All infrastructure is Railway (app, Postgres, bucket, cron) and GitHub (code). Telegram is only a messaging channel for notifications.
 
 Milestone 1: Data, auth and roles
 - Schema for every record in the data model, plus settings, audit log, notifications, community tables and Telegram links. Use UUID keys, `created_at`/`updated_at`, and money as integer birr. Use Postgres enums or check constraints for statuses.
-- Row Level Security on every table. Clients see only their own records and the community; staff see what their roles allow; nothing is readable anonymously except the public calculator's settings.
-- Auth: staff sign in with email and password. Clients sign in with phone number and password (Supabase phone provider with confirmations off; staff can reset a client's password). Record this decision.
+- Authorization on every query and server action, enforced in one server-side layer (`src/server/authz/`) that every data access goes through, never in the browser. Clients see only their own records and the community; staff see what their roles allow; nothing is readable anonymously except the public calculator's settings.
+- Auth: staff sign in with email and password. Clients sign in with phone number and password (Better Auth with the phone number as the login identifier; no SMS verification; staff can reset a client's password). Record this decision.
 - Seed from documents 4 to 6: ingredients (prices empty), parts, meals, menus A to D, rotation, swap table, packages, pricing settings, nutrition settings, and demo users for every role plus 10 demo clients with varied goals, sizes, allergies, plans and delivery options. Demo data must be clearly marked and removable with one script.
-- Storage buckets: `receipts` (private; client can upload own, staff can read), `community` (members can read), `avatars`.
+- File storage in the Railway Bucket with key prefixes `receipts/` (private; client can upload own, staff can read), `community/` (members can read), `avatars/`. Every read goes through a signed URL issued after an authorization check.
 
 Milestone 2: Domain engine (pure functions, heavily tested)
 - Everything in documents 3 and 6, plus cutoffs, quick start, order locking, production aggregation by profile and part, packing list per client with swaps, labels data with eat-by rules, shopping list (required minus stock, converted to purchase units: kg, litre, piece; egg whites count as eggs), KPI calculations.
@@ -587,9 +591,9 @@ Milestone 5: Dashboard, partner log, notifications and jobs
 Milestone 6: Week-in-the-life simulation, hardening and handover
 - `scripts/simulate-week.ts`: starting from the seed, simulate a full week with a fake clock: Tuesday reminders, receipts uploaded and confirmed, a client who misses payment, a pause, three swaps, Thursday 18:00 lock, Friday shopping list, Saturday purchases with prices entered for every ingredient, Sunday stock count, two quick starts (one paid at 17:30, one at 18:30), daily production sheets, packing lists, labels, deliveries with one failed drop, check-ins, community posts, a challenge and meal ratings. It asserts the expected counts and totals at every step and prints a readable report. This is the dry-run gate from the brief: it must pass.
 - Performance pass: client pages under 200 KB of JavaScript on first load where practical; check with the Next.js build output.
-- Security pass: run the RLS tests, confirm no service-role key reaches the browser, confirm receipts and private data are not publicly readable, confirm every server action checks the caller's role.
+- Security pass: run the authorization tests, confirm no database URL, bucket key or auth secret reaches the browser, confirm receipts and private data are not publicly readable, confirm every server action checks the caller's role.
 - Accessibility pass: labels on inputs, colour contrast, tap targets at least 44 px on phone screens.
-- Write `README.md` (what it is, how to run locally, roles and demo logins, how a week runs in the app), `DEPLOY.md` (Supabase cloud project setup, environment variables, Railway service setup, cron setup, Telegram bot setup, first-admin creation, removing demo data) and a final entry in `PROGRESS.md`.
+- Write `README.md` (what it is, how to run locally, roles and demo logins, how a week runs in the app), `DEPLOY.md` (Railway project setup: app service from the GitHub repo, Postgres, bucket and cron services; environment variables; migrations on deploy; Telegram bot setup, first-admin creation, removing demo data) and a final entry in `PROGRESS.md`.
 </milestones>
 
 <engineering_standards>
