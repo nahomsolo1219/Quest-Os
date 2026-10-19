@@ -48,8 +48,10 @@ export async function quotePrice(db: DbOrTx, q: QuoteInput, today: DateStr): Pro
   const [data, settings] = await Promise.all([loadMenuData(db), loadSettings(db)]);
   const [pkg] = await db.select().from(packages).where(eq(packages.id, q.packageId));
   if (!pkg) throw new ServiceError("Choose a package.");
+  // Swaps marked "0" extra cost in the swap table do not change the price; only price-difference swaps (and add-ons) do.
+  const priced = { ...q, swapRuleIds: (q.swapRuleIds ?? []).filter((id) => data.swapRules.find((r) => r.id === id)?.costMode === "price_difference") };
   return priceClient({
-    weekMenu: rotationWeek(data, settings, q, today),
+    weekMenu: rotationWeek(data, settings, priced, today),
     ingredients: data.ingredients,
     settings: settings.pricing,
     deliveryOption: q.deliveryOption,

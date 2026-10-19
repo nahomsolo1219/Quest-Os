@@ -115,6 +115,8 @@ export function nextInvoicesToGenerate(
     planPriceBirr: number;
     discountMonthBirr?: number;
     quickStartPeriodEnd?: DateStr | null;
+    /** paused weeks are never billed (paused days extend the plan instead) */
+    pauses?: Pause[];
   },
   existing: InvoiceRange[],
   lockWeek: DateStr,
@@ -131,6 +133,11 @@ export function nextInvoicesToGenerate(
       for (let d = p.start; d <= p.end; d = addDays(d, 1)) days.push(d);
       return coveredDates(live.map((i) => ({ ...i, status: undefined })), days).size < days.length;
     })
+    .map((p) => {
+      const paused = pausedServiceDays(sub.pauses ?? [], p.start, p.end, s.schedule);
+      return paused === 0 ? p : { ...p, isFullMonth: false, serviceDays: p.serviceDays - paused };
+    })
+    .filter((p) => p.serviceDays > 0)
     .map((p) => ({ ...p, amountBirr: invoiceAmount(p, sub, s.pricing), dueAt: weeklyCutoff(weekStartOf(p.start), s.schedule) }));
 }
 
@@ -147,4 +154,9 @@ export function subscriptionEndDate(startDate: DateStr, termMonths: number): Dat
 /** The earliest invoice the lock should create (null when nothing is due). */
 export function nextInvoiceToGenerate(...args: Parameters<typeof nextInvoicesToGenerate>): InvoiceDraft | null {
   return nextInvoicesToGenerate(...args)[0] ?? null;
+}
+
+/** Service days in [start, end] that fall in paused weeks. */
+export function pausedServiceDays(pauses: Pause[], start: DateStr, end: DateStr, s: ScheduleSettings): number {
+  return serviceDaysBetween(start, end, s).filter((d) => isPausedWeek(pauses, d)).length;
 }

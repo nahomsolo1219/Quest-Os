@@ -134,6 +134,8 @@ export type Meal = {
   description: string;
   keepsDays: number;
   parts: Part[];
+  /** untracked pantry items listed on the recipe card (allergies are checked against them) */
+  pantry?: string[];
 };
 
 /** A meal with the quantity of every part decided (profile portions, after swaps/add-ons). */

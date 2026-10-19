@@ -31,7 +31,7 @@ export const partnerContributions = pgTable(
   "partner_contributions",
   {
     id: id(),
-    partnerUserId: uuid("partner_user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+    partnerUserId: uuid("partner_user_id").notNull().references(() => user.id, { onDelete: "restrict" }),
     contributedOn: date("contributed_on", { mode: "string" }).notNull(),
     type: contributionTypeEnum("type").notNull(),
     amountBirr: integer("amount_birr"),

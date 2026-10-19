@@ -6,13 +6,14 @@ import {
 import type { DbOrTx } from "@db/client";
 import { buildOrderDays, lockWeek, type OrderDayDraft } from "@/domain/orders";
 import { quickStartAmount } from "@/domain/pricing";
-import { dropsFor, mealDatesBetween, nextServiceDay, quickStartPlan, type MealDate } from "@/domain/schedule";
+import { dropsFor, mealDatesBetween, nextServiceDay, quickStartPlan, weekLockedAt, weeklyCutoff, type MealDate } from "@/domain/schedule";
 import { addDays, addisDate, addisInstant, weekStartOf } from "@/domain/time";
 import { subscriptionEndDate } from "@/domain/subscriptions";
 import type { DateStr, DeliveryOption, Profile } from "@/domain/types";
 import { loadClientPlanInputs, withDelivery } from "./client-plan";
 import { loadMenuData } from "./menu-data";
 import { loadSettings } from "./settings";
+import { generateInvoicesForSubscription, voidInvoice } from "./billing";
 
 type Snapshot = { db: DbOrTx; now: Date };
 
@@ -56,7 +57,7 @@ export async function lockWeekOrders({ db, now }: Snapshot, weekStart: DateStr) 
   const [plans, pauseRows, invRows, existingDays] = await Promise.all([
     loadClientPlanInputs(db, clientIds, weekStart),
     clientIds.length ? db.select().from(pauses).where(inArray(pauses.clientId, clientIds)) : [],
-    clientIds.length ? db.select().from(invoices).where(and(inArray(invoices.clientId, clientIds), eq(invoices.status, "paid"))) : [],
+    paidInvoicesBy(db, clientIds, weeklyCutoff(weekStart, settings.schedule)),
     clientIds.length ? db.select({ clientId: orderDays.clientId, serviceDate: orderDays.serviceDate }).from(orderDays)
       .where(and(inArray(orderDays.clientId, clientIds), gte(orderDays.serviceDate, weekStart), lte(orderDays.serviceDate, weekEnd))) : [],
   ]);
@@ -100,6 +101,22 @@ export async function lockWeekOrders({ db, now }: Snapshot, weekStart: DateStr) 
   return summary;
 }
 
+/**
+ * Invoices that count as paid at `instant` (business rule 1: pay before cooking): status paid AND fully covered by
+ * payments confirmed at or before the instant (an invoice paid entirely by credit counts from its creation).
+ * So a late confirmation never sneaks a client into a lock that already ran, and re-running a lock gives the same result.
+ */
+export async function paidInvoicesBy(db: DbOrTx, clientIds: string[], instant: Date) {
+  if (clientIds.length === 0) return [];
+  const rows = await db.select().from(invoices).where(and(inArray(invoices.clientId, clientIds), eq(invoices.status, "paid")));
+  if (rows.length === 0) return [];
+  const paidSums = await db.select({ invoiceId: payments.invoiceId, n: sql<number>`coalesce(sum(${payments.amountBirr}), 0)::int` })
+    .from(payments)
+    .where(and(inArray(payments.invoiceId, rows.map((r) => r.id)), eq(payments.status, "confirmed"), lte(payments.confirmedAt, instant)))
+    .groupBy(payments.invoiceId);
+  return rows.filter((r) => r.amountBirr === 0 ? r.createdAt <= instant : (paidSums.find((p) => p.invoiceId === r.id)?.n ?? 0) >= r.amountBirr);
+}
+
 /** Quick-start reservations per start date, for capacity (D018). */
 export async function quickStartsTakenByDate(db: DbOrTx, fromDate: DateStr): Promise<Record<DateStr, number>> {
   const rows = await db.select({ d: subscriptions.startDate, n: sql<number>`count(*)::int` }).from(subscriptions)
@@ -118,44 +135,62 @@ export async function lockQuickStarts({ db, now }: Snapshot) {
   const [data, settings] = await Promise.all([loadMenuData(db), loadSettings(db)]);
   const today = addisDate(now);
   const nextDay = nextServiceDay(today, settings.schedule);
-  const summary = { added: 0, shifted: 0, replanned: 0, meals: 0, names: [] as string[] };
+  const summary = { added: 0, shifted: 0, replanned: 0, expired: 0, meals: 0, names: [] as string[] };
   if (!nextDay) return summary;
+  // the lock instant this run stands for (today 18:00 Addis); payment status is judged at this instant
+  const lockInstant = addisInstant(today, settings.schedule.quickStartCutoffTime);
+  const asOf = new Date(Math.min(now.getTime(), lockInstant.getTime()));
   const subs = await db.select().from(subscriptions)
     .where(and(eq(subscriptions.isQuickStart, true), inArray(subscriptions.status, ["pending_payment", "active"]), lte(subscriptions.startDate, nextDay)));
   for (const sub of subs) {
     const [qsInv] = await db.select().from(invoices).where(and(eq(invoices.subscriptionId, sub.id), eq(invoices.kind, "quick_start")));
-    if (!qsInv) continue;
-    // Already added by an earlier run of this lock (quick-start days exist). The weekly lock may have created the
-    // following week's days first when both run at Thursday 18:00 — that does not count, and those dates are kept.
+    if (!qsInv || qsInv.status === "void") continue;
+    // Already added for THIS plan by an earlier run. The weekly lock may have created the following week's days
+    // first when both run at Thursday 18:00 — those are not quick-start days and their dates are kept.
     const [already] = await db.select({ id: orderDays.id }).from(orderDays)
-      .where(and(eq(orderDays.clientId, sub.clientId), eq(orderDays.isQuickStart, true))).limit(1);
+      .innerJoin(weeklyOrders, eq(weeklyOrders.id, orderDays.weeklyOrderId))
+      .where(and(eq(weeklyOrders.subscriptionId, sub.id), eq(orderDays.isQuickStart, true))).limit(1);
     if (already) continue;
+    const paid = (await paidInvoicesBy(db, [sub.clientId], asOf)).some((i) => i.id === qsInv.id);
     let startDate = sub.startDate;
     let periodEnd = sub.quickStartPeriodEnd ?? addDays(weekStartOf(sub.startDate), 6);
-    const paid = qsInv.status === "paid";
-    if (!paid && startDate >= nextDay) continue; // not paid by tonight's lock: not cooked; re-planned once the start passes
+    if (!paid && startDate >= nextDay) continue; // not paid by tonight's lock: not cooked; handled once the start passes
     if (!paid) {
       const [waiting] = await db.select({ id: payments.id }).from(payments)
-        .where(and(eq(payments.invoiceId, qsInv.id), eq(payments.status, "submitted"))).limit(1);
-      if (waiting) continue; // a receipt is waiting for confirmation: keep the amount, shift once it is confirmed
+        .where(and(eq(payments.invoiceId, qsInv.id), inArray(payments.status, ["submitted", "confirmed"]))).limit(1);
+      if (waiting) continue; // a receipt is waiting (or confirmed after the lock): keep the amount; shift on the next run
+      if (now.getTime() - sub.createdAt.getTime() > QUICK_START_EXPIRY_MS) {
+        // abandoned sign-up: release the capacity it holds (D032)
+        await db.update(subscriptions).set({ status: "cancelled" }).where(eq(subscriptions.id, sub.id));
+        await voidInvoice(db, qsInv.id, "quick start not paid");
+        summary.expired++;
+        continue;
+      }
     }
     if (startDate < nextDay) {
-      // Missed start: paid ones are re-planned as if paid just before this lock (they start on the next service day
-      // with room, credit for the difference); unpaid ones are re-planned from now (start after the next lock).
+      // Missed start. Paid ones are re-planned as if paid just before this lock (next service day with room, credit
+      // for the difference); unpaid ones are re-planned from now (start after the next lock, new amount).
       const taken = await quickStartsTakenByDate(db, nextDay);
       if (taken[startDate]) taken[startDate]--; // don't count this client against its own old date
-      const lockInstant = addisInstant(today, settings.schedule.quickStartCutoffTime);
-      const planNow = paid ? new Date(Math.min(now.getTime(), lockInstant.getTime() - 1000)) : now;
-      const plan = quickStartPlan(planNow, settings.schedule, taken);
+      const plan = quickStartPlan(paid ? new Date(lockInstant.getTime() - 1000) : now, settings.schedule, taken);
       if (!plan) continue;
-      const newAmount = quickStartAmount(sub.priceDayBirr, plan.serviceDays, settings.pricing);
+      const priceDay = (sub.priceBreakdown as { priceDay?: number } | null)?.priceDay ?? sub.priceDayBirr;
+      const newAmount = quickStartAmount(priceDay, plan.serviceDays, settings.pricing);
       startDate = plan.startDate;
       periodEnd = plan.periodEnd;
       await db.update(subscriptions).set({ startDate, quickStartPeriodEnd: periodEnd, endDate: subscriptionEndDate(startDate, sub.termMonths) })
         .where(eq(subscriptions.id, sub.id));
+      // regular invoices made for dates the quick-start period now covers are cancelled (paid ones become credit)
+      const later = await db.select().from(invoices).where(and(eq(invoices.subscriptionId, sub.id), ne(invoices.kind, "quick_start"), ne(invoices.status, "void")));
+      for (const inv of later) {
+        if (inv.periodStart > periodEnd) continue;
+        await voidInvoice(db, inv.id, "covered by the moved quick start");
+        if (inv.status === "paid" && inv.amountBirr > 0) await db.insert(accountCredits).values({ clientId: sub.clientId, amountBirr: inv.amountBirr, reason: `Paid invoice ${inv.periodStart} covered by the moved quick start` });
+      }
       if (!paid) {
         await db.update(invoices).set({ periodStart: startDate, periodEnd, serviceDays: plan.serviceDays, amountBirr: newAmount, dueAt: plan.lockAt })
           .where(eq(invoices.id, qsInv.id));
+        await generateInvoicesForSubscription(db, sub.id, weekLockedAt(now, settings.schedule));
         summary.replanned++;
         continue;
       }
@@ -163,6 +198,7 @@ export async function lockQuickStarts({ db, now }: Snapshot) {
       const diff = qsInv.amountBirr - newAmount;
       if (diff !== 0) await db.insert(accountCredits).values({ clientId: sub.clientId, amountBirr: diff,
         reason: `Quick start moved to ${startDate}: ${plan.serviceDays} service days instead of ${qsInv.serviceDays}` });
+      await generateInvoicesForSubscription(db, sub.id, weekLockedAt(now, settings.schedule));
       summary.shifted++;
       if (startDate !== nextDay) continue; // pushed further by capacity: the lock before that date adds them
     }
@@ -186,6 +222,9 @@ export async function lockQuickStarts({ db, now }: Snapshot) {
   }
   return summary;
 }
+
+/** Unpaid quick-start sign-ups with no receipt are cancelled after this long, releasing their capacity. */
+const QUICK_START_EXPIRY_MS = 72 * 60 * 60 * 1000;
 
 /** Creates delivery / pick-up drops for order days in [from, to] (idempotent; address snapshot at creation). */
 export async function ensureDrops(db: DbOrTx, from: DateStr, to: DateStr) {

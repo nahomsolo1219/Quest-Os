@@ -118,7 +118,7 @@ const jobs: Record<JobName, (c: JobCtx) => Promise<{ runKey: string; result: Job
       const row = subs.find((x) => x.s.id === due.subscriptionId)!;
       const ids = [row.userId, ...(await userIdsWithRoles(db, ["operations"]))].filter((x): x is string => Boolean(x));
       renewals += await notify(db, { userIds: ids, kind: "reminder.renewal", title: `Plan ends in ${due.daysLeft} day${due.daysLeft === 1 ? "" : "s"}`,
-        body: `Plan end date ${formatDate(row.s.endDate)}. Renew to keep your meals coming.`, link: "/app/plan", dedupeKey: `renewal:${row.s.id}:${due.daysLeft}` });
+        body: `Plan end date ${formatDate(row.s.endDate)}. Renew to keep your meals coming.`, link: "/app/plan", dedupeKey: `renewal:${row.s.id}:${row.s.endDate}:${due.daysLeft}` });
     }
     const users = await activeClientUsers(db);
     const checkins = users.filter((u) => checkinDue(u, today));

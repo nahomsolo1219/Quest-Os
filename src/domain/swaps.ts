@@ -275,7 +275,7 @@ export type Conflict = {
   /** the ingredient, part or meal name that matched */
   item: string;
   /** where it matched */
-  on: "ingredient" | "part" | "meal";
+  on: "ingredient" | "part" | "meal" | "pantry";
 };
 
 const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -306,6 +306,8 @@ export function findConflicts(
   dislikes: string[],
   meal: ResolvedMeal,
   ingredients: IngredientIndex,
+  /** untracked pantry items used in cooking (garlic, awaze, lemon …): checked too */
+  pantry: string[] = [],
 ): Conflict[] {
   const out: Conflict[] = [];
   const seen = new Set<string>();
@@ -342,6 +344,7 @@ export function findConflicts(
         matched = true;
       }
     }
+    for (const p of pantry) if (termMatches(term, p)) { add({ term, kind, item: p, on: "pantry" }); matched = true; }
     // the meal name catches what the ingredient list cannot (e.g. "chili"), unless a swap removed the term
     if (!matched && !handledBySwap && termMatches(term, meal.mealName))
       add({ term, kind, item: meal.mealName, on: "meal" });

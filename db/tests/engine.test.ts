@@ -5,7 +5,7 @@ import { and, eq, sql } from "drizzle-orm";
 import * as s from "../schema";
 import { runJob } from "../../src/server/jobs";
 import { SYSTEM_ACTOR, type Ctx } from "../../src/server/services/context";
-import { confirmPayment, submitPayment } from "../../src/server/services/billing";
+import { confirmPayment, rejectPayment, submitPayment } from "../../src/server/services/billing";
 import { applyDiscount, createSubscription, pausePlan } from "../../src/server/services/subscriptions";
 import { ForbiddenError, type Actor } from "../../src/server/authz";
 import { inRollback, testDb } from "./helpers";
@@ -190,6 +190,69 @@ describe("Plans", () => {
       await applyDiscount({ db: tx, actor: owner, now: new Date() }, { subscriptionId: sub.id, discountMonthBirr: 1000, reason: "Launch offer" });
       expect(await count(tx, "audit_log", `action = 'discount.apply' and entity_id = '${sub.id}'`)).toBe(1);
       expect(SYSTEM_ACTOR.roles).not.toContain("client");
+    });
+  });
+});
+
+describe("Spec review fixes", () => {
+  it("a Wednesday quick start is billed for its first regular week before Thursday's cutoff (D035)", async () => {
+    await inRollback(db, async (tx) => {
+      await setAllPrices(tx);
+      const ops = await staffActor(tx, "nebiyou@questmeals.demo");
+      const c = await newClient(tx, "+251922000011");
+      const [pkg] = await tx.select().from(s.packages).where(eq(s.packages.code, "essential"));
+      const q = await createSubscription({ db: tx, actor: ops, now: at("2026-10-21T07:00:00Z") },
+        { clientId: c.id, packageId: pkg.id, deliveryOption: "pickup", billingPeriod: "weekly", termMonths: 1, start: "quick_start" });
+      const inv = await tx.select().from(s.invoices).where(eq(s.invoices.subscriptionId, q.subscription.id));
+      const next = inv.find((i) => i.periodStart === "2026-10-26");
+      expect(next?.kind).toBe("weekly");
+      expect(next?.dueAt.toISOString()).toBe("2026-10-22T15:00:00.000Z");
+    });
+  });
+
+  it("a receipt confirmed after the cutoff does not get the client cooked, even if the lock is re-run (D033)", async () => {
+    await inRollback(db, async (tx) => {
+      const ops = await staffActor(tx, "nebiyou@questmeals.demo");
+      const [inv] = await tx.select().from(s.invoices).where(and(eq(s.invoices.periodStart, "2026-10-26"), eq(s.invoices.status, "issued"))).limit(1);
+      await runJob(tx as never, "thursday-lock", THU_LOCK);
+      const late: Ctx = { db: tx, actor: ops, now: at("2026-10-23T05:00:00Z") }; // Friday 08:00
+      const p = await submitPayment(late, { invoiceId: inv.id, method: "cash" });
+      await confirmPayment(late, p.id);
+      await runJob(tx as never, "thursday-lock", at("2026-10-23T06:00:00Z"));
+      const [o] = await tx.select().from(s.weeklyOrders).where(and(eq(s.weeklyOrders.clientId, inv.clientId), eq(s.weeklyOrders.weekStart, "2026-10-26")));
+      expect(o.status).toBe("skipped_unpaid");
+      expect(await count(tx, "order_days", `client_id = '${inv.clientId}' and service_date >= '2026-10-26'`)).toBe(0);
+    });
+  });
+
+  it("pausing a paid week voids it into credit and later locks never bill paused weeks (D034)", async () => {
+    await inRollback(db, async (tx) => {
+      const ops = await staffActor(tx, "nebiyou@questmeals.demo");
+      const [inv] = await tx.select().from(s.invoices).where(and(eq(s.invoices.periodStart, "2026-10-26"), eq(s.invoices.status, "issued"), eq(s.invoices.kind, "weekly"))).limit(1);
+      const ctx: Ctx = { db: tx, actor: ops, now: at("2026-10-20T07:00:00Z") };
+      const p = await submitPayment(ctx, { invoiceId: inv.id, method: "cash" });
+      await confirmPayment(ctx, p.id);
+      await pausePlan(ctx, { clientId: inv.clientId, startWeek: "2026-10-26", weeks: 1 });
+      const [after] = await tx.select().from(s.invoices).where(eq(s.invoices.id, inv.id));
+      expect(after.status).toBe("void");
+      expect(await count(tx, "account_credits", `client_id = '${inv.clientId}' and amount_birr = ${inv.amountBirr}`)).toBe(1);
+      await runJob(tx as never, "thursday-lock", THU_LOCK);
+      // the next invoice uses the credit
+      const [nextInv] = await tx.select().from(s.invoices).where(and(eq(s.invoices.subscriptionId, inv.subscriptionId), eq(s.invoices.periodStart, "2026-11-02")));
+      expect(nextInv.creditAppliedBirr).toBeGreaterThan(0);
+      expect(await count(tx, "invoices", `subscription_id = '${inv.subscriptionId}' and period_start = '2026-10-26' and status <> 'void'`)).toBe(0);
+    });
+  });
+
+  it("a receipt cannot be confirmed after it was rejected", async () => {
+    await inRollback(db, async (tx) => {
+      const ops = await staffActor(tx, "nebiyou@questmeals.demo");
+      const [inv] = await tx.select().from(s.invoices).where(eq(s.invoices.status, "issued")).limit(1);
+      const ctx: Ctx = { db: tx, actor: ops, now: at("2026-10-20T07:00:00Z") };
+      const p = await submitPayment(ctx, { invoiceId: inv.id, method: "cash" });
+      await rejectPayment(ctx, p.id, "Amount does not match");
+      await expect(confirmPayment(ctx, p.id)).rejects.toThrow(/already handled/);
+      await expect(rejectPayment(ctx, p.id, "again")).rejects.toThrow(/already handled/);
     });
   });
 });

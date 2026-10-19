@@ -78,7 +78,9 @@ export function buildClientMeal(
     extraProteinGrams: s.pricing?.extraProteinGrams ?? 50,
   });
   const macros = roundMacros(mealMacros(resolved, data.ingredients));
-  const conflicts = findConflicts(client.allergies, client.dislikes, resolved, data.ingredients);
+  // pantry items of the meal actually served (a slot swap replaces the meal and its pantry)
+  const servedMeal = data.meals.find((m) => m.id === resolved.mealId) ?? meal;
+  const conflicts = findConflicts(client.allergies, client.dislikes, resolved, data.ingredients, servedMeal.pantry ?? []);
   return {
     serviceDate: md.serviceDate,
     mealId: resolved.mealId,

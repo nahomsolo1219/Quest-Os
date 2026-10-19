@@ -103,3 +103,19 @@ describe("billing periods", () => {
     expect(renewEndDate("2026-11-25", 1)).toBe("2026-12-25");
   });
 });
+
+describe("invoices skip paused weeks (spec review)", () => {
+  it("does not bill a paused week and prorates a month containing a pause", async () => {
+    const { nextInvoicesToGenerate } = await import("./subscriptions");
+    const { DEFAULT_SCHEDULE, DEFAULT_PRICING } = await import("./settings");
+    const st = { schedule: DEFAULT_SCHEDULE, pricing: DEFAULT_PRICING };
+    const weekly = nextInvoicesToGenerate({ startDate: "2026-10-12", endDate: "2026-11-18", billingPeriod: "weekly", planPriceBirr: 52000,
+      pauses: [{ startWeek: "2026-11-02", weeks: 1 }] }, [], "2026-10-26", st);
+    expect(weekly.map((i) => i.start)).toEqual(["2026-10-12", "2026-10-19", "2026-10-26"]);
+    const monthly = nextInvoicesToGenerate({ startDate: "2026-10-26", endDate: "2026-12-02", billingPeriod: "monthly", planPriceBirr: 52000,
+      pauses: [{ startWeek: "2026-11-02", weeks: 1 }] }, [], "2026-10-26", st);
+    expect(monthly[0].isFullMonth).toBe(false);
+    expect(monthly[0].serviceDays).toBe(27 - 6);
+    expect(monthly[0].amountBirr).toBe(Math.round((52000 * 21) / 26 / 10) * 10);
+  });
+});

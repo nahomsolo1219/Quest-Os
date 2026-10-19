@@ -77,3 +77,13 @@ One line per decision the spec did not settle, with the reason. Newest sections 
 - D114 (domain) Brand contrast (WCAG 2.x) is asserted in `contrast.test.ts`: accent #C2410C on white 5.18, white on accent 5.18, #171717 on white 17.93, #525252 on white 7.81, #FAFAFA on #0A0A0A 18.97, #FB923C on #0A0A0A 8.75 — all AA.
 - D115 (domain) `seed-domain.ts` maps the seed reference data to domain types (ids = slugs / meal codes, part ids `${code}:${index}`) for tests and DB-free maths; seed-data.ts was checked against SPEC docs 4–6 and needed no corrections.
 - D031 seedPortions now runs the real portion engine (recompute + upsert); its idempotency test checks the profile_portions row count instead of 'inserted = 0' (the stub's behaviour).
+
+## Spec review fixes (milestones 1–2)
+- D032 Unpaid quick-start sign-ups with no receipt are cancelled 72 hours after sign-up (their invoice voided), so abandoned sign-ups stop holding quick-start capacity.
+- D033 "Paid" at a lock means fully covered by payments confirmed at or before that lock's instant (Thursday 18:00 for the weekly lock, 18:00 for the quick-start lock). Late confirmations and re-runs never change a lock that already happened.
+- D034 Paused weeks are never invoiced; a pause voids a weekly invoice inside it (paid ones become account credit) and reduces or credits a monthly invoice by the paused service days. Voiding an invoice returns any credit it had used.
+- D035 Creating a plan immediately issues the invoices the next Thursday lock needs (e.g. a quick start's first regular week), due at that week's cutoff.
+- D036 Allergies and dislikes are also checked against each meal's pantry items (garlic, awaze, lemon …).
+- D037 Swaps with extra cost "0" in the swap table do not change the client's price; only "price difference" swaps and add-ons are included in food_day.
+- D038 Better Auth public sign-up endpoints are disabled; accounts are created only by our services. BETTER_AUTH_SECRET is required in production.
+- D039 Deleting a user that has partner contributions is refused (restrict), so the partner log is never lost.

@@ -205,3 +205,13 @@ describe("allergy and dislike conflicts", () => {
     expect(c.map((x) => x.item)).toEqual(["Eggs", "Whole egg", "Eggs", "Whole egg"]);
   });
 });
+
+describe("pantry allergies (spec review)", () => {
+  it("flags an allergy to a pantry item such as garlic", async () => {
+    const { findConflicts } = await import("./swaps");
+    const meal = { mealId: "m", mealCode: "B_LUNCH", mealName: "Beef and bean chili with rice", slot: "lunch" as const, items: [] };
+    const c = findConflicts(["garlic"], [], meal, {}, ["Garlic", "Salt"]);
+    expect(c).toEqual([{ term: "garlic", kind: "allergy", item: "Garlic", on: "pantry" }]);
+    expect(findConflicts(["garlic"], [], meal, {}, [])).toEqual([]);
+  });
+});

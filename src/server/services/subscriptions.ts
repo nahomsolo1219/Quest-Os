@@ -1,12 +1,13 @@
 // Plans: create (regular or quick start), pause, renew, owner discounts and price changes (modules 5 and 7).
-import { and, desc, eq, inArray } from "drizzle-orm";
-import { clients, invoices, nutritionProfiles, packages, pauses, subscriptions } from "@db/schema";
+import { and, desc, eq, inArray, ne } from "drizzle-orm";
+import { accountCredits, clients, invoices, nutritionProfiles, packages, pauses, subscriptions } from "@db/schema";
 import type { DbOrTx } from "@db/client";
 import { assertCan, assertCanForClient, can } from "@/server/authz";
 import { profileOf } from "@/domain/nutrition";
 import { priceLockedUntil, quickStartAmount, type PriceBreakdown } from "@/domain/pricing";
-import { nextLockableWeek, quickStartPlan, weeklyCutoff } from "@/domain/schedule";
-import { applyPause, invoicePeriods, invoiceAmount, renewEndDate, subscriptionEndDate } from "@/domain/subscriptions";
+import { nextLockableWeek, quickStartPlan, weekLockedAt, weeklyCutoff } from "@/domain/schedule";
+import { applyPause, invoicePeriods, invoiceAmount, pausedServiceDays, renewEndDate, subscriptionEndDate } from "@/domain/subscriptions";
+import { roundToNearest } from "@/domain/money";
 import { addisDate, weekStartOf } from "@/domain/time";
 import type { BillingPeriod, DateStr, DeliveryOption } from "@/domain/types";
 import { writeAudit } from "./audit";
@@ -14,6 +15,7 @@ import { loadClientPlanInputs } from "./client-plan";
 import { actorUserId, ServiceError, type Ctx } from "./context";
 import { quickStartsTakenByDate } from "./orders";
 import { quotePrice } from "./pricing";
+import { generateInvoicesForSubscription, voidInvoice } from "./billing";
 import { loadSettings } from "./settings";
 
 export type NewPlanInput = {
@@ -91,6 +93,9 @@ export async function createSubscription(ctx: Ctx, input: NewPlanInput, opts: { 
       clientId: input.clientId, subscriptionId: sub.id, kind: first.kind, periodStart: first.start, periodEnd: first.end,
       serviceDays: first.days, amountBirr: first.amount, status: "issued", dueAt: first.dueAt,
     }).returning();
+    // Bill the periods that the next Thursday lock will need (e.g. a quick start's first regular week), so the
+    // client can pay them before that cutoff (business rule 1).
+    await generateInvoicesForSubscription(tx, sub.id, weekLockedAt(ctx.now, settings.schedule));
     await writeAudit(tx, ctx.actor, { action: "subscription.create", entity: "subscriptions", entityId: sub.id,
       after: { package: pkg.code, startDate, planPrice: quote.planPrice, quickStart: isQs, firstInvoice: first.amount } });
     return { subscription: sub, invoice: inv };
@@ -120,9 +125,27 @@ export async function pausePlan(ctx: Ctx, input: { clientId: string; startWeek: 
   await ctx.db.transaction(async (tx) => {
     await tx.insert(pauses).values({ subscriptionId: sub.id, clientId: sub.clientId, startWeek: res.startWeek, weeks: res.weeks, requestedByUserId: actorUserId(ctx.actor) });
     await tx.update(subscriptions).set({ endDate: res.endDate }).where(eq(subscriptions.id, sub.id));
-    // an issued (unpaid) weekly invoice for a paused week is voided: paused days are not charged
-    const toVoid = await tx.select().from(invoices).where(and(eq(invoices.subscriptionId, sub.id), eq(invoices.status, "issued"), eq(invoices.kind, "weekly")));
-    for (const inv of toVoid) if (inv.periodStart >= res.startWeek && inv.periodEnd <= res.endWeek) await tx.update(invoices).set({ status: "void" }).where(eq(invoices.id, inv.id));
+    // Paused days are not charged (rule 6: they extend the plan). Invoices already made for the paused weeks:
+    // a weekly invoice inside the pause is voided (and refunded as credit when paid); any other invoice that
+    // overlaps the pause is reduced (unpaid) or credited (paid) by the paused service days.
+    const pauseList = [{ startWeek: res.startWeek, weeks: res.weeks }];
+    const overlapping = await tx.select().from(invoices).where(and(eq(invoices.subscriptionId, sub.id), ne(invoices.status, "void")));
+    for (const inv of overlapping) {
+      if (inv.periodEnd < res.startWeek || inv.periodStart > res.endWeek) continue;
+      const pausedDays = pausedServiceDays(pauseList, inv.periodStart, inv.periodEnd, settings.schedule);
+      if (pausedDays === 0) continue;
+      const amountOff = pausedDays >= inv.serviceDays
+        ? inv.amountBirr
+        : roundToNearest(((sub.planPriceBirr - sub.discountMonthBirr) * pausedDays) / settings.pricing.serviceDaysPerMonth, 10);
+      if (pausedDays >= inv.serviceDays) {
+        await voidInvoice(tx, inv.id, "week paused");
+        if (inv.status === "paid" && inv.amountBirr > 0) await tx.insert(accountCredits).values({ clientId: sub.clientId, amountBirr: inv.amountBirr, reason: `Paid for a paused week (${inv.periodStart})` });
+      } else if (inv.status === "issued") {
+        await tx.update(invoices).set({ amountBirr: Math.max(0, inv.amountBirr - amountOff), serviceDays: inv.serviceDays - pausedDays }).where(eq(invoices.id, inv.id));
+      } else {
+        await tx.insert(accountCredits).values({ clientId: sub.clientId, amountBirr: amountOff, reason: `Paused ${pausedDays} service days of a paid period (${inv.periodStart})` });
+      }
+    }
     await writeAudit(tx, ctx.actor, { action: "subscription.pause", entity: "subscriptions", entityId: sub.id,
       before: { endDate: sub.endDate }, after: { endDate: res.endDate, startWeek: res.startWeek, weeks: res.weeks } });
   });
