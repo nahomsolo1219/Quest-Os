@@ -199,7 +199,7 @@ export async function requestSwap(ctx: Ctx, input: { swapRuleId?: string | null;
   const clientId = ctx.actor?.clientId;
   if (!clientId) return requestSwapLocked(ctx, input);
   return ctx.db.transaction(async (tx) => {
-    await tx.select({ id: clients.id }).from(clients).where(eq(clients.id, clientId)).for("update");
+    await tx.select({ id: clients.id }).from(clients).where(eq(clients.id, clientId)).for("no key update");
     return requestSwapLocked({ ...ctx, db: tx }, input);
   });
 }
@@ -261,7 +261,7 @@ export async function addExtraProtein(ctx: Ctx, slot: Slot) {
   const clientId = ctx.actor?.clientId;
   if (!clientId) return addExtraProteinLocked(ctx, slot);
   return ctx.db.transaction(async (tx) => {
-    await tx.select({ id: clients.id }).from(clients).where(eq(clients.id, clientId)).for("update");
+    await tx.select({ id: clients.id }).from(clients).where(eq(clients.id, clientId)).for("no key update");
     return addExtraProteinLocked({ ...ctx, db: tx }, slot);
   });
 }

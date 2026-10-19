@@ -462,3 +462,48 @@ describe("final review, eighth pass", () => {
     });
   });
 });
+
+describe("final review, ninth pass", () => {
+  async function lateQuickStart(tx: Tx, phone: string) {
+    await setAllPrices(tx);
+    const ops = await actorByEmail(tx, "nebiyou@questmeals.demo");
+    const [c] = await tx.insert(s.clients).values({ firstName: "Q", lastName: "V", phone, status: "lead", sex: "male", age: 30, weightG: 80000,
+      heightCm: 180, activity: "moderate", goal: "lean" }).returning();
+    await tx.insert(s.nutritionProfiles).values({ clientId: c.id, bmr: 1780, tdee: 2759, suggestedKcal: 2207, suggestedSize: "M", suggestedProteinG: 158,
+      suggestedCarbG: 210, suggestedFatG: 70, kcalTarget: 2100, size: "M", goal: "lean", proteinG: 158, carbG: 210, fatG: 70, provisional: true, isCurrent: true });
+    const [pkg] = await tx.select().from(s.packages).where(eq(s.packages.code, "essential"));
+    const q = await createSubscription({ db: tx, actor: ops, now: at("2026-10-21T07:00:00Z") }, { clientId: c.id, packageId: pkg.id, deliveryOption: "pickup", billingPeriod: "weekly", termMonths: 1, start: "quick_start" });
+    const p = await submitPayment({ db: tx, actor: ops, now: at("2026-10-21T14:00:00Z") }, { invoiceId: q.invoice.id, method: "cash" });
+    await runJob(tx as never, "daily-quick-start", at("2026-10-21T15:00:05Z")); // Wed 18:00: receipt waiting, not added
+    await confirmPayment({ db: tx, actor: ops, now: at("2026-10-21T16:00:00Z") }, p.id); // Wed 19:00
+    return { ops, c, q };
+  }
+
+  it("a quick start moved after a pause bills only the days it cooks", async () => {
+    await inRollback(db, async (tx) => {
+      const { ops, c, q } = await lateQuickStart(tx, "+251955000004");
+      await pausePlan({ db: tx, actor: ops, now: at("2026-10-21T17:00:00Z") }, { clientId: c.id, startWeek: "2026-10-26", weeks: 1 }); // Wed 20:00
+      await runJob(tx as never, "thursday-lock", THU_LOCK); // runs the quick-start lock first
+      const [inv] = await tx.select().from(s.invoices).where(eq(s.invoices.id, q.invoice.id));
+      expect(inv.periodStart).toBe("2026-10-23");
+      expect(inv.serviceDays).toBe(2); // Fri, Sat — the paused week of 26 Oct is not billed
+      const days = await tx.select().from(s.orderDays).where(eq(s.orderDays.clientId, c.id));
+      expect(days.map((d) => d.serviceDate).sort()).toEqual(["2026-10-23", "2026-10-24", "2026-10-25"]);
+      const owed = await tx.select().from(s.accountCredits).where(and(eq(s.accountCredits.clientId, c.id), sql`${s.accountCredits.amountBirr} < 0`));
+      expect(owed).toHaveLength(0); // the client never ends up owing for paused days
+    });
+  });
+
+  it("the Thursday lock gives the same outcome whichever 18:00 cron fires first", async () => {
+    const outcome = async (order: ("thursday-lock" | "daily-quick-start")[]) => inRollback(db, async (tx) => {
+      const { c } = await lateQuickStart(tx, "+251955000005");
+      for (const job of order) await runJob(tx as never, job, THU_LOCK);
+      const days = await tx.select().from(s.orderDays).where(eq(s.orderDays.clientId, c.id));
+      return days.map((d) => d.serviceDate).sort();
+    });
+    const a = await outcome(["thursday-lock", "daily-quick-start"]);
+    const b = await outcome(["daily-quick-start", "thursday-lock"]);
+    expect(a).toEqual(b);
+    expect(a.length).toBeGreaterThan(0);
+  });
+});

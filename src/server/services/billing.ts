@@ -140,7 +140,7 @@ export async function confirmPayment(ctx: Ctx, paymentId: string) {
     if (p.status !== "submitted") throw new ServiceError("This payment was already handled.");
     // client → subscription → invoice: swap/add-on requests lock client → subscription, pauses and locks subscription → invoices
     const [ref] = await tx.select({ subscriptionId: invoices.subscriptionId }).from(invoices).where(eq(invoices.id, p.invoiceId));
-    await tx.select({ id: clients.id }).from(clients).where(eq(clients.id, p.clientId)).for("update");
+    await tx.select({ id: clients.id }).from(clients).where(eq(clients.id, p.clientId)).for("no key update");
     await tx.select({ id: subscriptions.id }).from(subscriptions).where(eq(subscriptions.id, ref.subscriptionId)).for("update");
     const [inv] = await tx.select().from(invoices).where(eq(invoices.id, p.invoiceId)).for("update");
     if (inv.status === "paid") {

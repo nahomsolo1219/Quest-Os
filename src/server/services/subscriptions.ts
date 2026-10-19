@@ -209,7 +209,12 @@ export async function applyDiscount(ctx: Ctx, input: { subscriptionId: string; d
  */
 export async function repricePlan(ctx: Ctx, input: { subscriptionId: string; reason?: string }) {
   assertCan(ctx.actor, "subscriptions.write");
-  const [sub] = await ctx.db.select().from(subscriptions).where(eq(subscriptions.id, input.subscriptionId));
+  return ctx.db.transaction((tx) => repricePlanLocked({ ...ctx, db: tx }, input));
+}
+
+async function repricePlanLocked(ctx: Ctx, input: { subscriptionId: string; reason?: string }) {
+  // locked fresh row: a concurrent add-on/swap re-price or renewal is never overwritten
+  const [sub] = await ctx.db.select().from(subscriptions).where(eq(subscriptions.id, input.subscriptionId)).for("update");
   if (!sub) throw new ServiceError("Plan not found.");
   const today = addisDate(ctx.now);
   const locked = today < sub.priceLockedUntil;
@@ -230,8 +235,12 @@ export async function endExpiredPlans(db: DbOrTx, today: DateStr) {
   let ended = 0;
   for (const s of live) {
     if (s.endDate >= today) continue;
-    await db.update(subscriptions).set({ status: "ended" }).where(eq(subscriptions.id, s.id));
-    await db.update(clients).set({ status: "ended", endedAt: s.endDate }).where(eq(clients.id, s.clientId));
+    // conditional on the row as it is now: a renewal that committed after the read above keeps the plan running
+    const [row] = await db.update(subscriptions).set({ status: "ended" })
+      .where(and(eq(subscriptions.id, s.id), inArray(subscriptions.status, ["active", "paused"]), sql`${subscriptions.endDate} < ${today}`))
+      .returning({ endDate: subscriptions.endDate });
+    if (!row) continue;
+    await db.update(clients).set({ status: "ended", endedAt: row.endDate }).where(eq(clients.id, s.clientId));
     ended++;
   }
   return ended;
@@ -286,7 +295,12 @@ async function repriceForPlanChangeLocked(ctx: Ctx, clientId: string, effectiveW
 
 /** Prices a renewed plan from the current formula and locks it again from today (audited as price.renewal). */
 export async function repriceAtRenewal(ctx: Ctx, subscriptionId: string): Promise<{ planPriceBirr: number } | null> {
-  const [sub] = await ctx.db.select().from(subscriptions).where(eq(subscriptions.id, subscriptionId));
+  return ctx.db.transaction((tx) => repriceAtRenewalLocked({ ...ctx, db: tx }, subscriptionId));
+}
+
+async function repriceAtRenewalLocked(ctx: Ctx, subscriptionId: string): Promise<{ planPriceBirr: number } | null> {
+  // choices and price are read under the plan lock, so a concurrent add-on/swap re-price is not erased
+  const [sub] = await ctx.db.select().from(subscriptions).where(eq(subscriptions.id, subscriptionId)).for("update");
   if (!sub) return null;
   const settings = await loadSettings(ctx.db);
   const today = addisDate(ctx.now);

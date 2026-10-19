@@ -57,13 +57,16 @@ const jobs: Record<JobName, (c: JobCtx) => Promise<{ runKey: string; result: Job
   async "thursday-lock"({ db, now }) {
     const s = await loadSettings(db);
     const week = weekLockedAt(now, s.schedule);
+    // Thursday 18:00 is also a daily quick-start lock: run it first so the outcome never depends on which of the two
+    // Railway crons fires first (the separate daily-quick-start run is then a no-op; both are idempotent).
+    const quickStarts = await lockQuickStarts({ db, now });
     const summary = await lockWeekOrders({ db, now }, week);
     const inv = await generateInvoicesForLock(db, week);
     const ops = await userIdsWithRoles(db, ["operations"]);
     await notify(db, { userIds: ops, kind: "ops.lock_summary", title: `Week of ${formatDate(week)} locked`,
       body: `${summary.locked} locked, ${summary.skippedUnpaid} skipped for non-payment${summary.skippedNames.length ? ` (${summary.skippedNames.join(", ")})` : ""}, ${summary.paused} paused. ${inv.created} new invoices.`,
       link: `/staff/orders?week=${week}`, dedupeKey: `lock-summary:${week}` });
-    return { runKey: week, result: { ...summary, invoicesCreated: inv.created } };
+    return { runKey: week, result: { ...summary, invoicesCreated: inv.created, quickStartsAdded: quickStarts.added } };
   },
 
   /** Friday 08:00: shopping list for next week is ready. */

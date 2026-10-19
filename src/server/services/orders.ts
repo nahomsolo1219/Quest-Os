@@ -185,10 +185,19 @@ export async function lockQuickStarts({ db, now }: Snapshot) {
         .where(and(eq(payments.invoiceId, qsInv.id), inArray(payments.status, ["submitted", "confirmed"]))).limit(1);
       if (waiting) continue; // a receipt is waiting (or confirmed after the lock): keep the amount; shift on the next run
       if (now.getTime() - sub.createdAt.getTime() > QUICK_START_EXPIRY_MS) {
-        // abandoned sign-up: release the capacity it holds (D032)
-        await db.update(subscriptions).set({ status: "cancelled" }).where(eq(subscriptions.id, sub.id));
-        await voidInvoice(db, qsInv.id, "quick start not paid");
-        summary.expired++;
+        // abandoned sign-up: release the capacity it holds (D032) — re-checked under the locks, so a receipt that
+        // arrived meanwhile is never voided
+        const expired = await db.transaction(async (tx) => {
+          await tx.select({ id: subscriptions.id }).from(subscriptions).where(eq(subscriptions.id, sub.id)).for("update");
+          const [inv] = await tx.select().from(invoices).where(eq(invoices.id, qsInv.id)).for("update");
+          const [anyReceipt] = await tx.select({ id: payments.id }).from(payments)
+            .where(and(eq(payments.invoiceId, qsInv.id), inArray(payments.status, ["submitted", "confirmed"]))).limit(1);
+          if (!inv || inv.status !== "issued" || anyReceipt) return false;
+          await tx.update(subscriptions).set({ status: "cancelled" }).where(and(eq(subscriptions.id, sub.id), eq(subscriptions.status, "pending_payment")));
+          await voidInvoice(tx, qsInv.id, "quick start not paid");
+          return true;
+        });
+        if (expired) summary.expired++;
         continue;
       }
     }
@@ -200,7 +209,7 @@ export async function lockQuickStarts({ db, now }: Snapshot) {
       const plan = quickStartPlan(paid ? new Date(lockInstant.getTime() - 1000) : now, settings.schedule, taken);
       if (!plan) continue;
       const priceDay = (sub.priceBreakdown as { priceDay?: number } | null)?.priceDay ?? sub.priceDayBirr;
-      const newAmount = quickStartAmount(priceDay, plan.serviceDays, settings.pricing);
+      let newAmount = quickStartAmount(priceDay, plan.serviceDays, settings.pricing);
       // Every write below happens under the plan row lock, on fresh rows (a pause, renewal or payment may have
       // committed since the reads above).
       const outcome = await db.transaction(async (tx) => {
@@ -212,6 +221,18 @@ export async function lockQuickStarts({ db, now }: Snapshot) {
             .where(and(eq(payments.invoiceId, qsInv.id), inArray(payments.status, ["submitted", "confirmed"]))).limit(1);
           if (waiting) return "retry" as const;
         }
+        // The moved period bills only days that will be cooked: it stops before any week the Thursday lock has already
+        // decided for this plan, and paused weeks are not billed (rules 1 and 6).
+        const decided = await tx.select({ weekStart: weeklyOrders.weekStart }).from(weeklyOrders)
+          .where(and(eq(weeklyOrders.subscriptionId, sub.id), eq(weeklyOrders.isQuickStart, false)));
+        const qsPauses = (await tx.select().from(pauses).where(eq(pauses.subscriptionId, sub.id))).map((x) => ({ startWeek: x.startWeek, weeks: x.weeks }));
+        let end = plan.periodEnd;
+        for (const d of decided) if (d.weekStart >= weekStartOf(plan.startDate) && d.weekStart <= end) end = addDays(d.weekStart, -1);
+        if (end < plan.startDate) return "retry" as const;
+        const billable = serviceDaysBetween(plan.startDate, end, settings.schedule).filter((d) => !isPausedWeek(qsPauses, weekStartOf(d))).length;
+        plan.periodEnd = end;
+        plan.serviceDays = billable;
+        newAmount = quickStartAmount(priceDay, billable, settings.pricing);
         // keep any extension the plan already had (paused weeks move the end date, rule 6)
         const extension = daysBetween(subscriptionEndDate(fresh.startDate, fresh.termMonths), fresh.endDate);
         await tx.update(subscriptions).set({ startDate: plan.startDate, quickStartPeriodEnd: plan.periodEnd,
@@ -252,7 +273,11 @@ export async function lockQuickStarts({ db, now }: Snapshot) {
     await db.transaction(async (tx) => {
       await tx.select({ id: subscriptions.id }).from(subscriptions).where(eq(subscriptions.id, sub.id)).for("update");
       const qsPauses = (await tx.select().from(pauses).where(eq(pauses.subscriptionId, sub.id))).map((p) => ({ startWeek: p.startWeek, weeks: p.weeks }));
-      const mealDates: MealDate[] = mealDatesBetween(qsStart, qsEnd, settings.schedule).filter((md) => !isPausedWeek(qsPauses, weekStartOf(md.serviceDate)));
+      // weeks the Thursday lock already decided (locked, skipped or paused) are its, not the quick start's
+      const decidedWeeks = new Set((await tx.select({ w: weeklyOrders.weekStart }).from(weeklyOrders)
+        .where(and(eq(weeklyOrders.clientId, sub.clientId), eq(weeklyOrders.isQuickStart, false)))).map((r) => r.w));
+      const mealDates: MealDate[] = mealDatesBetween(qsStart, qsEnd, settings.schedule)
+        .filter((md) => !isPausedWeek(qsPauses, weekStartOf(md.serviceDate)) && !decidedWeeks.has(weekStartOf(md.serviceDate)));
       const days = buildOrderDays(client, mealDates, data, { schedule: settings.schedule, pricing: settings.pricing, roundGramsTo: settings.nutrition.roundGramsTo });
       const byWeek = new Map<DateStr, OrderDayDraft[]>();
       for (const d of days) byWeek.set(weekStartOf(d.serviceDate), [...(byWeek.get(weekStartOf(d.serviceDate)) ?? []), d]);
