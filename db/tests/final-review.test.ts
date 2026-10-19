@@ -324,3 +324,27 @@ describe("final review, third pass", () => {
     });
   });
 });
+
+describe("final review, fourth pass", () => {
+  it("repeated reductions of a credit-paid invoice never credit more than was put in", async () => {
+    await inRollback(db, async (tx) => {
+      const { takeDaysOffInvoice } = await import("../../src/server/services/billing");
+      const sub = await activeWeekly(tx);
+      const [inv] = await tx.insert(s.invoices).values({ clientId: sub.clientId, subscriptionId: sub.id, kind: "monthly", periodStart: "2027-01-04", periodEnd: "2027-02-03",
+        serviceDays: 24, amountBirr: 2000, creditAppliedBirr: 10000, status: "issued", dueAt: at("2026-12-31T15:00:00Z") }).returning();
+      const fresh = async () => (await tx.select().from(s.invoices).where(eq(s.invoices.id, inv.id)))[0];
+      const before = await credits(tx, sub.clientId);
+      await takeDaysOffInvoice(tx, await fresh(), 6, "week paused"); // 3,000 off: 2,000 from the amount, 1,000 of credit back
+      let now = await fresh();
+      expect([now.amountBirr, now.creditAppliedBirr, now.serviceDays, now.status]).toEqual([0, 9000, 18, "paid"]);
+      expect(await credits(tx, sub.clientId)).toBe(before + 1000);
+      await takeDaysOffInvoice(tx, now, 6, "week paused"); // another 3,000 (500 a day), all of it credit
+      now = await fresh();
+      expect([now.amountBirr, now.creditAppliedBirr, now.serviceDays]).toEqual([0, 6000, 12]);
+      expect(await credits(tx, sub.clientId)).toBe(before + 4000);
+      await takeDaysOffInvoice(tx, now, 12, "rest paused"); // void: the remaining 6,000 of credit comes back
+      expect((await fresh()).status).toBe("void");
+      expect(await credits(tx, sub.clientId)).toBe(before + 10000); // exactly the 10,000 put in
+    });
+  });
+});

@@ -214,12 +214,17 @@ export async function takeDaysOffInvoice(db: DbOrTx, inv: typeof invoices.$infer
     if (inv.status === "paid" && inv.amountBirr > 0) await db.insert(accountCredits).values({ clientId: inv.clientId, amountBirr: inv.amountBirr, reason: `Paid for ${reason} (${inv.periodStart})` });
     return;
   }
-  if (inv.status === "issued") {
-    const left = inv.amountBirr - amountOff;
-    await db.update(invoices).set({ amountBirr: Math.max(0, left), serviceDays: inv.serviceDays - daysOff, ...(left <= 0 ? { status: "paid" as const } : {}) })
-      .where(eq(invoices.id, inv.id));
-    if (left < 0) await db.insert(accountCredits).values({ clientId: inv.clientId, amountBirr: -left, reason: `${reason}: more taken off than invoice ${inv.periodStart} asked` });
-  } else if (inv.status === "paid") {
-    await db.insert(accountCredits).values({ clientId: inv.clientId, amountBirr: amountOff, reason: `${reason}: ${daysOff} paid service days of ${inv.periodStart}` });
-  }
+  if (inv.status === "void") return;
+  // The removed value comes out of the invoice amount first, then out of the credit applied to it, so the stored
+  // amount + credit always equals the worth of the days left (a later reduction or void never over-credits).
+  const fromAmount = Math.min(amountOff, inv.amountBirr);
+  const fromCredit = Math.min(amountOff - fromAmount, inv.creditAppliedBirr);
+  const amountLeft = inv.amountBirr - fromAmount;
+  await db.update(invoices).set({
+    amountBirr: amountLeft, creditAppliedBirr: inv.creditAppliedBirr - fromCredit, serviceDays: inv.serviceDays - daysOff,
+    ...(inv.status === "issued" && amountLeft === 0 ? { status: "paid" as const } : {}),
+  }).where(eq(invoices.id, inv.id));
+  // money back to the client: credit that had been applied, and — on a paid invoice — what they paid for these days
+  const refund = fromCredit + (inv.status === "paid" ? fromAmount : 0);
+  if (refund > 0) await db.insert(accountCredits).values({ clientId: inv.clientId, amountBirr: refund, reason: `${reason}: ${daysOff} service days of ${inv.periodStart}` });
 }
