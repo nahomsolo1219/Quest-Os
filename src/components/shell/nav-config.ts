@@ -20,7 +20,7 @@ export const STAFF_NAV: NavItem[] = [
   { href: "/delivery/pickup", label: "Pick-up list", roles: ["operations", "delivery"] },
   { href: "/staff/community", label: "Community", roles: ["owner", "operations", "coach"] },
   { href: "/staff/partners", label: "Partners", roles: ["owner"] },
-  { href: "/staff/settings", label: "Settings", roles: ["owner"] },
+  { href: "/staff/settings", label: "Settings", roles: ["owner", "operations", "nutritionist"] },
   { href: "/staff/notifications", label: "Notifications", roles: ["owner", "operations", "nutritionist", "kitchen", "delivery", "coach"] },
 ];
 
