@@ -11,6 +11,7 @@ import { generateInvoicesForLock, unpaidInvoicesDueBy } from "@/server/services/
 import { notify, sendCommunityDigests, userIdsWithRoles } from "@/server/services/notifications";
 import { ensureDrops, lockQuickStarts, lockWeekOrders } from "@/server/services/orders";
 import { loadSettings } from "@/server/services/settings";
+import { sendChallengeReminders } from "@/server/services/community";
 import { endExpiredPlans } from "@/server/services/subscriptions";
 
 export const JOB_NAMES = [
@@ -91,11 +92,12 @@ const jobs: Record<JobName, (c: JobCtx) => Promise<{ runKey: string; result: Job
   async "daily-morning"({ db, now }) {
     const today = addisDate(now);
     const drops = await ensureDrops(db, today, today);
+    const challengeReminders = await sendChallengeReminders(db, now);
     const kitchen = await userIdsWithRoles(db, ["kitchen"]);
     const riders = await userIdsWithRoles(db, ["delivery"]);
     await notify(db, { userIds: kitchen, kind: "kitchen.production", title: `Production sheet for ${formatDate(today)}`, link: `/kitchen/production/${today}`, dedupeKey: `morning-kitchen:${today}` });
     await notify(db, { userIds: riders, kind: "delivery.route", title: `Your drops for ${formatDate(today)}`, link: "/delivery", dedupeKey: `morning-riders:${today}` });
-    return { runKey: today, result: { dropsCreated: drops } };
+    return { runKey: today, result: { dropsCreated: drops, challengeReminders } };
   },
 
   /** Sunday 17:00: stock count reminder. */
