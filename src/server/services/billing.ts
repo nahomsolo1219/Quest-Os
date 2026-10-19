@@ -1,10 +1,13 @@
 // Invoices, receipt upload, payment confirmation (module 6). Unpaid = not cooked is enforced by the locks.
 import { and, asc, desc, eq, inArray, isNull, lte, ne, sql } from "drizzle-orm";
-import { accountCredits, clients, invoices, pauses, payments, subscriptions } from "@db/schema";
+import { accountCredits, clients, invoices, orderDays, pauses, payments, subscriptions } from "@db/schema";
 import type { DbOrTx } from "@db/client";
 import { assertCan, assertCanForClient, ForbiddenError } from "@/server/authz";
 import { putImage, storage, parseKey } from "@/server/storage";
-import { nextInvoicesToGenerate } from "@/domain/subscriptions";
+import { invoiceAmount, isPausedWeek, nextInvoicesToGenerate } from "@/domain/subscriptions";
+import { roundToNearest } from "@/domain/money";
+import { serviceDaysBetween } from "@/domain/schedule";
+import { weekStartOf } from "@/domain/time";
 import { formatBirr } from "@/domain/money";
 import type { DateStr, PaymentMethod } from "@/domain/types";
 import { writeAudit } from "./audit";
@@ -45,8 +48,18 @@ export async function generateInvoicesForSubscription(db: DbOrTx, subscriptionId
       existing.map((i) => ({ periodStart: i.periodStart, periodEnd: i.periodEnd, status: i.status, kind: i.kind })),
       lockWeek, settings,
     );
+    // Rule 1, both ways: a service day in a week that is already locked (≤ lockWeek) is billed only if it was
+    // cooked. Days skipped for non-payment, or weeks a late renewal missed, are never billed afterwards.
+    const cookedDays = new Set((await tx.select({ d: orderDays.serviceDate }).from(orderDays).where(eq(orderDays.clientId, sub.clientId))).map((r) => r.d));
+    const pausesList = pauseRows.map((p) => ({ startWeek: p.startWeek, weeks: p.weeks }));
+    const uncookedLocked = (start: DateStr, end: DateStr) => serviceDaysBetween(start, end, settings.schedule)
+      .filter((d) => weekStartOf(d) <= lockWeek && !cookedDays.has(d) && !isPausedWeek(pausesList, weekStartOf(d))).length;
     let created = 0;
-    for (const d of drafts) {
+    for (const raw of drafts) {
+      const off = uncookedLocked(raw.start, raw.end);
+      if (off >= raw.serviceDays) continue;
+      const d = off === 0 ? raw : { ...raw, isFullMonth: false, serviceDays: raw.serviceDays - off,
+        amountBirr: invoiceAmount({ isFullMonth: false, serviceDays: raw.serviceDays - off }, sub, settings.pricing) };
       const credits = await tx.select().from(accountCredits)
         .where(and(eq(accountCredits.clientId, sub.clientId), isNull(accountCredits.appliedInvoiceId))).for("update");
       const credit = credits.reduce((n, c) => n + c.amountBirr, 0);
@@ -98,10 +111,12 @@ export async function submitPayment(ctx: Ctx, input: { invoiceId: string; method
   const pending = await ctx.db.select().from(payments).where(and(eq(payments.invoiceId, inv.id), eq(payments.status, "submitted")));
   if (pending.length) throw new ServiceError("A receipt for this invoice is already waiting for confirmation.");
   const receiptKey = input.receipt ? await putImage("receipts", inv.clientId, input.receipt) : null;
+  // the partial unique index allows one waiting receipt per invoice, so a double submit cannot create two
   const [row] = await ctx.db.insert(payments).values({
     invoiceId: inv.id, clientId: inv.clientId, amountBirr: inv.amountBirr, method: input.method,
     reference: input.reference?.trim() || null, receiptKey, status: "submitted", submittedAt: ctx.now, isDemo: inv.isDemo,
-  }).returning();
+  }).onConflictDoNothing().returning();
+  if (!row) throw new ServiceError("A receipt for this invoice is already waiting for confirmation.");
   const staff = await userIdsWithRoles(ctx.db, ["operations"]);
   await notify(ctx.db, { userIds: staff, kind: "payment.submitted", title: "Receipt to confirm",
     body: `${formatBirr(inv.amountBirr)} by ${input.method}`, link: "/staff/payments", dedupeKey: `payment-submitted:${row.id}` });
@@ -123,12 +138,30 @@ export async function confirmPayment(ctx: Ctx, paymentId: string) {
     const [p] = await tx.select().from(payments).where(eq(payments.id, paymentId)).for("update");
     if (!p) throw new ServiceError("That payment was not found.");
     if (p.status !== "submitted") throw new ServiceError("This payment was already handled.");
+    // client → subscription → invoice: swap/add-on requests lock client → subscription, pauses and locks subscription → invoices
+    const [ref] = await tx.select({ subscriptionId: invoices.subscriptionId }).from(invoices).where(eq(invoices.id, p.invoiceId));
+    await tx.select({ id: clients.id }).from(clients).where(eq(clients.id, p.clientId)).for("no key update");
+    await tx.select({ id: subscriptions.id }).from(subscriptions).where(eq(subscriptions.id, ref.subscriptionId)).for("update");
     const [inv] = await tx.select().from(invoices).where(eq(invoices.id, p.invoiceId)).for("update");
-    if (inv.status === "void") throw new ServiceError("This invoice was cancelled (for example the week was paused). Reject the receipt instead; the client has nothing to pay for it.");
+    if (inv.status === "paid") {
+      // A genuine duplicate: other confirmed receipts already cover the invoice. (An invoice that a pause, skip or
+      // credit brought to 0 is "paid" without receipts — a receipt waiting for it is real money and becomes credit below.)
+      const [before] = await tx.select({ n: sql<number>`coalesce(sum(${payments.amountBirr}), 0)::int` }).from(payments)
+        .where(and(eq(payments.invoiceId, inv.id), eq(payments.status, "confirmed")));
+      if (inv.amountBirr > 0 && (before?.n ?? 0) >= inv.amountBirr) {
+        throw new ServiceError("This invoice is already paid. Reject this receipt (it is a duplicate) so nothing is counted twice.");
+      }
+    }
     await tx.update(payments).set({ status: "confirmed", confirmedByUserId: actorUserId(ctx.actor), confirmedAt: ctx.now }).where(eq(payments.id, p.id));
     const [paid] = await tx.select({ n: sql<number>`coalesce(sum(${payments.amountBirr}), 0)::int` }).from(payments)
       .where(and(eq(payments.invoiceId, inv.id), eq(payments.status, "confirmed")));
-    if ((paid?.n ?? 0) >= inv.amountBirr && inv.status === "issued") await tx.update(invoices).set({ status: "paid" }).where(eq(invoices.id, inv.id));
+    // Money that arrived for a cancelled invoice (week paused or skipped after the receipt was sent), or more than a
+    // reduced invoice now asks, is kept as account credit for the next invoice — never lost.
+    const confirmedSum = paid?.n ?? 0;
+    const surplus = inv.status === "void" ? p.amountBirr : Math.min(p.amountBirr, Math.max(0, confirmedSum - inv.amountBirr));
+    if (surplus > 0) await tx.insert(accountCredits).values({ clientId: p.clientId, amountBirr: surplus,
+      reason: inv.status === "void" ? `Payment for a cancelled invoice (${inv.periodStart})` : `Paid more than invoice ${inv.periodStart} now asks` });
+    if (confirmedSum >= inv.amountBirr && inv.status === "issued") await tx.update(invoices).set({ status: "paid" }).where(eq(invoices.id, inv.id));
     const [sub] = await tx.select().from(subscriptions).where(eq(subscriptions.id, inv.subscriptionId));
     if (sub?.status === "pending_payment") {
       await tx.update(subscriptions).set({ status: "active" }).where(eq(subscriptions.id, sub.id));
@@ -139,7 +172,7 @@ export async function confirmPayment(ctx: Ctx, paymentId: string) {
     const [c] = await tx.select({ userId: clients.userId }).from(clients).where(eq(clients.id, p.clientId));
     if (c?.userId) await notify(tx, { userIds: [c.userId], kind: "payment.confirmed", title: "Payment confirmed",
       body: `${formatBirr(p.amountBirr)} received. Thank you!`, link: "/app/payments", dedupeKey: `payment-confirmed:${p.id}` });
-    return { invoicePaid: (paid?.n ?? 0) >= inv.amountBirr };
+    return { invoicePaid: inv.status !== "void" && confirmedSum >= inv.amountBirr, creditBirr: surplus };
   });
 }
 
@@ -169,4 +202,35 @@ export async function unpaidInvoicesDueBy(db: DbOrTx, dueBy: Date) {
   return db.select({ invoice: invoices, userId: clients.userId, firstName: clients.firstName }).from(invoices)
     .innerJoin(clients, eq(clients.id, invoices.clientId))
     .where(and(eq(invoices.status, "issued"), lte(invoices.dueAt, dueBy)));
+}
+
+/**
+ * Takes days that will not be cooked (a paused week, or a week skipped for non-payment) off an unpaid or paid
+ * invoice: an invoice wholly inside is voided (paid → credit); otherwise an issued invoice is reduced and a paid one
+ * credited. When a reduction covers the rest of an invoice it becomes paid, and any surplus becomes credit.
+ */
+export async function takeDaysOffInvoice(db: DbOrTx, inv: typeof invoices.$inferSelect, daysOff: number, reason: string) {
+  if (daysOff <= 0) return;
+  // at the invoice's own daily rate (what those days were billed at), not today's plan price
+  const amountOff = inv.serviceDays > 0 ? roundToNearest(((inv.amountBirr + inv.creditAppliedBirr) * Math.min(daysOff, inv.serviceDays)) / inv.serviceDays, 10) : 0;
+  if (daysOff >= inv.serviceDays) {
+    await voidInvoice(db, inv.id, reason);
+    if (inv.status === "paid" && inv.amountBirr > 0) await db.insert(accountCredits).values({ clientId: inv.clientId, amountBirr: inv.amountBirr, reason: `Paid for ${reason} (${inv.periodStart})` });
+    return;
+  }
+  if (inv.status === "void") return;
+  // The removed value comes out of the invoice amount first, then out of the credit applied to it, so the stored
+  // amount + credit always equals the worth of the days left (a later reduction or void never over-credits).
+  const fromAmount = Math.min(amountOff, inv.amountBirr);
+  // only a positive credit (credit the client had) is given back; a negative one (money the client owes) stays on the
+  // invoice until it is paid, or is returned by a void
+  const fromCredit = Math.min(amountOff - fromAmount, Math.max(0, inv.creditAppliedBirr));
+  const amountLeft = inv.amountBirr - fromAmount;
+  await db.update(invoices).set({
+    amountBirr: amountLeft, creditAppliedBirr: inv.creditAppliedBirr - fromCredit, serviceDays: inv.serviceDays - daysOff,
+    ...(inv.status === "issued" && amountLeft === 0 ? { status: "paid" as const } : {}),
+  }).where(eq(invoices.id, inv.id));
+  // money back to the client: credit that had been applied, and — on a paid invoice — what they paid for these days
+  const refund = fromCredit + (inv.status === "paid" ? fromAmount : 0);
+  if (refund > 0) await db.insert(accountCredits).values({ clientId: inv.clientId, amountBirr: refund, reason: `${reason}: ${daysOff} service days of ${inv.periodStart}` });
 }

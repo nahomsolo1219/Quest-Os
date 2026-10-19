@@ -194,7 +194,17 @@ export async function mySwaps(ctx: Ctx) {
  * Swap request (SWP-04, SWP-09, RULE-02): a swap-table rule within the package limit is approved at once and takes
  * effect from the next lockable week; a custom request goes to the nutritionist; over the limit is refused.
  */
+/** Serialised per client (row lock) so two quick taps cannot both pass the limit check (SWP-04). */
 export async function requestSwap(ctx: Ctx, input: { swapRuleId?: string | null; customRequest?: string | null }) {
+  const clientId = ctx.actor?.clientId;
+  if (!clientId) return requestSwapLocked(ctx, input);
+  return ctx.db.transaction(async (tx) => {
+    await tx.select({ id: clients.id }).from(clients).where(eq(clients.id, clientId)).for("no key update");
+    return requestSwapLocked({ ...ctx, db: tx }, input);
+  });
+}
+
+async function requestSwapLocked(ctx: Ctx, input: { swapRuleId?: string | null; customRequest?: string | null }) {
   const { actor, clientId } = own(ctx, "swaps.request");
   const sub = await liveSubscription(ctx, clientId);
   if (!sub) throw new ServiceError("Choose a plan first. Swaps come with your plan.");
@@ -246,7 +256,17 @@ export async function endSwap(ctx: Ctx, swapId: string) {
 }
 
 /** Extra protein add-on for a slot, from the next lockable week, at the formula price (SWP-07). */
+/** Serialised per client (row lock) so two quick taps cannot both pass the limit check (SWP-04). */
 export async function addExtraProtein(ctx: Ctx, slot: Slot) {
+  const clientId = ctx.actor?.clientId;
+  if (!clientId) return addExtraProteinLocked(ctx, slot);
+  return ctx.db.transaction(async (tx) => {
+    await tx.select({ id: clients.id }).from(clients).where(eq(clients.id, clientId)).for("no key update");
+    return addExtraProteinLocked({ ...ctx, db: tx }, slot);
+  });
+}
+
+async function addExtraProteinLocked(ctx: Ctx, slot: Slot) {
   const { actor, clientId } = own(ctx, "swaps.request");
   if (!SLOTS.includes(slot)) throw new ServiceError("Choose a meal.");
   const sub = await liveSubscription(ctx, clientId);

@@ -104,8 +104,8 @@ export type InvoiceDraft = BillingPeriodRange & { amountBirr: number; dueAt: Dat
 /**
  * Invoices the Thursday lock should create for a subscription. The lock that locks `lockWeek` bills every
  * period starting no later than the end of the following week (the "week after next" from the lock's own week),
- * skipping periods that already have a non-void invoice with the same start or whose dates are fully covered
- * (e.g. by the quick-start invoice). Each is due at the cutoff of the week its period starts in.
+ * billing only the days of each period that no non-void invoice covers (one invoice per uncovered run; a period
+ * lengthened after it was billed bills its remainder; days the quick-start invoice covers are skipped). Each is due at the cutoff of the week its period starts in.
  */
 export function nextInvoicesToGenerate(
   sub: {
@@ -127,11 +127,19 @@ export function nextInvoicesToGenerate(
   const live = existing.filter((i) => i.status !== "void");
   return invoicePeriods({ ...sub, billingAnchor: anchor }, s.schedule, undefined, horizon)
     .filter((p) => p.start <= horizon)
-    .filter((p) => !live.some((i) => i.periodStart === p.start && (i.kind == null || i.kind === p.kind)))
-    .filter((p) => {
-      const days: DateStr[] = [];
-      for (let d = p.start; d <= p.end; d = addDays(d, 1)) days.push(d);
-      return coveredDates(live.map((i) => ({ ...i, status: undefined })), days).size < days.length;
+    // Bill only the days no live invoice covers, as one invoice per uncovered run (D076, D078): a period lengthened
+    // after it was billed bills its remainder; a period whose short invoice was voided never re-bills days that a
+    // live remainder invoice already bills.
+    .flatMap((p) => {
+      const runs: { start: DateStr; end: DateStr }[] = [];
+      for (let d = p.start; d <= p.end; d = addDays(d, 1)) {
+        if (live.some((i) => d >= i.periodStart && d <= i.periodEnd)) continue;
+        const last = runs[runs.length - 1];
+        if (last && last.end === addDays(d, -1)) last.end = d;
+        else runs.push({ start: d, end: d });
+      }
+      if (runs.length === 1 && runs[0].start === p.start && runs[0].end === p.end) return [p];
+      return runs.map((r) => ({ ...p, start: r.start, end: r.end, isFullMonth: false, serviceDays: serviceDaysBetween(r.start, r.end, s.schedule).length }));
     })
     .map((p) => {
       const paused = pausedServiceDays(sub.pauses ?? [], p.start, p.end, s.schedule);
@@ -144,6 +152,22 @@ export function nextInvoicesToGenerate(
 /** Renewal: extend the end date by the term (months). */
 export function renewEndDate(endDate: DateStr, termMonths: number): DateStr {
   return addDays(addMonths(addDays(endDate, 1), termMonths), -1);
+}
+
+/**
+ * Renewal counted from the plan's start (D079): end = start + (months so far + term) − 1 day, plus the days paused
+ * weeks added. Counting from the start keeps the months in step with the billing months when the start is the
+ * 29th–31st (adding the term to an end date a short month clipped would drift). Falls back to `renewEndDate`
+ * when the end date is not start + whole months + the pause extension.
+ */
+export function renewedEndDate(sub: { startDate: DateStr; endDate: DateStr; termMonths: number }, pauses: Pause[]): DateStr {
+  const extension = 7 * pauses.reduce((n, p) => n + p.weeks, 0);
+  for (let m = 1; m <= 1200; m++) {
+    const end = addDays(addDays(addMonths(sub.startDate, m), -1), extension);
+    if (end === sub.endDate) return addDays(addDays(addMonths(sub.startDate, m + sub.termMonths), -1), extension);
+    if (end > sub.endDate) break;
+  }
+  return renewEndDate(sub.endDate, sub.termMonths);
 }
 
 /** End date of a new subscription: start + term months − 1 day. */

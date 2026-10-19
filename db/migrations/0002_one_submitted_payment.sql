@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "payments_one_submitted_per_invoice_uq" ON "payments" USING btree ("invoice_id") WHERE "payments"."status" = 'submitted';

@@ -12,7 +12,8 @@ import { notify, sendCommunityDigests, userIdsWithRoles } from "@/server/service
 import { ensureDrops, lockQuickStarts, lockWeekOrders } from "@/server/services/orders";
 import { loadSettings } from "@/server/services/settings";
 import { sendChallengeReminders } from "@/server/services/community";
-import { endExpiredPlans } from "@/server/services/subscriptions";
+import { endExpiredPlans, repriceRenewedPlansAtLockEnd } from "@/server/services/subscriptions";
+import { SYSTEM_ACTOR } from "@/server/services/context";
 
 export const JOB_NAMES = [
   "tuesday-reminder", "thursday-last-call", "thursday-lock", "friday-shopping",
@@ -56,13 +57,16 @@ const jobs: Record<JobName, (c: JobCtx) => Promise<{ runKey: string; result: Job
   async "thursday-lock"({ db, now }) {
     const s = await loadSettings(db);
     const week = weekLockedAt(now, s.schedule);
+    // Thursday 18:00 is also a daily quick-start lock: run it first so the outcome never depends on which of the two
+    // Railway crons fires first (the separate daily-quick-start run is then a no-op; both are idempotent).
+    const quickStarts = await lockQuickStarts({ db, now });
     const summary = await lockWeekOrders({ db, now }, week);
     const inv = await generateInvoicesForLock(db, week);
     const ops = await userIdsWithRoles(db, ["operations"]);
     await notify(db, { userIds: ops, kind: "ops.lock_summary", title: `Week of ${formatDate(week)} locked`,
       body: `${summary.locked} locked, ${summary.skippedUnpaid} skipped for non-payment${summary.skippedNames.length ? ` (${summary.skippedNames.join(", ")})` : ""}, ${summary.paused} paused. ${inv.created} new invoices.`,
       link: `/staff/orders?week=${week}`, dedupeKey: `lock-summary:${week}` });
-    return { runKey: week, result: { ...summary, invoicesCreated: inv.created } };
+    return { runKey: week, result: { ...summary, invoicesCreated: inv.created, quickStartsAdded: quickStarts.added } };
   },
 
   /** Friday 08:00: shopping list for next week is ready. */
@@ -113,21 +117,25 @@ const jobs: Record<JobName, (c: JobCtx) => Promise<{ runKey: string; result: Job
   async "daily-renewals"({ db, now }) {
     const today = addisDate(now);
     const ended = await endExpiredPlans(db, today);
-    const subs = await db.select({ s: subscriptions, userId: clients.userId }).from(subscriptions).innerJoin(clients, eq(clients.id, subscriptions.clientId))
+    const repriced = await repriceRenewedPlansAtLockEnd({ db, actor: SYSTEM_ACTOR, now });
+    const subs = await db.select({ s: subscriptions, userId: clients.userId, firstName: clients.firstName }).from(subscriptions).innerJoin(clients, eq(clients.id, subscriptions.clientId))
       .where(eq(subscriptions.status, "active"));
     let renewals = 0;
     for (const due of renewalRemindersDue(subs.map((x) => x.s), today)) {
       const row = subs.find((x) => x.s.id === due.subscriptionId)!;
-      const ids = [row.userId, ...(await userIdsWithRoles(db, ["operations"]))].filter((x): x is string => Boolean(x));
-      renewals += await notify(db, { userIds: ids, kind: "reminder.renewal", title: `Plan ends in ${due.daysLeft} day${due.daysLeft === 1 ? "" : "s"}`,
+      const title = `Plan ends in ${due.daysLeft} day${due.daysLeft === 1 ? "" : "s"}`;
+      if (row.userId) renewals += await notify(db, { userIds: [row.userId], kind: "reminder.renewal", title,
         body: `Plan end date ${formatDate(row.s.endDate)}. Renew to keep your meals coming.`, link: "/app/plan", dedupeKey: `renewal:${row.s.id}:${row.s.endDate}:${due.daysLeft}` });
+      // the staff copy is a staff alert (links to the client page), so a staff member's client Telegram switch never hides it
+      renewals += await notify(db, { userIds: await userIdsWithRoles(db, ["operations"]), kind: "ops.renewal_due", title: `${row.firstName ?? "A client"}: ${title.toLowerCase()}`,
+        body: `End date ${formatDate(row.s.endDate)}.`, link: `/staff/clients/${row.s.clientId}`, dedupeKey: `renewal-ops:${row.s.id}:${row.s.endDate}:${due.daysLeft}` });
     }
     const users = await activeClientUsers(db);
     const checkins = users.filter((u) => checkinDue(u, today));
     const ci = await notify(db, { userIds: checkins.map((u) => u.userId!), kind: "reminder.checkin", title: "Check-in day", body: "Log your weight today.",
       link: "/app/progress", dedupeKey: `checkin:${today}` });
     const digests = await sendCommunityDigests(db);
-    return { runKey: today, result: { ended, renewals, checkinReminders: ci, digests } };
+    return { runKey: today, result: { ended, repriced, renewals, checkinReminders: ci, digests } };
   },
 };
 

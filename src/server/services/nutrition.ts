@@ -11,6 +11,7 @@ import { addDays, addisDate, maxDate } from "@/domain/time";
 import { mealMacros, resolveMeal, roundMacros, SLOT_ORDER } from "@/domain/recipes";
 import { GOALS, PROFILES, SIZES, type DateStr, type Goal, type MenuCode, type Size } from "@/domain/types";
 import { writeAudit } from "./audit";
+import { repriceForPlanChange } from "./subscriptions";
 import { actorUserId, ServiceError, type Ctx } from "./context";
 import { notify } from "./notifications";
 import { loadMenuData } from "./menu-data";
@@ -213,7 +214,7 @@ export async function decideSwap(ctx: Ctx, input: { id: string; approve: boolean
     status: input.approve ? ("approved" as const) : ("rejected" as const), swapRuleId, note: input.note?.trim() || null,
     decidedByUserId: actorUserId(ctx.actor), decidedAt: ctx.now, effectiveWeekStart: input.approve ? effectiveWeekStart : row.effectiveWeekStart,
   };
-  return ctx.db.transaction(async (tx) => {
+  const decided = await ctx.db.transaction(async (tx) => {
     const [updated] = await tx.update(clientSwaps).set({ ...next, updatedAt: ctx.now }).where(and(eq(clientSwaps.id, row.id), eq(clientSwaps.status, "requested"))).returning();
     if (!updated) throw new ServiceError("This request was already decided.");
     await writeAudit(tx, ctx.actor, { action: input.approve ? "swap.approve" : "swap.reject", entity: "client_swaps", entityId: row.id,
@@ -226,6 +227,12 @@ export async function decideSwap(ctx: Ctx, input: { id: string; approve: boolean
     }
     return updated;
   });
+  // an approved "price difference" swap changes what the client is cooked, so the plan price follows (D040)
+  if (input.approve && swapRuleId) {
+    const [rule] = await ctx.db.select().from(swapRules).where(eq(swapRules.id, swapRuleId));
+    if (rule?.costMode === "price_difference") await repriceForPlanChange(ctx, row.clientId, effectiveWeekStart, `Swap ${rule.code} approved`);
+  }
+  return decided;
 }
 
 export async function logCheckin(ctx: Ctx, input: { clientId: string; date: DateStr; weightG?: number | null; adherencePct?: number | null; notes?: string | null }) {

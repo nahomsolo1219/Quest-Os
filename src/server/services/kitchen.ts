@@ -17,7 +17,7 @@ export type KitchenMealRow = OrderMealRow & { isQuickStart: boolean; deliveryOpt
 /** Locked order meals cooked on `cookDate` (weekly and quick start), with the meal name. Server-internal. */
 export async function lockedMealsForCookDate(db: DbOrTx, cookDate: DateStr): Promise<KitchenMealRow[]> {
   const rows = await db
-    .select({ m: orderMeals, serviceDate: orderDays.serviceDate, isQuickStart: orderDays.isQuickStart, deliveryOption: weeklyOrders.deliveryOption, mealName: mealsTable.name })
+    .select({ m: orderMeals, serviceDate: orderDays.serviceDate, isQuickStart: orderDays.isQuickStart, deliveryOption: sql<DeliveryOption>`coalesce(${orderDays.deliveryOption}, ${weeklyOrders.deliveryOption})`, mealName: mealsTable.name })
     .from(orderMeals)
     .innerJoin(orderDays, eq(orderDays.id, orderMeals.orderDayId))
     .innerJoin(weeklyOrders, eq(weeklyOrders.id, orderDays.weeklyOrderId))
@@ -30,7 +30,7 @@ export async function lockedMealsForCookDate(db: DbOrTx, cookDate: DateStr): Pro
 export async function lockedMealsBetween(db: DbOrTx, from: DateStr, to: DateStr): Promise<KitchenMealRow[]> {
   if (from > to) return [];
   const rows = await db
-    .select({ m: orderMeals, serviceDate: orderDays.serviceDate, isQuickStart: orderDays.isQuickStart, deliveryOption: weeklyOrders.deliveryOption, mealName: mealsTable.name })
+    .select({ m: orderMeals, serviceDate: orderDays.serviceDate, isQuickStart: orderDays.isQuickStart, deliveryOption: sql<DeliveryOption>`coalesce(${orderDays.deliveryOption}, ${weeklyOrders.deliveryOption})`, mealName: mealsTable.name })
     .from(orderMeals)
     .innerJoin(orderDays, eq(orderDays.id, orderMeals.orderDayId))
     .innerJoin(weeklyOrders, eq(weeklyOrders.id, orderDays.weeklyOrderId))

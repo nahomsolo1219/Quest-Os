@@ -1,6 +1,6 @@
 // Packages, subscriptions, pauses, invoices, payments, credits (PLAN.md section 3, Plans, billing).
 import { sql } from "drizzle-orm";
-import { boolean, check, date, index, integer, jsonb, pgTable, text, unique, uuid } from "drizzle-orm/pg-core";
+import { boolean, check, date, index, integer, jsonb, pgTable, text, unique, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { id, isDemo, timestamps, tstz } from "./_common";
 import { user } from "./auth";
 import { clients } from "./core";
@@ -96,7 +96,8 @@ export const invoices = pgTable(
     ...timestamps(),
   },
   (t) => [
-    unique("invoices_subscription_kind_period_uq").on(t.subscriptionId, t.kind, t.periodStart),
+    // one live invoice per period start; a voided one does not block re-billing the period (D077)
+    uniqueIndex("invoices_subscription_kind_period_uq").on(t.subscriptionId, t.kind, t.periodStart).where(sql`${t.status} <> 'void'`),
     index("invoices_client_idx").on(t.clientId, t.periodStart),
     index("invoices_status_idx").on(t.status),
   ],
@@ -124,6 +125,8 @@ export const payments = pgTable(
     index("payments_invoice_idx").on(t.invoiceId),
     index("payments_client_idx").on(t.clientId),
     index("payments_status_idx").on(t.status),
+    // at most one receipt waiting for confirmation per invoice (double taps / double submits on 3G)
+    uniqueIndex("payments_one_submitted_per_invoice_uq").on(t.invoiceId).where(sql`${t.status} = 'submitted'`),
   ],
 );
 

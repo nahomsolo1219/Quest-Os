@@ -45,9 +45,11 @@ export function AddressForm({ initial, areas, effectiveLabel }: {
       <p className="text-xs text-muted-foreground">{T.profile.effective(effectiveLabel)}</p>
       <Button type="submit" className="h-11" disabled={pending}>{T.profile.save}</Button>
       <div className="flex min-h-11 items-center justify-between gap-3 border-t pt-3">
-        <Label htmlFor="tg-optin">{T.profile.telegramOptIn}</Label>
-        <Switch id="tg-optin" checked={v.telegramOptIn} disabled={pending}
-          onCheckedChange={(c) => { const next = { ...v, telegramOptIn: c }; setV(next); save(next); }} />
+        <Label htmlFor="tg-optin" className="flex min-h-11 flex-1 items-center justify-between gap-3">
+          {T.profile.telegramOptIn}
+          <Switch id="tg-optin" className="h-7 w-12" checked={v.telegramOptIn} disabled={pending}
+            onCheckedChange={(c) => { const next = { ...v, telegramOptIn: c }; setV(next); save(next); }} />
+        </Label>
       </div>
     </form>
   );

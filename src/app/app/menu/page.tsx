@@ -38,7 +38,7 @@ export default async function MenuPage({ searchParams }: { searchParams: Promise
           <h2 className="sticky top-14 z-10 bg-background/95 py-1 text-base font-bold">
             {formatDate(d.serviceDate, "long")} <span className="text-sm font-medium text-muted-foreground">· Menu {d.menu}{d.dropDate !== d.serviceDate ? ` · comes with ${formatDate(d.dropDate)}` : ""}</span>
           </h2>
-          <div className="grid gap-2 sm:grid-cols-2">
+          <div className="grid gap-2">
             {d.meals.map((meal) => <MealCard key={meal.slot} meal={meal} compact />)}
           </div>
         </section>

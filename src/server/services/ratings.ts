@@ -1,7 +1,7 @@
 // Meal ratings (COM-08, SPEC doc 7 point 6): a client rates each meal they received 1–5 with an optional comment.
 // Private by default: only the client and staff with mealRatings.read see them; they feed the owners' dashboard.
-import { and, eq, gte, inArray, lte } from "drizzle-orm";
-import { mealRatings, orderDays, orderMeals, weeklyOrders } from "@db/schema";
+import { and, eq, gte, inArray, lte, sql } from "drizzle-orm";
+import { deliveryDrops, mealRatings, orderDays, orderMeals, weeklyOrders } from "@db/schema";
 import { assertCan, ForbiddenError } from "@/server/authz";
 import { addisDate, isDateStr } from "@/domain/time";
 import type { DateStr } from "@/domain/types";
@@ -28,6 +28,10 @@ export async function rateMeal(ctx: Ctx, input: RateMealInput) {
     .where(and(eq(orderMeals.clientId, clientId), eq(orderMeals.mealId, input.mealId), eq(orderDays.serviceDate, input.serviceDate), eq(weeklyOrders.status, "locked")))
     .limit(1);
   if (!received) throw new ServiceError("You can only rate meals you received.");
+  // a failed drop means the meal never arrived
+  const [failed] = await ctx.db.select({ id: deliveryDrops.id }).from(deliveryDrops)
+    .where(and(eq(deliveryDrops.clientId, clientId), eq(deliveryDrops.status, "failed"), sql`${input.serviceDate}::date = any(${deliveryDrops.serviceDates})`)).limit(1);
+  if (failed) throw new ServiceError("This delivery did not reach you, so there is nothing to rate. Operations will be in touch.");
   const [row] = await ctx.db.insert(mealRatings).values({ clientId, mealId: input.mealId, serviceDate: input.serviceDate, rating: input.rating, comment })
     .onConflictDoUpdate({ target: [mealRatings.clientId, mealRatings.mealId, mealRatings.serviceDate], set: { rating: input.rating, comment, updatedAt: ctx.now } })
     .returning();

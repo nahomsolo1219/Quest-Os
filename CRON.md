@@ -15,7 +15,7 @@ Each job is an idempotent route on the app: `POST /api/jobs/<job>` with header `
 | `sunday-stock` | Sunday 17:00 | `0 14 * * 0` | Reminds the kitchen to complete the stock count |
 | `daily-renewals` | Every day 09:00 | `0 6 * * *` | Ends expired plans; renewal reminders 5 days and 1 day before a plan ends; check-in reminders on each client's check-in day; daily community Telegram digest |
 
-On Thursdays `thursday-lock` and `daily-quick-start` both run at 18:00 Addis; either order is safe (tested in `db/tests/engine.test.ts`).
+On Thursdays `thursday-lock` and `daily-quick-start` both run at 18:00 Addis. `thursday-lock` runs the quick-start lock itself first, so the result is the same whichever cron fires first (the second quick-start run finds nothing to do).
 
 ## Railway setup (one cron service per job)
 
