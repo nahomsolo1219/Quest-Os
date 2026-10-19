@@ -173,8 +173,8 @@ export async function lockQuickStarts({ db, now }: Snapshot) {
     // Already added for THIS plan by an earlier run. The weekly lock may have created the following week's days
     // first when both run at Thursday 18:00 — those are not quick-start days and their dates are kept.
     const [already] = await db.select({ id: orderDays.id }).from(orderDays)
-      .innerJoin(weeklyOrders, eq(weeklyOrders.id, orderDays.weeklyOrderId))
-      .where(and(eq(weeklyOrders.subscriptionId, sub.id), eq(orderDays.isQuickStart, true))).limit(1);
+      .where(and(eq(orderDays.clientId, sub.clientId), eq(orderDays.isQuickStart, true),
+        gte(orderDays.serviceDate, sub.startDate), lte(orderDays.serviceDate, sub.quickStartPeriodEnd ?? addDays(weekStartOf(sub.startDate), 6)))).limit(1);
     if (already) continue;
     const paid = (await paidInvoicesBy(db, [sub.clientId], asOf)).some((i) => i.id === qsInv.id);
     let startDate = sub.startDate;
@@ -275,15 +275,21 @@ export async function lockQuickStarts({ db, now }: Snapshot) {
       const qsPauses = (await tx.select().from(pauses).where(eq(pauses.subscriptionId, sub.id))).map((p) => ({ startWeek: p.startWeek, weeks: p.weeks }));
       // weeks the Thursday lock already decided (locked, skipped or paused) are its, not the quick start's
       const decidedWeeks = new Set((await tx.select({ w: weeklyOrders.weekStart }).from(weeklyOrders)
-        .where(and(eq(weeklyOrders.clientId, sub.clientId), eq(weeklyOrders.isQuickStart, false)))).map((r) => r.w));
+        .where(and(eq(weeklyOrders.subscriptionId, sub.id), eq(weeklyOrders.isQuickStart, false)))).map((r) => r.w));
       const mealDates: MealDate[] = mealDatesBetween(qsStart, qsEnd, settings.schedule)
         .filter((md) => !isPausedWeek(qsPauses, weekStartOf(md.serviceDate)) && !decidedWeeks.has(weekStartOf(md.serviceDate)));
       const days = buildOrderDays(client, mealDates, data, { schedule: settings.schedule, pricing: settings.pricing, roundGramsTo: settings.nutrition.roundGramsTo });
       const byWeek = new Map<DateStr, OrderDayDraft[]>();
       for (const d of days) byWeek.set(weekStartOf(d.serviceDate), [...(byWeek.get(weekStartOf(d.serviceDate)) ?? []), d]);
       for (const [week, wdays] of byWeek) {
-        const { row } = await upsertWeeklyOrder(tx, { clientId: sub.clientId, subscriptionId: sub.id, weekStart: week, profile: plan.profile,
+        let { row } = await upsertWeeklyOrder(tx, { clientId: sub.clientId, subscriptionId: sub.id, weekStart: week, profile: plan.profile,
           status: "locked", isQuickStart: true, lockedAt: now, deliveryOption: sub.deliveryOption, isDemo: sub.isDemo });
+        // a returning client: the week's row may belong to their previous plan (weekly orders are one per client and
+        // week). If that plan left it skipped or paused, the new quick start takes the row so its paid days are cooked.
+        if (row.status !== "locked") {
+          [row] = await tx.update(weeklyOrders).set({ status: "locked", isQuickStart: true, subscriptionId: sub.id, skipReason: null, lockedAt: now,
+            deliveryOption: sub.deliveryOption, profile: plan.profile }).where(eq(weeklyOrders.id, row.id)).returning();
+        }
         summary.meals += await insertOrderDays(tx, row.id, sub.clientId, plan.profile, wdays, true);
       }
     });

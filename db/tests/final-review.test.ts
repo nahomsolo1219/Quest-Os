@@ -507,3 +507,37 @@ describe("final review, ninth pass", () => {
     expect(a.length).toBeGreaterThan(0);
   });
 });
+
+describe("final review, tenth pass", () => {
+  it("a returning client's quick start cooks every paid day, even in a week their old plan already locked", async () => {
+    await inRollback(db, async (tx) => {
+      await setAllPrices(tx);
+      const ops = await actorByEmail(tx, "nebiyou@questmeals.demo");
+      const sub = await activeWeekly(tx);
+      // old plan ends Wednesday 28 Oct; its week of 26 Oct is paid and locked on Thursday 22 Oct
+      await tx.update(s.subscriptions).set({ endDate: "2026-10-28" }).where(eq(s.subscriptions.id, sub.id));
+      const [inv] = await tx.select().from(s.invoices).where(and(eq(s.invoices.subscriptionId, sub.id), eq(s.invoices.periodStart, "2026-10-26")));
+      if (inv.status === "issued") {
+        const p = await submitPayment({ db: tx, actor: ops, now: at("2026-10-21T07:00:00Z") }, { invoiceId: inv.id, method: "cash" });
+        await confirmPayment({ db: tx, actor: ops, now: at("2026-10-21T07:00:00Z") }, p.id);
+      }
+      await runJob(tx as never, "thursday-lock", THU_LOCK);
+      await runJob(tx as never, "daily-renewals", at("2026-10-29T06:00:00Z")); // Thu 29 Oct 09:00: old plan ends
+      const [pkg] = await tx.select().from(s.packages).where(eq(s.packages.code, "essential"));
+      const thu10 = at("2026-10-29T07:00:00Z");
+      const q = await createSubscription({ db: tx, actor: ops, now: thu10 }, { clientId: sub.clientId, packageId: pkg.id, deliveryOption: "pickup", billingPeriod: "weekly", termMonths: 1, start: "quick_start" });
+      expect(q.subscription.startDate).toBe("2026-10-30");
+      const p = await submitPayment({ db: tx, actor: ops, now: thu10 }, { invoiceId: q.invoice.id, method: "cash" });
+      await confirmPayment({ db: tx, actor: ops, now: thu10 }, p.id);
+      await runJob(tx as never, "thursday-lock", at("2026-10-29T15:00:05Z"));
+      const days = (await tx.select().from(s.orderDays).where(and(eq(s.orderDays.clientId, sub.clientId), sql`${s.orderDays.serviceDate} >= '2026-10-30'`)))
+        .map((d) => d.serviceDate).sort();
+      expect(days.slice(0, 3)).toEqual(["2026-10-30", "2026-10-31", "2026-11-01"]);
+      expect(days).toHaveLength(10); // Fri–Sun + the week of 2 Nov
+      // a later run does not mistake it for a missed start
+      await runJob(tx as never, "daily-quick-start", at("2026-10-31T15:00:05Z"));
+      const [after] = await tx.select().from(s.subscriptions).where(eq(s.subscriptions.id, q.subscription.id));
+      expect(after.startDate).toBe("2026-10-30");
+    });
+  });
+});
