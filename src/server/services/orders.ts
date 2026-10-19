@@ -77,10 +77,17 @@ export async function lockWeekOrders({ db, now }: Snapshot, weekStart: DateStr) 
     settings: { schedule: settings.schedule, pricing: settings.pricing, roundGramsTo: settings.nutrition.roundGramsTo } });
 
   const summary = { locked: 0, skippedUnpaid: 0, paused: 0, meals: 0, alreadyLocked: 0, skippedNames: [] as string[], pausedNames: [] as string[] };
-  for (const o of result.orders) {
+  for (let o of result.orders) {
     // One transaction per client: the order, its days and any invoice reduction land together, so a run that stops
     // partway is redone cleanly by the next run (job idempotency, money integrity).
     await db.transaction(async (tx) => {
+      // lock the plan and re-read its pauses: a pause committed after the reads above (a tap at 17:59:59) wins over
+      // cooking the week, and a pause arriving after this point is refused because the week now has an order
+      await tx.select({ id: subscriptions.id }).from(subscriptions).where(eq(subscriptions.id, o.subscriptionId)).for("update");
+      const freshPauses = await tx.select().from(pauses).where(eq(pauses.subscriptionId, o.subscriptionId));
+      if (o.status !== "paused" && isPausedWeek(freshPauses.map((p) => ({ startWeek: p.startWeek, weeks: p.weeks })), weekStart)) {
+        o = { ...o, status: "paused", days: [], skipReason: null };
+      }
       const { row, created } = await upsertWeeklyOrder(tx, {
         clientId: o.clientId, subscriptionId: o.subscriptionId, weekStart: o.weekStart, profile: o.profile, status: o.status,
         isQuickStart: false, lockedAt: now, deliveryOption: o.deliveryOption, skipReason: o.skipReason,
@@ -199,12 +206,15 @@ export async function lockQuickStarts({ db, now }: Snapshot) {
       await db.update(subscriptions).set({ startDate, quickStartPeriodEnd: periodEnd, endDate: subscriptionEndDate(startDate, sub.termMonths) })
         .where(eq(subscriptions.id, sub.id));
       // regular invoices made for dates the quick-start period now covers are cancelled (paid ones become credit)
-      const later = await db.select().from(invoices).where(and(eq(invoices.subscriptionId, sub.id), ne(invoices.kind, "quick_start"), ne(invoices.status, "void")));
-      for (const inv of later) {
-        if (inv.periodStart > periodEnd) continue;
-        await voidInvoice(db, inv.id, "covered by the moved quick start");
-        if (inv.status === "paid" && inv.amountBirr > 0) await db.insert(accountCredits).values({ clientId: sub.clientId, amountBirr: inv.amountBirr, reason: `Paid invoice ${inv.periodStart} covered by the moved quick start` });
-      }
+      await db.transaction(async (tx) => {
+        await tx.select({ id: subscriptions.id }).from(subscriptions).where(eq(subscriptions.id, sub.id)).for("update");
+        const later = await tx.select().from(invoices).where(and(eq(invoices.subscriptionId, sub.id), ne(invoices.kind, "quick_start"), ne(invoices.status, "void"))).for("update");
+        for (const inv of later) {
+          if (inv.periodStart > periodEnd) continue;
+          const voided = await voidInvoice(tx, inv.id, "covered by the moved quick start");
+          if (voided && inv.status === "paid" && inv.amountBirr > 0) await tx.insert(accountCredits).values({ clientId: sub.clientId, amountBirr: inv.amountBirr, reason: `Paid invoice ${inv.periodStart} covered by the moved quick start` });
+        }
+      });
       if (!paid) {
         await db.update(invoices).set({ periodStart: startDate, periodEnd, serviceDays: plan.serviceDays, amountBirr: newAmount, dueAt: plan.lockAt })
           .where(eq(invoices.id, qsInv.id));

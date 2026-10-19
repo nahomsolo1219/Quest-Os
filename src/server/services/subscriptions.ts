@@ -1,6 +1,6 @@
 // Plans: create (regular or quick start), pause, renew, owner discounts and price changes (modules 5 and 7).
 import { and, desc, eq, inArray, ne, sql } from "drizzle-orm";
-import { clients, invoices, nutritionProfiles, packages, pauses, subscriptions } from "@db/schema";
+import { clients, invoices, nutritionProfiles, packages, pauses, subscriptions, weeklyOrders } from "@db/schema";
 import type { DbOrTx } from "@db/client";
 import { assertCan, assertCanForClient, can } from "@/server/authz";
 import { profileOf } from "@/domain/nutrition";
@@ -127,6 +127,10 @@ export async function pausePlan(ctx: Ctx, input: { clientId: string; startWeek: 
     if (locked.endDate !== sub.endDate) throw new ServiceError("The plan just changed. Refresh and try again.");
     const existing = await tx.select().from(pauses).where(eq(pauses.subscriptionId, sub.id));
     if (existing.some((p) => p.startWeek <= res.endWeek && addWeeks(p.startWeek, p.weeks) > res.startWeek)) throw new ServiceError("Part of that time is already paused.");
+    // the Thursday lock may have locked the week while this request was in flight: a locked week cannot be paused
+    const [lockedWeek] = await tx.select({ id: weeklyOrders.id }).from(weeklyOrders)
+      .where(and(eq(weeklyOrders.subscriptionId, sub.id), sql`${weeklyOrders.weekStart} between ${res.startWeek} and ${res.endWeek}`)).limit(1);
+    if (lockedWeek) throw new ServiceError(PAUSE_REASONS.after_cutoff);
     await tx.insert(pauses).values({ subscriptionId: sub.id, clientId: sub.clientId, startWeek: res.startWeek, weeks: res.weeks, requestedByUserId: actorUserId(ctx.actor) });
     await tx.update(subscriptions).set({ endDate: res.endDate }).where(eq(subscriptions.id, sub.id));
     // Paused days are not charged (rule 6: they extend the plan). Invoices already made for the paused weeks:

@@ -403,3 +403,16 @@ describe("final review, fifth pass", () => {
     }
   });
 });
+
+describe("final review, sixth pass", () => {
+  it("a pause for a week the Thursday lock has just locked is refused, even if the request started before 18:00", async () => {
+    await inRollback(db, async (tx) => {
+      const ops = await actorByEmail(tx, "nebiyou@questmeals.demo");
+      const [sub] = await tx.select().from(s.subscriptions).where(and(eq(s.subscriptions.status, "active"), eq(s.subscriptions.billingPeriod, "monthly"))).limit(1);
+      await runJob(tx as never, "thursday-lock", THU_LOCK);
+      // the request's clock says 17:59:59 — the lock committed first
+      await expect(pausePlan({ db: tx, actor: ops, now: at("2026-10-22T14:59:59Z") }, { clientId: sub.clientId, startWeek: "2026-10-26", weeks: 1 }))
+        .rejects.toThrow(/already locked/);
+    });
+  });
+});
