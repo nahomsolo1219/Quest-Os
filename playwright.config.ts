@@ -29,7 +29,7 @@ export default defineConfig({
     command: `${process.env.E2E_SKIP_BUILD ? "" : "npm run build && "}npx next start -p ${PORT}`,
     url: `http://localhost:${PORT}/login`,
     timeout: 300_000,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false, // never test against a stale build
     env: {
       DATABASE_URL: E2E_DATABASE_URL,
       STORAGE_DRIVER: "local",

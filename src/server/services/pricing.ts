@@ -7,7 +7,7 @@ import { buildClientMeal, type MenuData } from "@/domain/orders";
 import { priceClient, type PriceResult } from "@/domain/pricing";
 import type { AllSettings } from "@/domain/settings";
 import { menuForDate, type MealDate } from "@/domain/schedule";
-import { extraProteinPrice, mainProteinItem } from "@/domain/swaps";
+import { applyAddons, extraProteinPrice } from "@/domain/swaps";
 import { lineCost, resolveMeal, sortBySlot } from "@/domain/recipes";
 import { addDays, weekStartOf } from "@/domain/time";
 import type { DateStr, DeliveryOption, Profile, ResolvedMeal, Slot } from "@/domain/types";
@@ -59,16 +59,34 @@ export async function quotePrice(db: DbOrTx, q: QuoteInput, today: DateStr): Pro
   });
 }
 
-/** Price of the extra-protein add-on for a slot at a profile (SWP-07); null when a price is missing. */
+/**
+ * Price per portion of the extra-protein add-on for a slot at a profile (SWP-07): the add-on's ingredient cost
+ * × (1 + buffer) ÷ (1 − margin floor), rounded up to 10 ETB. The meal in a slot changes with the rotation, so the
+ * cost is averaged over the 7 rotation days. Null when a needed price is missing or the slot has no protein.
+ */
 export async function extraProteinQuote(db: DbOrTx, profile: Profile, slot: Slot, today: DateStr): Promise<number | null> {
   const [data, settings] = await Promise.all([loadMenuData(db), loadSettings(db)]);
-  const menu = menuForDate(today, settings.schedule);
-  const meal = data.meals.find((m) => m.menu === menu && m.slot === slot);
-  if (!meal) return null;
-  const main = mainProteinItem(resolveMeal(meal, data.portions[profile] ?? {}));
-  const ing = main ? data.ingredients[main.ingredients[0]?.ingredientId] : undefined;
-  if (!ing) return null;
-  const cost = lineCost(ing, settings.pricing.extraProteinGrams, data.ingredients);
-  if (cost == null) return null;
-  return extraProteinPrice(cost, settings.pricing.buffers[ing.foodGroup], settings.pricing.marginFloor);
+  const monday = weekStartOf(today);
+  const costs: number[] = [];
+  for (let i = 0; i < 7; i++) {
+    const menu = menuForDate(addDays(monday, i), settings.schedule);
+    const meal = data.meals.find((m) => m.menu === menu && m.slot === slot);
+    if (!meal) continue;
+    const withAddon = applyAddons(resolveMeal(meal, data.portions[profile] ?? {}), [{ kind: "extra_protein", slot }],
+      { ingredients: data.ingredients, extraProteinGrams: settings.pricing.extraProteinGrams });
+    const item = withAddon.items.find((it) => it.source?.code === "extra_protein");
+    if (!item) continue;
+    let buffered = 0;
+    for (const pi of item.ingredients) {
+      const ing = data.ingredients[pi.ingredientId];
+      const cost = ing ? lineCost(ing, pi.qty, data.ingredients) : null;
+      if (cost == null) return null;
+      const group = data.ingredients[ing.stockIngredientId ?? ing.id]?.foodGroup ?? ing.foodGroup;
+      buffered += cost * (1 + settings.pricing.buffers[group]);
+    }
+    costs.push(buffered);
+  }
+  if (costs.length === 0) return null;
+  const avg = costs.reduce((x, y) => x + y, 0) / costs.length;
+  return extraProteinPrice(avg, 0, settings.pricing.marginFloor);
 }

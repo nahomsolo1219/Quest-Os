@@ -202,7 +202,7 @@ describe("allergy and dislike conflicts", () => {
   it("ignores blank terms and reports allergy and dislike separately", () => {
     const c = findConflicts(["  ", "egg"], ["egg"], meal("A_SNACK"), ING);
     expect([...new Set(c.map((x) => x.kind))]).toEqual(["allergy", "dislike"]);
-    expect(c.map((x) => x.item)).toEqual(["Eggs", "Whole egg", "Eggs", "Whole egg"]);
+    expect(c.map((x) => x.item)).toEqual(["Eggs", "Eggs"]); // one line per conflict: the part "Whole egg" adds nothing once "Eggs" matched (D050)
   });
 });
 
@@ -213,5 +213,16 @@ describe("pantry allergies (spec review)", () => {
     const c = findConflicts(["garlic"], [], meal, {}, ["Garlic", "Salt"]);
     expect(c).toEqual([{ term: "garlic", kind: "allergy", item: "Garlic", on: "pantry" }]);
     expect(findConflicts(["garlic"], [], meal, {}, [])).toEqual([]);
+  });
+});
+
+describe("conflict lines are not duplicated (qa)", () => {
+  it("a fish dislike on the tilapia dinner gives one line", async () => {
+    const { findConflicts } = await import("./swaps");
+    const ing = indexIngredients(seedIngredients());
+    const meal = resolveMeal(seedMeals().find((m) => m.code === "D_DINNER")!);
+    const c = findConflicts([], ["fish"], meal, ing);
+    expect(c).toHaveLength(1);
+    expect(c[0].item).toBe("Tilapia fillet");
   });
 });

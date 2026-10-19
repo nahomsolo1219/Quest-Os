@@ -27,7 +27,7 @@ export default async function SignupPage({ searchParams }: { searchParams: Promi
   return (
     <main className="mx-auto max-w-xl px-4 pb-16">
       <header className="flex h-16 items-center justify-between">
-        <Link href="/" className="text-xl font-extrabold text-primary">Quest Meals</Link>
+        <Link href="/" className="inline-flex min-h-11 items-center text-xl font-extrabold text-primary">Quest Meals</Link>
         <Link href="/login" className="flex min-h-11 items-center rounded-lg px-3 text-sm font-semibold hover:bg-accent">{S.signIn}</Link>
       </header>
       <h1 className="text-3xl font-extrabold tracking-tight">{S.title}</h1>

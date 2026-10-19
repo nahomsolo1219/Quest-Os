@@ -9,7 +9,7 @@ export function ClientShell({ unread, children }: { unread?: number; children: R
   return (
     <div className="mx-auto min-h-dvh max-w-xl pb-20">
       <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b bg-background/95 px-4 backdrop-blur">
-        <Link href="/app" className="text-lg font-extrabold text-primary">Quest Meals</Link>
+        <Link href="/app" className="flex min-h-11 items-center text-lg font-extrabold text-primary">Quest Meals</Link>
         <div className="flex items-center gap-1">
           <Link href="/app/notifications" aria-label="Notifications" className="relative flex size-11 items-center justify-center rounded-lg hover:bg-accent">
             <Bell className="size-5" />

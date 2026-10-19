@@ -1,5 +1,5 @@
 // Accessibility checks on the main phone screens: every visible form control has a label; tap targets ≥ 44×44 px
-// (inline text links excepted). Unlabeled controls fail the test; small targets are reported as annotations.
+// (inline text links excepted; a control inside a ≥ 44 px label counts by the label). Both fail the test.
 import { expect, test } from "@playwright/test";
 import { authFile, type RoleKey } from "./helpers";
 
@@ -44,7 +44,9 @@ for (const [role, path] of SCREENS) {
           if (!visible(el)) continue;
           const s = getComputedStyle(el);
           if (el.tagName === "A" && s.display === "inline") continue; // inline text link
-          if (el.closest("label") && el.tagName !== "BUTTON") continue;
+          const label = el.closest("label");
+          // a control inside a label: the whole label is the tap area (it toggles the control)
+          if (label && (el.tagName !== "BUTTON" || label.getBoundingClientRect().height >= 43.5)) continue;
           // a control whose own box is small but which sits in a ≥ 44 px label/row counts by its tap area
           const r = el.getBoundingClientRect();
           if (r.width < 43.5 || r.height < 43.5) small.push(`${describe(el)} ${Math.round(r.width)}×${Math.round(r.height)}`);
@@ -60,8 +62,9 @@ for (const [role, path] of SCREENS) {
         console.log(`[a11y] ${path}\n  ` + offenders.map((o) => o.what).join("\n  "));
       }
       expect(result.unlabeled, `unlabeled controls on ${path}`).toEqual([]);
-      // Small tap targets are reported (annotation + console), not failed: they are design findings for the UI builders.
+      // Tap targets under 44 px fail the test (milestone 6 accessibility pass).
       for (const w of result.small) info.annotations.push({ type: "small-tap-target", description: `${path}: ${w}` });
+      expect(result.small, `tap targets under 44 px on ${path}`).toEqual([]);
     });
   });
 }

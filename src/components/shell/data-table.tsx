@@ -70,7 +70,7 @@ export function DataTable<T>({ data, columns, filters = [], searchPlaceholder = 
                 {hg.headers.map((h) => (
                   <TableHead key={h.id} className="whitespace-nowrap">
                     {h.isPlaceholder ? null : h.column.getCanSort() ? (
-                      <button type="button" className="min-h-11 font-semibold" onClick={h.column.getToggleSortingHandler()}>
+                      <button type="button" className="min-h-11 min-w-11 font-semibold" onClick={h.column.getToggleSortingHandler()}>
                         {flexRender(h.column.columnDef.header, h.getContext())}
                         {{ asc: " ↑", desc: " ↓" }[h.column.getIsSorted() as string] ?? ""}
                       </button>

@@ -10,7 +10,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   return (
     <main className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center gap-6 p-6">
       <div>
-        <Link href="/" className="text-2xl font-extrabold text-primary">Quest Meals</Link>
+        <Link href="/" className="inline-flex min-h-11 items-center text-2xl font-extrabold text-primary">Quest Meals</Link>
         <h1 className="mt-4 text-xl font-bold">{S.title}</h1>
       </div>
       <LoginForm next={safeNext} />

@@ -31,7 +31,7 @@ export default async function NotificationsPage() {
                 </div>
                 {!n.readAt ? <MarkReadButton ids={[n.id]} /> : null}
               </div>
-              {n.link && n.link.startsWith("/app") ? <Link href={n.link} className="mt-1 inline-flex min-h-11 items-center text-sm font-semibold text-primary">{T.notifications.open}</Link> : null}
+              {n.link && n.link.startsWith("/app") ? <Link href={n.link} className="mt-1 inline-flex min-h-11 min-w-11 items-center text-sm font-semibold text-primary">{T.notifications.open}</Link> : null}
             </li>
           ))}
         </ul>

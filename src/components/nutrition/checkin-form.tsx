@@ -40,7 +40,7 @@ export function CheckinForm({ clientId, today, clients }: { clientId?: string; t
           {err(errors.clientId?.message)}
         </div>
       ) : null}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-3 [&>*]:min-w-0">
         <div className="space-y-1.5">
           <Label htmlFor="ck-date">Date</Label>
           <Input id="ck-date" type="date" max={today} className="h-11" {...register("date")} />

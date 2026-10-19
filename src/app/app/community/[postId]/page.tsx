@@ -38,6 +38,7 @@ export default async function PostPage({ params }: { params: Promise<{ postId: s
       <Link href="/app/community" className="inline-flex min-h-11 items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-4" aria-hidden />{S.back}
       </Link>
+      <h1 className="sr-only">{`Post by ${post.author.name}`}</h1>
       <AccessBanner viewer={v} mutedLabel={v.mutedUntil ? formatAddisDateTime(new Date(v.mutedUntil)) : null} />
       <PostCard post={post} canReact={v.canReact} full />
       <div className="flex flex-wrap justify-end gap-2">

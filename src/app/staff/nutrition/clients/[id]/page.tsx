@@ -60,7 +60,7 @@ export default async function ClientNutritionPage({ params }: { params: Promise<
         </>}
         actions={<Link href={`/staff/clients/${c.id}`} className="inline-flex min-h-11 items-center rounded-md border px-3 text-sm font-medium hover:bg-muted">Full client record</Link>} />
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-2 [&>*]:min-w-0">
         <Card>
           <CardHeader><CardTitle>{S.stats}</CardTitle></CardHeader>
           <CardContent>
@@ -100,7 +100,7 @@ export default async function ClientNutritionPage({ params }: { params: Promise<
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-2 [&>*]:min-w-0">
         <Card>
           <CardHeader><CardTitle>{S.checkins}</CardTitle></CardHeader>
           <CardContent className="space-y-4">
@@ -144,7 +144,7 @@ export default async function ClientNutritionPage({ params }: { params: Promise<
         </Card>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-2 [&>*]:min-w-0">
         <Card>
           <CardHeader><CardTitle>{S.swaps}</CardTitle></CardHeader>
           <CardContent>

@@ -28,9 +28,9 @@ export function LoginForm({ next }: { next?: string }) {
 
   return (
     <Tabs defaultValue="client" onValueChange={() => setError(null)}>
-      <TabsList className="grid h-11 w-full grid-cols-2">
-        <TabsTrigger value="client">{S.clientTab}</TabsTrigger>
-        <TabsTrigger value="staff">{S.staffTab}</TabsTrigger>
+      <TabsList className="grid h-13 w-full grid-cols-2">
+        <TabsTrigger value="client" className="h-11">{S.clientTab}</TabsTrigger>
+        <TabsTrigger value="staff" className="h-11">{S.staffTab}</TabsTrigger>
       </TabsList>
       <TabsContent value="client">
         <form className="mt-4 space-y-4" onSubmit={clientForm.handleSubmit(async (v) => {

@@ -29,7 +29,7 @@ export default async function NotificationsPage() {
                 <p className="mt-1 text-xs text-muted-foreground">{formatAddisDateTime(n.createdAt)}</p>
               </div>
               <div className="flex w-full gap-1 pl-5 sm:w-auto sm:pl-0">
-                {n.link ? <Button asChild variant="outline" className="h-11"><Link href={n.link}>{S.open}</Link></Button> : null}
+                {n.link ? <Button asChild variant="outline" className="h-11 min-w-11"><Link href={n.link}>{S.open}</Link></Button> : null}
                 {!n.readAt ? <MarkReadButton id={n.id} /> : null}
               </div>
             </li>

@@ -122,15 +122,20 @@ function withIngredients(item: ResolvedItem, ingredients: { ingredientId: string
   return { ...item, ingredients, qty };
 }
 
-/** The meal's main protein: the gram protein item with the most grams (null when there is none). */
+/**
+ * The meal's main protein: the gram protein item with the most grams; when a meal's protein is only counted in
+ * pieces (eggs), the piece protein item with the most pieces. Null when there is no protein item.
+ */
 export function mainProteinItem(meal: ResolvedMeal): ResolvedItem | null {
   let best: ResolvedItem | null = null;
+  let bestPiece: ResolvedItem | null = null;
   for (const it of meal.items) {
     if (it.category !== "protein" && it.category !== "dairy") continue;
-    if (it.unit !== "g" || it.ingredients.length === 0) continue;
-    if (!best || it.qty > best.qty) best = it;
+    if (it.ingredients.length === 0) continue;
+    if (it.unit === "g") { if (!best || it.qty > best.qty) best = it; }
+    else if (!bestPiece || it.qty > bestPiece.qty) bestPiece = it;
   }
-  return best;
+  return best ?? bestPiece;
 }
 
 /** Extra protein add-on: +grams (default 50) of the meal's main protein, as its own item. */
@@ -142,15 +147,18 @@ export function applyAddons(meal: ResolvedMeal, addons: Addon[], ctx: SwapContex
     if (!main) continue;
     const grams = a.grams ?? ctx.extraProteinGrams ?? 50;
     const ingredientId = [...main.ingredients].sort((x, y) => y.qty - x.qty)[0].ingredientId;
+    // pieces (eggs): the whole number of pieces closest to the grams, at least one (50 g ≈ 1 egg)
+    const perPiece = ctx.ingredients[ingredientId]?.gramsPerUnit ?? 50;
+    const qty = main.unit === "piece" ? Math.max(1, Math.round(grams / perPiece)) : grams;
     items = [
       ...items,
       {
         partId: `${main.partId}:addon:extra_protein`,
         partName: `Extra ${ingName(ctx, ingredientId)}`,
         category: "protein",
-        unit: "g",
-        qty: grams,
-        ingredients: [{ ingredientId, qty: grams }],
+        unit: main.unit,
+        qty,
+        ingredients: [{ ingredientId, qty }],
         source: { kind: "addon", code: "extra_protein" },
       },
     ];
@@ -328,18 +336,21 @@ export function findConflicts(
     let matched = false;
     let handledBySwap = false;
     for (const item of meal.items) {
+      let itemMatched = false;
       for (const pi of item.ingredients) {
         const name = ingredients[pi.ingredientId]?.name ?? pi.ingredientId;
         if (termMatches(term, name)) {
           add({ term, kind, item: name, on: "ingredient" });
           matched = true;
+          itemMatched = true;
         }
       }
       // a swapped item is named "Original → New": only the new side can conflict
       const [original, replaced] = item.partName.split(" → ");
       const current = item.source?.kind === "swap" && replaced ? replaced : item.partName;
       if (item.source?.kind === "swap" && replaced && termMatches(term, original)) handledBySwap = true;
-      if (termMatches(term, current)) {
+      // the part name only adds something when none of its ingredients matched (one line per conflict)
+      if (!itemMatched && termMatches(term, current)) {
         add({ term, kind, item: item.partName, on: "part" });
         matched = true;
       }

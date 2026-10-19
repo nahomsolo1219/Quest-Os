@@ -44,10 +44,6 @@ for (const [role, route] of ROUTES) {
       await expect(page.locator("main").first()).toBeVisible();
       if ((await page.locator("h1").count()) === 0) info.annotations.push({ type: "missing-h1", description: route });
       await screenshot(page, `route-${slug(route)}`, info);
-      // BUG (app, src/app/staff/nutrition/clients/[id]/page.tsx): at 390 px a card with a table is 595 px wide, so the
-      // whole page zooms out on phones (layout viewport 595 px). Screenshot is kept above; the overflow check is fixme.
-      test.fixme(info.project.name === "phone" && route === "/staff/nutrition/clients/{client}",
-        "nutrition client page is 595 px wide at 390 px (card/table not shrinking)");
       await expectNoHorizontalOverflow(page);
     });
   });
