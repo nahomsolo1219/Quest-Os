@@ -437,3 +437,28 @@ describe("final review, seventh pass", () => {
     });
   });
 });
+
+describe("final review, eighth pass", () => {
+  it("moving a missed quick start keeps the extra week a pause added to the end date", async () => {
+    await inRollback(db, async (tx) => {
+      await setAllPrices(tx);
+      const ops = await actorByEmail(tx, "nebiyou@questmeals.demo");
+      const [c] = await tx.insert(s.clients).values({ firstName: "Q", lastName: "U", phone: "+251955000003", status: "lead", sex: "male", age: 30, weightG: 80000,
+        heightCm: 180, activity: "moderate", goal: "lean" }).returning();
+      await tx.insert(s.nutritionProfiles).values({ clientId: c.id, bmr: 1780, tdee: 2759, suggestedKcal: 2207, suggestedSize: "M", suggestedProteinG: 158,
+        suggestedCarbG: 210, suggestedFatG: 70, kcalTarget: 2100, size: "M", goal: "lean", proteinG: 158, carbG: 210, fatG: 70, provisional: true, isCurrent: true });
+      const [pkg] = await tx.select().from(s.packages).where(eq(s.packages.code, "essential"));
+      const mon10 = at("2026-10-19T07:00:00Z");
+      const q = await createSubscription({ db: tx, actor: ops, now: mon10 }, { clientId: c.id, packageId: pkg.id, deliveryOption: "pickup", billingPeriod: "weekly", termMonths: 1, start: "quick_start" });
+      expect(q.subscription.startDate).toBe("2026-10-20");
+      const p = await submitPayment({ db: tx, actor: ops, now: at("2026-10-19T14:00:00Z") }, { invoiceId: q.invoice.id, method: "cash" });
+      await runJob(tx as never, "daily-quick-start", at("2026-10-19T15:00:05Z")); // receipt not confirmed yet: not added
+      await confirmPayment({ db: tx, actor: ops, now: at("2026-10-19T16:00:00Z") }, p.id); // 19:00, after the lock
+      await pausePlan({ db: tx, actor: ops, now: at("2026-10-19T17:00:00Z") }, { clientId: c.id, startWeek: "2026-11-02", weeks: 1 });
+      await runJob(tx as never, "daily-quick-start", at("2026-10-20T15:00:05Z")); // Tuesday: moved to Wednesday
+      const [sub] = await tx.select().from(s.subscriptions).where(eq(s.subscriptions.id, q.subscription.id));
+      expect(sub.startDate).toBe("2026-10-21");
+      expect(sub.endDate).toBe("2026-11-27"); // 21 Oct + 1 month − 1 day = 20 Nov, + 7 days for the pause
+    });
+  });
+});

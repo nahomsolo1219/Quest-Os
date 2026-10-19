@@ -158,7 +158,15 @@ function addWeeks(monday: DateStr, weeks: number): DateStr {
 /** Renew: extend by the term; the locked price stays until price_locked_until (PLN-07). */
 export async function renewPlan(ctx: Ctx, clientId: string) {
   assertCan(ctx.actor, "subscriptions.write");
-  const sub = await currentSubscription(ctx.db, clientId);
+  return ctx.db.transaction((tx) => renewPlanLocked({ ...ctx, db: tx }, clientId));
+}
+
+async function renewPlanLocked(ctx: Ctx, clientId: string) {
+  assertCan(ctx.actor, "subscriptions.write");
+  const current = await currentSubscription(ctx.db, clientId);
+  if (!current) throw new ServiceError("There is no active plan to renew.");
+  // fresh row under the plan lock: a pause or re-price committed meanwhile is never overwritten
+  const [sub] = await ctx.db.select().from(subscriptions).where(eq(subscriptions.id, current.id)).for("update");
   if (!sub || !["active", "paused"].includes(sub.status)) throw new ServiceError("There is no active plan to renew.");
   const endDate = renewEndDate(sub.endDate, sub.termMonths);
   await ctx.db.update(subscriptions).set({ endDate }).where(eq(subscriptions.id, sub.id));
@@ -236,7 +244,13 @@ export async function endExpiredPlans(db: DbOrTx, today: DateStr) {
  * changes never reach a client during the 4-month price lock (rule 7). Audited. Callers authorize the change itself.
  */
 export async function repriceForPlanChange(ctx: Ctx, clientId: string, effectiveWeek: DateStr, reason: string) {
-  const sub = await currentSubscription(ctx.db, clientId);
+  return ctx.db.transaction(async (tx) => repriceForPlanChangeLocked({ ...ctx, db: tx }, clientId, effectiveWeek, reason));
+}
+
+async function repriceForPlanChangeLocked(ctx: Ctx, clientId: string, effectiveWeek: DateStr, reason: string) {
+  const current = await currentSubscription(ctx.db, clientId);
+  if (!current) return null;
+  const [sub] = await ctx.db.select().from(subscriptions).where(eq(subscriptions.id, current.id)).for("update");
   if (!sub || !["active", "paused", "pending_payment"].includes(sub.status)) return null;
   const [np] = await ctx.db.select().from(nutritionProfiles).where(and(eq(nutritionProfiles.clientId, clientId), eq(nutritionProfiles.isCurrent, true)));
   if (!np) return null;

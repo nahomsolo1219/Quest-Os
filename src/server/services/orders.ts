@@ -8,7 +8,7 @@ import { buildOrderDays, lockWeek, type OrderDayDraft } from "@/domain/orders";
 import { quickStartAmount } from "@/domain/pricing";
 import { dropsFor, mealDatesBetween, nextServiceDay, quickStartPlan, serviceDaysBetween, weekLockedAt, weeklyCutoff, type MealDate } from "@/domain/schedule";
 import { isPausedWeek } from "@/domain/subscriptions";
-import { addDays, addisDate, addisInstant, weekStartOf } from "@/domain/time";
+import { addDays, addisDate, addisInstant, daysBetween, weekStartOf } from "@/domain/time";
 import { subscriptionEndDate } from "@/domain/subscriptions";
 import type { DateStr, DeliveryOption, Profile } from "@/domain/types";
 import { loadClientPlanInputs, withDelivery } from "./client-plan";
@@ -201,32 +201,44 @@ export async function lockQuickStarts({ db, now }: Snapshot) {
       if (!plan) continue;
       const priceDay = (sub.priceBreakdown as { priceDay?: number } | null)?.priceDay ?? sub.priceDayBirr;
       const newAmount = quickStartAmount(priceDay, plan.serviceDays, settings.pricing);
-      startDate = plan.startDate;
-      periodEnd = plan.periodEnd;
-      await db.update(subscriptions).set({ startDate, quickStartPeriodEnd: periodEnd, endDate: subscriptionEndDate(startDate, sub.termMonths) })
-        .where(eq(subscriptions.id, sub.id));
-      // regular invoices made for dates the quick-start period now covers are cancelled (paid ones become credit)
-      await db.transaction(async (tx) => {
-        await tx.select({ id: subscriptions.id }).from(subscriptions).where(eq(subscriptions.id, sub.id)).for("update");
+      // Every write below happens under the plan row lock, on fresh rows (a pause, renewal or payment may have
+      // committed since the reads above).
+      const outcome = await db.transaction(async (tx) => {
+        const [fresh] = await tx.select().from(subscriptions).where(eq(subscriptions.id, sub.id)).for("update");
+        const [freshInv] = await tx.select().from(invoices).where(eq(invoices.id, qsInv.id)).for("update");
+        if (!fresh || !freshInv || freshInv.status === "void" || (freshInv.status === "paid") !== paid) return "retry" as const;
+        if (!paid) {
+          const [waiting] = await tx.select({ id: payments.id }).from(payments)
+            .where(and(eq(payments.invoiceId, qsInv.id), inArray(payments.status, ["submitted", "confirmed"]))).limit(1);
+          if (waiting) return "retry" as const;
+        }
+        // keep any extension the plan already had (paused weeks move the end date, rule 6)
+        const extension = daysBetween(subscriptionEndDate(fresh.startDate, fresh.termMonths), fresh.endDate);
+        await tx.update(subscriptions).set({ startDate: plan.startDate, quickStartPeriodEnd: plan.periodEnd,
+          endDate: addDays(subscriptionEndDate(plan.startDate, fresh.termMonths), extension) }).where(eq(subscriptions.id, sub.id));
+        // regular invoices made for dates the quick-start period now covers are cancelled (paid ones become credit)
         const later = await tx.select().from(invoices).where(and(eq(invoices.subscriptionId, sub.id), ne(invoices.kind, "quick_start"), ne(invoices.status, "void"))).for("update");
         for (const inv of later) {
-          if (inv.periodStart > periodEnd) continue;
+          if (inv.periodStart > plan.periodEnd) continue;
           const voided = await voidInvoice(tx, inv.id, "covered by the moved quick start");
           if (voided && inv.status === "paid" && inv.amountBirr > 0) await tx.insert(accountCredits).values({ clientId: sub.clientId, amountBirr: inv.amountBirr, reason: `Paid invoice ${inv.periodStart} covered by the moved quick start` });
         }
+        if (!paid) {
+          await tx.update(invoices).set({ periodStart: plan.startDate, periodEnd: plan.periodEnd, serviceDays: plan.serviceDays, amountBirr: newAmount, dueAt: plan.lockAt })
+            .where(eq(invoices.id, qsInv.id));
+        } else {
+          await tx.update(invoices).set({ periodStart: plan.startDate, periodEnd: plan.periodEnd, serviceDays: plan.serviceDays }).where(eq(invoices.id, qsInv.id));
+          const diff = freshInv.amountBirr - newAmount;
+          if (diff !== 0) await tx.insert(accountCredits).values({ clientId: sub.clientId, amountBirr: diff,
+            reason: `Quick start moved to ${plan.startDate}: ${plan.serviceDays} service days instead of ${freshInv.serviceDays}` });
+        }
+        await generateInvoicesForSubscription(tx, sub.id, weekLockedAt(now, settings.schedule));
+        return "done" as const;
       });
-      if (!paid) {
-        await db.update(invoices).set({ periodStart: startDate, periodEnd, serviceDays: plan.serviceDays, amountBirr: newAmount, dueAt: plan.lockAt })
-          .where(eq(invoices.id, qsInv.id));
-        await generateInvoicesForSubscription(db, sub.id, weekLockedAt(now, settings.schedule));
-        summary.replanned++;
-        continue;
-      }
-      await db.update(invoices).set({ periodStart: startDate, periodEnd, serviceDays: plan.serviceDays }).where(eq(invoices.id, qsInv.id));
-      const diff = qsInv.amountBirr - newAmount;
-      if (diff !== 0) await db.insert(accountCredits).values({ clientId: sub.clientId, amountBirr: diff,
-        reason: `Quick start moved to ${startDate}: ${plan.serviceDays} service days instead of ${qsInv.serviceDays}` });
-      await generateInvoicesForSubscription(db, sub.id, weekLockedAt(now, settings.schedule));
+      if (outcome === "retry") continue; // something changed meanwhile: the next run decides on fresh data
+      startDate = plan.startDate;
+      periodEnd = plan.periodEnd;
+      if (!paid) { summary.replanned++; continue; }
       summary.shifted++;
       if (startDate !== nextDay) continue; // pushed further by capacity: the lock before that date adds them
     }
