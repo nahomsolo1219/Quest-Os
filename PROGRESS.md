@@ -8,7 +8,7 @@ Resume: `pwd`, read this file, `features.json`, `git log --oneline -20`, run `np
 - SPEC.md, PLAN.md, DECISIONS.md, features.json (198), CLAUDE.md, five subagents, scripts (db-start, init, verify), PWA shell.
 
 ## Milestone 1 — Data, auth and roles (done)
-- 46 tables / 28 enums, migrations 0000–0002, seed (reference + removable demo), Better Auth (email + phone/password, public sign-up endpoints off), authz matrix (~90 permissions), storage adapters (local folder / Railway Bucket).
+- 46 tables / 28 enums, migrations 0000–0004, seed (reference + removable demo), Better Auth (email + phone/password, public sign-up endpoints off), authz matrix (~90 permissions), storage adapters (local folder / Railway Bucket).
 
 ## Milestone 2 — Domain engine (done)
 - src/domain: 19 modules, 231 unit tests. 7 of 24 profile-days flagged for the nutritionist (clamp limits).
@@ -18,13 +18,15 @@ Resume: `pwd`, read this file, `features.json`, `git log --oneline -20`, run `np
 - Built by five ui-builders in parallel (operations; nutrition/owner/settings/dashboard/partners; kitchen/purchasing/delivery; client app + sign-up + Telegram webhook; community).
 - Spec reviews after M1–2 (12 gaps) and M3–5 (8 gaps) — all fixed with regression tests (D032–D049).
 
-## Milestone 6 — Simulation, hardening, handover (done, final checks running)
+## Milestone 6 — Simulation, hardening, handover (done)
 - `npm run simulate:week`: PASS, 108 assertions → docs/simulation-report.md.
 - e2e: 14 specs, phone + laptop, ~256 tests; a11y spec enforces labels and 44 px tap targets.
 - Performance: per-primitive Radix imports; every client page 106–194 KB first-load JS (`scripts/check-bundle-size.ts`).
 - Security: authz tests per role, receipts via signed URLs only, no secrets in browser bundles (`scripts/check-bundle-secrets.ts`), every server action through `runAction` + Zod (`db/tests/actions-scan.test.ts`), job routes behind a timing-safe secret.
 - Docs: README.md, DEPLOY.md, CRON.md.
-- features.json: 194 passing, 1 deferred (NOT-05 real Telegram message), DOC-01..03 pending the final checks.
+- features.json: 197 passing, 1 deferred (NOT-05: a real Telegram message needs a bot token and a live chat).
+- Final spec-review passes (D050–D079) closed the remaining billing and lock gaps: per-day delivery option on order days, remainder billing for lengthened periods, re-billing voided periods without double-billing, renewals counted from the start.
+- Final gate: clean clone → `QM_NO_DEV=1 bash scripts/init.sh && npm run verify` passes (typecheck, lint, 236 unit, 259 db, e2e phone + laptop, bundle checks, simulation).
 
 ## Known issues / notes
 - Ingredient prices are empty by design until staff enter them; plans cannot be priced before that.

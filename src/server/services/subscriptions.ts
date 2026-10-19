@@ -6,7 +6,7 @@ import { assertCan, assertCanForClient, can } from "@/server/authz";
 import { profileOf } from "@/domain/nutrition";
 import { priceLockedUntil, quickStartAmount, type PriceBreakdown } from "@/domain/pricing";
 import { nextLockableWeek, quickStartPlan, weekLockedAt, weeklyCutoff } from "@/domain/schedule";
-import { applyPause, invoicePeriods, invoiceAmount, pausedServiceDays, renewEndDate, subscriptionEndDate } from "@/domain/subscriptions";
+import { applyPause, invoicePeriods, invoiceAmount, pausedServiceDays, renewedEndDate, subscriptionEndDate } from "@/domain/subscriptions";
 import { addDays, addisDate, weekStartOf } from "@/domain/time";
 import type { BillingPeriod, DateStr, DeliveryOption, Slot } from "@/domain/types";
 import { writeAudit } from "./audit";
@@ -168,7 +168,8 @@ async function renewPlanLocked(ctx: Ctx, clientId: string) {
   // fresh row under the plan lock: a pause or re-price committed meanwhile is never overwritten
   const [sub] = await ctx.db.select().from(subscriptions).where(eq(subscriptions.id, current.id)).for("update");
   if (!sub || !["active", "paused"].includes(sub.status)) throw new ServiceError("There is no active plan to renew.");
-  const endDate = renewEndDate(sub.endDate, sub.termMonths);
+  const planPauses = await ctx.db.select({ startWeek: pauses.startWeek, weeks: pauses.weeks }).from(pauses).where(eq(pauses.subscriptionId, sub.id));
+  const endDate = renewedEndDate(sub, planPauses);
   await ctx.db.update(subscriptions).set({ endDate }).where(eq(subscriptions.id, sub.id));
   await writeAudit(ctx.db, ctx.actor, { action: "subscription.renew", entity: "subscriptions", entityId: sub.id, before: { endDate: sub.endDate }, after: { endDate } });
   // bill the renewed term's next periods now, due at their cutoffs, so the client can pay before those weeks lock

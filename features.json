@@ -1369,20 +1369,20 @@
     "module": "docs",
     "description": "README, DEPLOY, CRON, DECISIONS and PROGRESS are complete and accurate",
     "test": "manual-review",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "DOC-02",
     "module": "docs",
     "description": "scripts/init.sh installs, starts local Postgres, migrates, seeds and starts the dev server",
     "test": "scripts/init.sh",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "DOC-03",
     "module": "docs",
     "description": "npm run verify runs typecheck, lint, unit, db tests, e2e and the simulation and fails on any failure",
     "test": "scripts/verify.sh",
-    "status": "not_started"
+    "status": "passing"
   }
 ]

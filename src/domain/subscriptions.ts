@@ -154,6 +154,22 @@ export function renewEndDate(endDate: DateStr, termMonths: number): DateStr {
   return addDays(addMonths(addDays(endDate, 1), termMonths), -1);
 }
 
+/**
+ * Renewal counted from the plan's start (D079): end = start + (months so far + term) − 1 day, plus the days paused
+ * weeks added. Counting from the start keeps the months in step with the billing months when the start is the
+ * 29th–31st (adding the term to an end date a short month clipped would drift). Falls back to `renewEndDate`
+ * when the end date is not start + whole months + the pause extension.
+ */
+export function renewedEndDate(sub: { startDate: DateStr; endDate: DateStr; termMonths: number }, pauses: Pause[]): DateStr {
+  const extension = 7 * pauses.reduce((n, p) => n + p.weeks, 0);
+  for (let m = 1; m <= 1200; m++) {
+    const end = addDays(addDays(addMonths(sub.startDate, m), -1), extension);
+    if (end === sub.endDate) return addDays(addDays(addMonths(sub.startDate, m + sub.termMonths), -1), extension);
+    if (end > sub.endDate) break;
+  }
+  return renewEndDate(sub.endDate, sub.termMonths);
+}
+
 /** End date of a new subscription: start + term months − 1 day. */
 export function subscriptionEndDate(startDate: DateStr, termMonths: number): DateStr {
   return addDays(addMonths(startDate, termMonths), -1);

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_PRICING, DEFAULT_SCHEDULE as S } from "./settings";
 import {
-  applyPause, coveredDates, invoiceAmount, invoicePeriods, isPausedWeek, nextInvoiceToGenerate, nextInvoicesToGenerate, renewEndDate, subscriptionEndDate,
+  applyPause, coveredDates, invoiceAmount, invoicePeriods, isPausedWeek, nextInvoiceToGenerate, nextInvoicesToGenerate, renewEndDate, renewedEndDate, subscriptionEndDate,
 } from "./subscriptions";
 import { addisInstant as at } from "./time";
 
@@ -166,5 +166,32 @@ describe("re-billing after a void never bills a day twice (final review)", () =>
     // the next period starts after the live remainder: only its own days
     const later = nextInvoicesToGenerate(sub, existing, "2026-12-21", st);
     expect(later.map((x) => [x.start, x.end])).toEqual([["2026-12-26", "2027-01-03"]]);
+  });
+});
+
+describe("renewal counted from the start (final review)", () => {
+  it("keeps renewed months in step with billing months for a start on the 31st", async () => {
+    const { DEFAULT_SCHEDULE, DEFAULT_PRICING } = await import("./settings");
+    const st = { schedule: DEFAULT_SCHEDULE, pricing: DEFAULT_PRICING };
+    const start = "2028-01-31";
+    const first = subscriptionEndDate(start, 1);
+    expect(first).toBe("2028-02-28");
+    const r1 = renewedEndDate({ startDate: start, endDate: first, termMonths: 1 }, []);
+    expect(r1).toBe("2028-03-30");
+    const r2 = renewedEndDate({ startDate: start, endDate: r1, termMonths: 1 }, []);
+    expect(r2).toBe("2028-04-29");
+    // each renewed month is one full billing month with no earlier invoice
+    const sub = { startDate: start, endDate: r2, billingPeriod: "monthly" as const, planPriceBirr: 26000 };
+    const periods = nextInvoicesToGenerate(sub, [], "2028-04-24", st);
+    expect(periods.map((p) => [p.start, p.end, p.isFullMonth, p.amountBirr])).toEqual([
+      ["2028-01-31", "2028-02-28", true, 26000], ["2028-02-29", "2028-03-30", true, 26000], ["2028-03-31", "2028-04-29", true, 26000],
+    ]);
+  });
+
+  it("keeps the pause extension and matches the old rule mid-month", () => {
+    expect(renewedEndDate({ startDate: "2026-10-26", endDate: "2026-12-02", termMonths: 1 }, [{ startWeek: "2026-11-09", weeks: 1 }])).toBe("2027-01-01");
+    expect(renewedEndDate({ startDate: "2026-10-26", endDate: "2026-11-25", termMonths: 1 }, [])).toBe(renewEndDate("2026-11-25", 1));
+    // an end date that is not start + months + extension falls back to the old rule
+    expect(renewedEndDate({ startDate: "2026-10-26", endDate: "2026-11-27", termMonths: 1 }, [])).toBe(renewEndDate("2026-11-27", 1));
   });
 });
