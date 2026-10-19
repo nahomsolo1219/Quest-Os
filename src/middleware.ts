@@ -5,7 +5,10 @@ import { getSessionCookie } from "better-auth/cookies";
 // session and role on the server (src/server/session.ts + authz).
 export function middleware(request: NextRequest) {
   if (!getSessionCookie(request)) {
-    const url = new URL("/login", request.url);
+    // Use the forwarded public host: behind Railway's proxy request.url is localhost:8080.
+    const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+    const proto = request.headers.get("x-forwarded-proto") ?? "https";
+    const url = new URL("/login", host ? `${proto}://${host}` : request.url);
     url.searchParams.set("next", request.nextUrl.pathname);
     return NextResponse.redirect(url);
   }
