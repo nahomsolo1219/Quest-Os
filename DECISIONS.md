@@ -152,3 +152,12 @@ One line per decision the spec did not settle, with the reason. Newest sections 
 - D342 (owner) Meal and part recipe editing (base quantities) is not built: changing a part's base qty must keep its ingredient split consistent; nutrition edits happen per ingredient and per profile cell instead.
 - D041 shadcn/ui components import each Radix primitive package directly (@radix-ui/react-*) instead of the radix-ui barrel, which pulled ~60 KB of unused primitives into every page; this brought every client page under the 200 KB first-load budget. The bundle secret check looks for secret values and connection strings, not variable names (Better Auth's client library contains env variable names).
 - D042 NOT-05 (sending a real Telegram message to a real chat) is deferred: it needs a real bot token and chat. The adapter is tested with a mocked Telegram API (db/tests/notifications.test.ts); DEPLOY.md has the manual check.
+
+## Spec review fixes (milestones 3–5)
+- D043 Sign-up claims a staff-entered lead (same phone, no login) only while no staff work hangs on it: no plan, no consultation, no nutritionist-set profile. Otherwise the client is told to contact the team (no phone verification exists). Claimed records keep staff-recorded allergies and dislikes (merged, never dropped).
+- D044 A Thursday lock that runs late (missed cron, "Lock now") uses the portion profile and the delivery address that were in force at the cutoff (profile history; address from the audit log). Allergies and dislikes use the latest values on purpose: newer allergy information is safer to apply early.
+- D045 Plan-change repricing (add-ons, price-difference swaps — by the client or approved by the nutritionist) prices the old and new choices with the same current formula and adds only the difference to the locked price, so the 4-month price lock is never bypassed.
+- D046 At most one receipt per invoice can be waiting for confirmation (partial unique index); confirming a receipt for an already-paid invoice is refused (reject it as a duplicate).
+- D047 Swap and add-on requests are serialised per client with a row lock so two taps cannot exceed the plan's swap limit or double an add-on.
+- D048 Only the latest purchase (by purchase date) sets an ingredient's current price; a backdated receipt is logged for stock and price history only.
+- D049 Meals from a failed drop cannot be rated.

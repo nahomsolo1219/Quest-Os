@@ -15,6 +15,13 @@
       "when": 1792404831741,
       "tag": "0001_partner_log_restrict",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792407725337,
+      "tag": "0002_one_submitted_payment",
+      "breakpoints": true
     }
   ]
 }

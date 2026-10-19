@@ -11,7 +11,7 @@ import type { DbOrTx } from "@db/client";
 import { assertCan, ForbiddenError, hasRole, type Actor } from "@/server/authz";
 import { indexIngredients, type IngredientIndex } from "@/domain/recipes";
 import { requiredIngredients, shoppingList, stockOnHand, type ShoppingLine } from "@/domain/shopping";
-import { addDays, addisDate, isDateStr, weekStartOf } from "@/domain/time";
+import { addDays, addisDate, addisInstant, isDateStr, weekStartOf } from "@/domain/time";
 import type { DateStr, FoodGroup, Ingredient, PurchaseUnit } from "@/domain/types";
 import { writeAudit } from "./audit";
 import { actorUserId, ServiceError, type Ctx } from "./context";
@@ -172,14 +172,23 @@ export async function logPurchase(ctx: Ctx, input: LogPurchaseInput) {
   const [purchase] = await ctx.db.insert(purchases).values({
     ingredientId: ing.id, qty, totalPriceBirr: input.totalPriceBirr, supplier, purchasedOn: input.purchasedOn, byUserId: by,
   }).returning();
-  await ctx.db.update(ingredientsTable).set({ costPerUnitBirr: unitCost, ...(supplier ? { supplier } : {}), updatedAt: ctx.now })
-    .where(eq(ingredientsTable.id, ing.id));
-  await ctx.db.insert(ingredientPrices).values({ ingredientId: ing.id, costPerUnitBirr: unitCost, source: "purchase", purchaseId: purchase.id, setByUserId: by, setAt: ctx.now });
+  // Only the latest purchase sets the current price: a backdated receipt is logged (stock, history) without
+  // overwriting a newer price.
+  const [newer] = await ctx.db.select({ id: purchases.id }).from(purchases)
+    .where(and(eq(purchases.ingredientId, ing.id), gt(purchases.purchasedOn, input.purchasedOn))).limit(1);
+  const setsPrice = !newer;
+  if (setsPrice) {
+    await ctx.db.update(ingredientsTable).set({ costPerUnitBirr: unitCost, ...(supplier ? { supplier } : {}), updatedAt: ctx.now })
+      .where(eq(ingredientsTable.id, ing.id));
+  }
+  await ctx.db.insert(ingredientPrices).values({ ingredientId: ing.id, costPerUnitBirr: unitCost, source: "purchase", purchaseId: purchase.id, setByUserId: by,
+    setAt: setsPrice ? ctx.now : addisInstant(input.purchasedOn, "12:00") });
+  if (!setsPrice) return { purchase, ingredientName: ing.name, unitCostBirr: unitCost, unit: ing.purchaseUnit, priceUpdated: false };
   await writeAudit(ctx.db, ctx.actor, {
     action: "ingredient.price.purchase", entity: "ingredient", entityId: ing.id,
     before: { costPerUnitBirr: ing.costPerUnitBirr }, after: { costPerUnitBirr: unitCost, purchaseId: purchase.id, qty, totalPriceBirr: input.totalPriceBirr, supplier },
   });
-  return { purchase, ingredientName: ing.name, unitCostBirr: unitCost, unit: ing.purchaseUnit };
+  return { purchase, ingredientName: ing.name, unitCostBirr: unitCost, unit: ing.purchaseUnit, priceUpdated: true };
 }
 
 /** Recent purchases (newest first). */

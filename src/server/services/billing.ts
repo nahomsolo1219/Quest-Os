@@ -98,10 +98,12 @@ export async function submitPayment(ctx: Ctx, input: { invoiceId: string; method
   const pending = await ctx.db.select().from(payments).where(and(eq(payments.invoiceId, inv.id), eq(payments.status, "submitted")));
   if (pending.length) throw new ServiceError("A receipt for this invoice is already waiting for confirmation.");
   const receiptKey = input.receipt ? await putImage("receipts", inv.clientId, input.receipt) : null;
+  // the partial unique index allows one waiting receipt per invoice, so a double submit cannot create two
   const [row] = await ctx.db.insert(payments).values({
     invoiceId: inv.id, clientId: inv.clientId, amountBirr: inv.amountBirr, method: input.method,
     reference: input.reference?.trim() || null, receiptKey, status: "submitted", submittedAt: ctx.now, isDemo: inv.isDemo,
-  }).returning();
+  }).onConflictDoNothing().returning();
+  if (!row) throw new ServiceError("A receipt for this invoice is already waiting for confirmation.");
   const staff = await userIdsWithRoles(ctx.db, ["operations"]);
   await notify(ctx.db, { userIds: staff, kind: "payment.submitted", title: "Receipt to confirm",
     body: `${formatBirr(inv.amountBirr)} by ${input.method}`, link: "/staff/payments", dedupeKey: `payment-submitted:${row.id}` });
@@ -124,6 +126,7 @@ export async function confirmPayment(ctx: Ctx, paymentId: string) {
     if (!p) throw new ServiceError("That payment was not found.");
     if (p.status !== "submitted") throw new ServiceError("This payment was already handled.");
     const [inv] = await tx.select().from(invoices).where(eq(invoices.id, p.invoiceId)).for("update");
+    if (inv.status === "paid") throw new ServiceError("This invoice is already paid. Reject this receipt (it is a duplicate) so nothing is counted twice.");
     if (inv.status === "void") throw new ServiceError("This invoice was cancelled (for example the week was paused). Reject the receipt instead; the client has nothing to pay for it.");
     await tx.update(payments).set({ status: "confirmed", confirmedByUserId: actorUserId(ctx.actor), confirmedAt: ctx.now }).where(eq(payments.id, p.id));
     const [paid] = await tx.select({ n: sql<number>`coalesce(sum(${payments.amountBirr}), 0)::int` }).from(payments)
