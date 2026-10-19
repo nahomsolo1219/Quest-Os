@@ -2,7 +2,7 @@
 // double-charge or double-notify (orders/invoices/drops have unique keys; notifications carry dedupe keys).
 import { and, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { clients, jobRuns, subscriptions } from "@db/schema";
-import type { Db } from "@db/client";
+import type { DbOrTx as Db } from "@db/client";
 import { renewalRemindersDue, checkinDue } from "@/domain/checkins";
 import { formatBirr } from "@/domain/money";
 import { nextServiceDay, weekLockedAt, weeklyCutoff, nextLockableWeek } from "@/domain/schedule";

@@ -76,3 +76,4 @@ One line per decision the spec did not settle, with the reason. Newest sections 
 - D113 (domain) Community roles combine by taking the highest level; a mute caps client-derived access at react and does not affect staff access; an ended member keeps read + react through ended_at + 14 days inclusive.
 - D114 (domain) Brand contrast (WCAG 2.x) is asserted in `contrast.test.ts`: accent #C2410C on white 5.18, white on accent 5.18, #171717 on white 17.93, #525252 on white 7.81, #FAFAFA on #0A0A0A 18.97, #FB923C on #0A0A0A 8.75 — all AA.
 - D115 (domain) `seed-domain.ts` maps the seed reference data to domain types (ids = slugs / meal codes, part ids `${code}:${index}`) for tests and DB-free maths; seed-data.ts was checked against SPEC docs 4–6 and needed no corrections.
+- D031 seedPortions now runs the real portion engine (recompute + upsert); its idempotency test checks the profile_portions row count instead of 'inserted = 0' (the stub's behaviour).

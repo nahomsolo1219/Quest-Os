@@ -72,9 +72,11 @@ describe("reference seed", () => {
 
   it("is idempotent", async () => {
     await inRollback(db, async (tx) => {
+      const [before] = await tx.select({ n: count() }).from(s.profilePortions);
       await seedReference(tx);
-      const again = await seedPortions(tx);
-      expect(again.inserted).toBe(0);
+      await seedPortions(tx); // recompute: upserts the same cells, never duplicates
+      const [after] = await tx.select({ n: count() }).from(s.profilePortions);
+      expect(Number(after.n)).toBe(Number(before.n));
       const [r] = await tx.select({ n: count() }).from(s.ingredients);
       expect(Number(r.n)).toBe(SEED_INGREDIENTS.length);
       const [m] = await tx.select({ n: count() }).from(s.partIngredients);

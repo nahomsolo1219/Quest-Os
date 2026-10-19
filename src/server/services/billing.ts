@@ -8,7 +8,7 @@ import { nextInvoicesToGenerate } from "@/domain/subscriptions";
 import { formatBirr } from "@/domain/money";
 import type { DateStr, PaymentMethod } from "@/domain/types";
 import { writeAudit } from "./audit";
-import { ServiceError, type Ctx } from "./context";
+import { actorUserId, ServiceError, type Ctx } from "./context";
 import { notify, userIdsWithRoles } from "./notifications";
 import { loadSettings } from "./settings";
 
@@ -98,7 +98,7 @@ export async function confirmPayment(ctx: Ctx, paymentId: string) {
     const [p] = await tx.select().from(payments).where(eq(payments.id, paymentId)).for("update");
     if (!p) throw new ServiceError("That payment was not found.");
     if (p.status !== "submitted") throw new ServiceError("This payment was already handled.");
-    await tx.update(payments).set({ status: "confirmed", confirmedByUserId: ctx.actor!.userId, confirmedAt: ctx.now }).where(eq(payments.id, p.id));
+    await tx.update(payments).set({ status: "confirmed", confirmedByUserId: actorUserId(ctx.actor), confirmedAt: ctx.now }).where(eq(payments.id, p.id));
     const [inv] = await tx.select().from(invoices).where(eq(invoices.id, p.invoiceId));
     const [paid] = await tx.select({ n: sql<number>`coalesce(sum(${payments.amountBirr}), 0)::int` }).from(payments)
       .where(and(eq(payments.invoiceId, inv.id), eq(payments.status, "confirmed")));
@@ -122,7 +122,7 @@ export async function rejectPayment(ctx: Ctx, paymentId: string, reason: string)
   if (!reason.trim()) throw new ServiceError("Say why the receipt was rejected so the client can fix it.");
   const [p] = await ctx.db.select().from(payments).where(eq(payments.id, paymentId));
   if (!p || p.status !== "submitted") throw new ServiceError("This payment was already handled.");
-  await ctx.db.update(payments).set({ status: "rejected", rejectionReason: reason.trim(), confirmedByUserId: ctx.actor.userId, confirmedAt: ctx.now }).where(eq(payments.id, p.id));
+  await ctx.db.update(payments).set({ status: "rejected", rejectionReason: reason.trim(), confirmedByUserId: actorUserId(ctx.actor), confirmedAt: ctx.now }).where(eq(payments.id, p.id));
   await writeAudit(ctx.db, ctx.actor, { action: "payment.reject", entity: "payments", entityId: p.id, before: { status: p.status }, after: { status: "rejected" }, reason });
   const [c] = await ctx.db.select({ userId: clients.userId }).from(clients).where(eq(clients.id, p.clientId));
   if (c?.userId) await notify(ctx.db, { userIds: [c.userId], kind: "payment.rejected", title: "Receipt not accepted",

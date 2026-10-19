@@ -6,7 +6,7 @@ import { assertCan } from "@/server/authz";
 import { computeProfilePortions } from "@/domain/portions";
 import { MENU_CODES, PROFILES, type Profile } from "@/domain/types";
 import { writeAudit } from "./audit";
-import { ServiceError, type Ctx } from "./context";
+import { actorUserId, ServiceError, type Ctx } from "./context";
 import { loadMenuData } from "./menu-data";
 import { loadSettings } from "./settings";
 
@@ -81,7 +81,7 @@ async function upsertCells(db: DbOrTx, profile: Profile, qty: Record<string, num
 
 export async function recomputePortions(ctx: Ctx) {
   assertCan(ctx.actor, "portions.write");
-  const results = await ctx.db.transaction((tx) => recomputePortionsRaw(tx, ctx.actor!.userId));
+  const results = await ctx.db.transaction((tx) => recomputePortionsRaw(tx, actorUserId(ctx.actor)));
   await writeAudit(ctx.db, ctx.actor, { action: "portions.recompute", entity: "profile_portions", entityId: "all",
     after: { flagged: results.filter((r) => r.flagged).map((r) => `${r.menu} ${r.profile}`) } });
   return results;
@@ -95,7 +95,7 @@ export async function setPortionCell(ctx: Ctx, input: { partId: string; profile:
   if (!row) throw new ServiceError("That portion cell does not exist.");
   if (input.qty !== null && (!Number.isInteger(input.qty) || input.qty < 0 || input.qty > 2000)) throw new ServiceError("Enter whole grams or pieces between 0 and 2000.");
   const next = input.qty === null ? { qty: row.computedQty, isManual: false } : { qty: input.qty, isManual: true };
-  await ctx.db.update(profilePortions).set({ ...next, updatedByUserId: ctx.actor.userId, updatedAt: ctx.now }).where(eq(profilePortions.id, row.id));
+  await ctx.db.update(profilePortions).set({ ...next, updatedByUserId: actorUserId(ctx.actor), updatedAt: ctx.now }).where(eq(profilePortions.id, row.id));
   await writeAudit(ctx.db, ctx.actor, { action: "portions.edit", entity: "profile_portions", entityId: row.id,
     before: { qty: row.qty, isManual: row.isManual }, after: next });
 }

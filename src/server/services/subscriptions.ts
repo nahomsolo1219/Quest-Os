@@ -11,7 +11,7 @@ import { addisDate, weekStartOf } from "@/domain/time";
 import type { BillingPeriod, DateStr, DeliveryOption } from "@/domain/types";
 import { writeAudit } from "./audit";
 import { loadClientPlanInputs } from "./client-plan";
-import { ServiceError, type Ctx } from "./context";
+import { actorUserId, ServiceError, type Ctx } from "./context";
 import { quickStartsTakenByDate } from "./orders";
 import { quotePrice } from "./pricing";
 import { loadSettings } from "./settings";
@@ -118,7 +118,7 @@ export async function pausePlan(ctx: Ctx, input: { clientId: string; startWeek: 
   const existing = await ctx.db.select().from(pauses).where(eq(pauses.subscriptionId, sub.id));
   if (existing.some((p) => p.startWeek <= res.endWeek && addWeeks(p.startWeek, p.weeks) > res.startWeek)) throw new ServiceError("Part of that time is already paused.");
   await ctx.db.transaction(async (tx) => {
-    await tx.insert(pauses).values({ subscriptionId: sub.id, clientId: sub.clientId, startWeek: res.startWeek, weeks: res.weeks, requestedByUserId: ctx.actor!.userId });
+    await tx.insert(pauses).values({ subscriptionId: sub.id, clientId: sub.clientId, startWeek: res.startWeek, weeks: res.weeks, requestedByUserId: actorUserId(ctx.actor) });
     await tx.update(subscriptions).set({ endDate: res.endDate }).where(eq(subscriptions.id, sub.id));
     // an issued (unpaid) weekly invoice for a paused week is voided: paused days are not charged
     const toVoid = await tx.select().from(invoices).where(and(eq(invoices.subscriptionId, sub.id), eq(invoices.status, "issued"), eq(invoices.kind, "weekly")));
@@ -154,7 +154,7 @@ export async function applyDiscount(ctx: Ctx, input: { subscriptionId: string; d
   const [sub] = await ctx.db.select().from(subscriptions).where(eq(subscriptions.id, input.subscriptionId));
   if (!sub) throw new ServiceError("Plan not found.");
   if (input.discountMonthBirr > sub.planPriceBirr) throw new ServiceError("The discount cannot be more than the plan price.");
-  await ctx.db.update(subscriptions).set({ discountMonthBirr: input.discountMonthBirr, discountReason: input.reason.trim(), discountByUserId: ctx.actor.userId })
+  await ctx.db.update(subscriptions).set({ discountMonthBirr: input.discountMonthBirr, discountReason: input.reason.trim(), discountByUserId: actorUserId(ctx.actor) })
     .where(eq(subscriptions.id, sub.id));
   await writeAudit(ctx.db, ctx.actor, { action: "discount.apply", entity: "subscriptions", entityId: sub.id,
     before: { discountMonthBirr: sub.discountMonthBirr }, after: { discountMonthBirr: input.discountMonthBirr }, reason: input.reason.trim() });

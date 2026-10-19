@@ -1,7 +1,7 @@
 // Weekly orders and quick start (module 7): the Thursday lock, the daily 18:00 quick-start lock, and drops.
 import { and, asc, eq, gte, inArray, lte, ne, sql } from "drizzle-orm";
 import {
-  accountCredits, areas, clients, deliveryDrops, invoices, orderDays, orderMeals, pauses, subscriptions, weeklyOrders,
+  accountCredits, areas, clients, deliveryDrops, invoices, orderDays, orderMeals, pauses, payments, subscriptions, weeklyOrders,
 } from "@db/schema";
 import type { DbOrTx } from "@db/client";
 import { buildOrderDays, lockWeek, type OrderDayDraft } from "@/domain/orders";
@@ -130,7 +130,13 @@ export async function lockQuickStarts({ db, now }: Snapshot) {
     let startDate = sub.startDate;
     let periodEnd = sub.quickStartPeriodEnd ?? addDays(weekStartOf(sub.startDate), 6);
     const paid = qsInv.status === "paid";
-    if (!paid || startDate < nextDay) {
+    if (!paid && startDate >= nextDay) continue; // not paid by tonight's lock: not cooked; re-planned once the start passes
+    if (!paid) {
+      const [waiting] = await db.select({ id: payments.id }).from(payments)
+        .where(and(eq(payments.invoiceId, qsInv.id), eq(payments.status, "submitted"))).limit(1);
+      if (waiting) continue; // a receipt is waiting for confirmation: keep the amount, shift once it is confirmed
+    }
+    if (startDate < nextDay) {
       // Missed start: paid ones are re-planned as if paid just before this lock (they start on the next service day
       // with room, credit for the difference); unpaid ones are re-planned from now (start after the next lock).
       const taken = await quickStartsTakenByDate(db, nextDay);
