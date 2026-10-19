@@ -115,14 +115,17 @@ const jobs: Record<JobName, (c: JobCtx) => Promise<{ runKey: string; result: Job
     const today = addisDate(now);
     const ended = await endExpiredPlans(db, today);
     const repriced = await repriceRenewedPlansAtLockEnd({ db, actor: SYSTEM_ACTOR, now });
-    const subs = await db.select({ s: subscriptions, userId: clients.userId }).from(subscriptions).innerJoin(clients, eq(clients.id, subscriptions.clientId))
+    const subs = await db.select({ s: subscriptions, userId: clients.userId, firstName: clients.firstName }).from(subscriptions).innerJoin(clients, eq(clients.id, subscriptions.clientId))
       .where(eq(subscriptions.status, "active"));
     let renewals = 0;
     for (const due of renewalRemindersDue(subs.map((x) => x.s), today)) {
       const row = subs.find((x) => x.s.id === due.subscriptionId)!;
-      const ids = [row.userId, ...(await userIdsWithRoles(db, ["operations"]))].filter((x): x is string => Boolean(x));
-      renewals += await notify(db, { userIds: ids, kind: "reminder.renewal", title: `Plan ends in ${due.daysLeft} day${due.daysLeft === 1 ? "" : "s"}`,
+      const title = `Plan ends in ${due.daysLeft} day${due.daysLeft === 1 ? "" : "s"}`;
+      if (row.userId) renewals += await notify(db, { userIds: [row.userId], kind: "reminder.renewal", title,
         body: `Plan end date ${formatDate(row.s.endDate)}. Renew to keep your meals coming.`, link: "/app/plan", dedupeKey: `renewal:${row.s.id}:${row.s.endDate}:${due.daysLeft}` });
+      // the staff copy is a staff alert (links to the client page), so a staff member's client Telegram switch never hides it
+      renewals += await notify(db, { userIds: await userIdsWithRoles(db, ["operations"]), kind: "ops.renewal_due", title: `${row.firstName ?? "A client"}: ${title.toLowerCase()}`,
+        body: `End date ${formatDate(row.s.endDate)}.`, link: `/staff/clients/${row.s.clientId}`, dedupeKey: `renewal-ops:${row.s.id}:${row.s.endDate}:${due.daysLeft}` });
     }
     const users = await activeClientUsers(db);
     const checkins = users.filter((u) => checkinDue(u, today));

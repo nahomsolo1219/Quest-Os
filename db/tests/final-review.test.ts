@@ -209,7 +209,7 @@ describe("final review, second pass", () => {
       expect(cooked.map((d) => d.serviceDate).sort()).toEqual(["2026-10-26", "2026-10-27", "2026-10-28"]);
       const [after] = await tx.select().from(s.invoices).where(eq(s.invoices.id, unpaid.id));
       expect(after.serviceDays).toBe(23); // Thu, Fri, Sat not cooked
-      expect(after.amountBirr).toBe(52000 - Math.round((sub.planPriceBirr - sub.discountMonthBirr) * 3 / 26 / 10) * 10);
+      expect(after.amountBirr).toBe(52000 - 6000); // 3 of 26 days at the invoice's own rate (D064)
       await runJob(tx as never, "thursday-lock", THU_LOCK); // re-run: no second reduction
       expect((await tx.select().from(s.invoices).where(eq(s.invoices.id, unpaid.id)))[0].amountBirr).toBe(after.amountBirr);
     });
@@ -220,7 +220,8 @@ describe("final review, second pass", () => {
       const ops = await actorByEmail(tx, "nebiyou@questmeals.demo");
       const sub = await activeWeekly(tx);
       const [inv] = await tx.select().from(s.invoices).where(and(eq(s.invoices.subscriptionId, sub.id), eq(s.invoices.periodStart, "2026-10-26"))).limit(1);
-      await tx.update(s.invoices).set({ periodEnd: "2026-11-08", serviceDays: 12, amountBirr: 1000, status: "issued" }).where(eq(s.invoices.id, inv.id));
+      // 26,000 for 12 days, of which 25,000 paid by credit: the client still owes 1,000 and sends a receipt
+      await tx.update(s.invoices).set({ periodEnd: "2026-11-08", serviceDays: 12, amountBirr: 1000, creditAppliedBirr: 25000, status: "issued" }).where(eq(s.invoices.id, inv.id));
       await tx.update(s.subscriptions).set({ endDate: "2026-11-30" }).where(eq(s.subscriptions.id, sub.id));
       const ctx: Ctx = { db: tx, actor: ops, now: at("2026-10-20T07:00:00Z") };
       const p = await submitPayment(ctx, { invoiceId: inv.id, method: "cash" });
@@ -262,6 +263,64 @@ describe("final review, second pass", () => {
       expect(fetchMock).toHaveBeenCalledTimes(1);
       await notify(tx, { userIds: [dagi.userId], kind: "reminder.weekly", title: "Reminder", link: "/app/plan", dedupeKey: "coach-2" });
       expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+  });
+});
+
+describe("final review, third pass", () => {
+  it("renewing a weekly plan before the lock bills the renewed week before its cutoff, so it is cooked once paid", async () => {
+    await inRollback(db, async (tx) => {
+      const ops = await actorByEmail(tx, "nebiyou@questmeals.demo");
+      const sub = await activeWeekly(tx);
+      await tx.update(s.subscriptions).set({ endDate: "2026-11-01" }).where(eq(s.subscriptions.id, sub.id));
+      await tx.delete(s.invoices).where(and(eq(s.invoices.subscriptionId, sub.id), sql`${s.invoices.periodStart} >= '2026-11-02'`));
+      await renewPlan({ db: tx, actor: ops, now: at("2026-10-27T06:00:00Z") }, sub.clientId);
+      const [next] = await tx.select().from(s.invoices).where(and(eq(s.invoices.subscriptionId, sub.id), eq(s.invoices.periodStart, "2026-11-02")));
+      expect(next?.dueAt.toISOString()).toBe("2026-10-29T15:00:00.000Z");
+    });
+  });
+
+  it("a renewal after the week was already locked as unpaid never bills those days", async () => {
+    await inRollback(db, async (tx) => {
+      const ops = await actorByEmail(tx, "nebiyou@questmeals.demo");
+      const sub = await activeWeekly(tx);
+      await tx.update(s.subscriptions).set({ endDate: "2026-11-01" }).where(eq(s.subscriptions.id, sub.id));
+      await tx.delete(s.invoices).where(and(eq(s.invoices.subscriptionId, sub.id), sql`${s.invoices.periodStart} >= '2026-11-02'`));
+      // the Thursday 29 Oct lock: the plan ended on 1 Nov, so nothing for the week of 2 Nov yet
+      await runJob(tx as never, "thursday-lock", at("2026-10-29T15:00:05Z"));
+      // renewed on Friday, after that cutoff
+      await renewPlan({ db: tx, actor: ops, now: at("2026-10-30T06:00:00Z") }, sub.clientId);
+      const inv = await tx.select().from(s.invoices).where(and(eq(s.invoices.subscriptionId, sub.id), sql`${s.invoices.periodStart} >= '2026-11-02'`, sql`${s.invoices.status} <> 'void'`));
+      // the week of 2 Nov was locked without this plan, so it is never billed; billing resumes with the next lockable week
+      expect(inv.find((i) => i.periodStart === "2026-11-02")).toBeUndefined();
+      expect(inv.map((i) => i.periodStart)).toContain("2026-11-09");
+    });
+  });
+
+  it("days come off at the invoice's own rate after the plan price changed", async () => {
+    await inRollback(db, async (tx) => {
+      const ops = await actorByEmail(tx, "nebiyou@questmeals.demo");
+      const sub = await activeWeekly(tx);
+      const [inv] = await tx.select().from(s.invoices).where(and(eq(s.invoices.subscriptionId, sub.id), eq(s.invoices.periodStart, "2026-10-26"))).limit(1);
+      await tx.update(s.invoices).set({ periodEnd: "2026-11-08", serviceDays: 12, amountBirr: 24000, creditAppliedBirr: 0, status: "issued" }).where(eq(s.invoices.id, inv.id));
+      await tx.update(s.subscriptions).set({ endDate: "2026-11-30", planPriceBirr: 99000 }).where(eq(s.subscriptions.id, sub.id)); // re-priced meanwhile
+      await pausePlan({ db: tx, actor: ops, now: at("2026-10-20T07:00:00Z") }, { clientId: sub.clientId, startWeek: "2026-10-26", weeks: 1 });
+      const [after] = await tx.select().from(s.invoices).where(eq(s.invoices.id, inv.id));
+      expect(after.amountBirr).toBe(12000); // 6 of 12 days at 2,000 a day, not at the new plan price
+      expect(after.serviceDays).toBe(6);
+    });
+  });
+
+  it("operations get their own renewal alert with a staff link", async () => {
+    await inRollback(db, async (tx) => {
+      const sub = await activeWeekly(tx);
+      await tx.update(s.subscriptions).set({ endDate: "2026-10-25" }).where(eq(s.subscriptions.id, sub.id));
+      await runJob(tx as never, "daily-renewals", at("2026-10-20T06:00:00Z"));
+      const ops = await tx.select().from(s.notifications).where(eq(s.notifications.kind, "ops.renewal_due"));
+      expect(ops.length).toBeGreaterThan(0);
+      expect(ops.every((n) => n.link === `/staff/clients/${sub.clientId}`)).toBe(true);
+      const client = await tx.select().from(s.notifications).where(eq(s.notifications.kind, "reminder.renewal"));
+      expect(client.every((n) => n.link === "/app/plan")).toBe(true);
     });
   });
 });

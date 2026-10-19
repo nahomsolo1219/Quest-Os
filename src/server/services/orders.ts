@@ -7,7 +7,6 @@ import type { DbOrTx } from "@db/client";
 import { buildOrderDays, lockWeek, type OrderDayDraft } from "@/domain/orders";
 import { quickStartAmount } from "@/domain/pricing";
 import { dropsFor, mealDatesBetween, nextServiceDay, quickStartPlan, serviceDaysBetween, weekLockedAt, weeklyCutoff, type MealDate } from "@/domain/schedule";
-import { roundToNearest } from "@/domain/money";
 import { isPausedWeek } from "@/domain/subscriptions";
 import { addDays, addisDate, addisInstant, weekStartOf } from "@/domain/time";
 import { subscriptionEndDate } from "@/domain/subscriptions";
@@ -109,8 +108,7 @@ export async function lockWeekOrders({ db, now }: Snapshot, weekStart: DateStr) 
         lte(invoices.periodStart, weekEnd), gte(invoices.periodEnd, weekStart)));
       for (const inv of billed) {
         const days = uncooked.filter((d) => d >= inv.periodStart && d <= inv.periodEnd).length;
-        const amountOff = roundToNearest(((sub.planPriceBirr - sub.discountMonthBirr) * days) / settings.pricing.serviceDaysPerMonth, 10);
-        await takeDaysOffInvoice(tx, inv, days, amountOff, "days not cooked (unpaid at the cutoff)");
+        await takeDaysOffInvoice(tx, inv, days, "days not cooked (unpaid at the cutoff)");
       }
     });
     // client status follows the locked week

@@ -7,7 +7,6 @@ import { profileOf } from "@/domain/nutrition";
 import { priceLockedUntil, quickStartAmount, type PriceBreakdown } from "@/domain/pricing";
 import { nextLockableWeek, quickStartPlan, weekLockedAt, weeklyCutoff } from "@/domain/schedule";
 import { applyPause, invoicePeriods, invoiceAmount, pausedServiceDays, renewEndDate, subscriptionEndDate } from "@/domain/subscriptions";
-import { roundToNearest } from "@/domain/money";
 import { addDays, addisDate, weekStartOf } from "@/domain/time";
 import type { BillingPeriod, DateStr, DeliveryOption, Slot } from "@/domain/types";
 import { writeAudit } from "./audit";
@@ -134,8 +133,7 @@ export async function pausePlan(ctx: Ctx, input: { clientId: string; startWeek: 
     for (const inv of overlapping) {
       if (inv.periodEnd < res.startWeek || inv.periodStart > res.endWeek) continue;
       const pausedDays = pausedServiceDays(pauseList, inv.periodStart, inv.periodEnd, settings.schedule);
-      const amountOff = roundToNearest(((sub.planPriceBirr - sub.discountMonthBirr) * pausedDays) / settings.pricing.serviceDaysPerMonth, 10);
-      await takeDaysOffInvoice(tx, inv, pausedDays, amountOff, "week paused");
+      await takeDaysOffInvoice(tx, inv, pausedDays, "week paused");
     }
     await writeAudit(tx, ctx.actor, { action: "subscription.pause", entity: "subscriptions", entityId: sub.id,
       before: { endDate: sub.endDate }, after: { endDate: res.endDate, startWeek: res.startWeek, weeks: res.weeks } });
@@ -157,16 +155,21 @@ export async function renewPlan(ctx: Ctx, clientId: string) {
   const endDate = renewEndDate(sub.endDate, sub.termMonths);
   await ctx.db.update(subscriptions).set({ endDate }).where(eq(subscriptions.id, sub.id));
   await writeAudit(ctx.db, ctx.actor, { action: "subscription.renew", entity: "subscriptions", entityId: sub.id, before: { endDate: sub.endDate }, after: { endDate } });
+  // bill the renewed term's next periods now, due at their cutoffs, so the client can pay before those weeks lock
+  const schedule = (await loadSettings(ctx.db)).schedule;
   // A price change applies at the next renewal (doc 6). Renewed after the lock: the renewed plan is priced from the
   // current formula now and locked again. Renewed inside the lock: the old price stays until the lock ends and the
   // daily job re-prices it on that date (repriceAtLockEnd) — never inside the lock without an owner.
   if (addisDate(ctx.now) >= sub.priceLockedUntil) {
     const r = await repriceAtRenewal(ctx, sub.id);
+    await generateInvoicesForSubscription(ctx.db, sub.id, weekLockedAt(ctx.now, schedule));
     if (r) return { endDate, planPriceBirr: r.planPriceBirr };
+    return { endDate };
   } else {
     await ctx.db.update(subscriptions).set({ priceBreakdown: { ...((sub.priceBreakdown as Record<string, unknown> | null) ?? {}), repriceAtLockEnd: true } })
       .where(eq(subscriptions.id, sub.id));
   }
+  await generateInvoicesForSubscription(ctx.db, sub.id, weekLockedAt(ctx.now, schedule));
   return { endDate };
 }
 

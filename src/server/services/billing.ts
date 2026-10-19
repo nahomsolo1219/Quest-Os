@@ -1,10 +1,13 @@
 // Invoices, receipt upload, payment confirmation (module 6). Unpaid = not cooked is enforced by the locks.
 import { and, asc, desc, eq, inArray, isNull, lte, ne, sql } from "drizzle-orm";
-import { accountCredits, clients, invoices, pauses, payments, subscriptions } from "@db/schema";
+import { accountCredits, clients, invoices, orderDays, pauses, payments, subscriptions } from "@db/schema";
 import type { DbOrTx } from "@db/client";
 import { assertCan, assertCanForClient, ForbiddenError } from "@/server/authz";
 import { putImage, storage, parseKey } from "@/server/storage";
-import { nextInvoicesToGenerate } from "@/domain/subscriptions";
+import { invoiceAmount, isPausedWeek, nextInvoicesToGenerate } from "@/domain/subscriptions";
+import { roundToNearest } from "@/domain/money";
+import { serviceDaysBetween } from "@/domain/schedule";
+import { weekStartOf } from "@/domain/time";
 import { formatBirr } from "@/domain/money";
 import type { DateStr, PaymentMethod } from "@/domain/types";
 import { writeAudit } from "./audit";
@@ -45,8 +48,18 @@ export async function generateInvoicesForSubscription(db: DbOrTx, subscriptionId
       existing.map((i) => ({ periodStart: i.periodStart, periodEnd: i.periodEnd, status: i.status, kind: i.kind })),
       lockWeek, settings,
     );
+    // Rule 1, both ways: a service day in a week that is already locked (≤ lockWeek) is billed only if it was
+    // cooked. Days skipped for non-payment, or weeks a late renewal missed, are never billed afterwards.
+    const cookedDays = new Set((await tx.select({ d: orderDays.serviceDate }).from(orderDays).where(eq(orderDays.clientId, sub.clientId))).map((r) => r.d));
+    const pausesList = pauseRows.map((p) => ({ startWeek: p.startWeek, weeks: p.weeks }));
+    const uncookedLocked = (start: DateStr, end: DateStr) => serviceDaysBetween(start, end, settings.schedule)
+      .filter((d) => weekStartOf(d) <= lockWeek && !cookedDays.has(d) && !isPausedWeek(pausesList, weekStartOf(d))).length;
     let created = 0;
-    for (const d of drafts) {
+    for (const raw of drafts) {
+      const off = uncookedLocked(raw.start, raw.end);
+      if (off >= raw.serviceDays) continue;
+      const d = off === 0 ? raw : { ...raw, isFullMonth: false, serviceDays: raw.serviceDays - off,
+        amountBirr: invoiceAmount({ isFullMonth: false, serviceDays: raw.serviceDays - off }, sub, settings.pricing) };
       const credits = await tx.select().from(accountCredits)
         .where(and(eq(accountCredits.clientId, sub.clientId), isNull(accountCredits.appliedInvoiceId))).for("update");
       const credit = credits.reduce((n, c) => n + c.amountBirr, 0);
@@ -192,8 +205,10 @@ export async function unpaidInvoicesDueBy(db: DbOrTx, dueBy: Date) {
  * invoice: an invoice wholly inside is voided (paid → credit); otherwise an issued invoice is reduced and a paid one
  * credited. When a reduction covers the rest of an invoice it becomes paid, and any surplus becomes credit.
  */
-export async function takeDaysOffInvoice(db: DbOrTx, inv: typeof invoices.$inferSelect, daysOff: number, amountOff: number, reason: string) {
+export async function takeDaysOffInvoice(db: DbOrTx, inv: typeof invoices.$inferSelect, daysOff: number, reason: string) {
   if (daysOff <= 0) return;
+  // at the invoice's own daily rate (what those days were billed at), not today's plan price
+  const amountOff = inv.serviceDays > 0 ? roundToNearest(((inv.amountBirr + inv.creditAppliedBirr) * Math.min(daysOff, inv.serviceDays)) / inv.serviceDays, 10) : 0;
   if (daysOff >= inv.serviceDays) {
     await voidInvoice(db, inv.id, reason);
     if (inv.status === "paid" && inv.amountBirr > 0) await db.insert(accountCredits).values({ clientId: inv.clientId, amountBirr: inv.amountBirr, reason: `Paid for ${reason} (${inv.periodStart})` });
