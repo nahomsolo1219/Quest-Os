@@ -22,7 +22,7 @@ import { loadMenuData } from "./menu-data";
 import { createTelegramLink, notify, unlinkTelegram, userIdsWithRoles } from "./notifications";
 import { extraProteinQuote } from "./pricing";
 import { loadSettings } from "./settings";
-import { currentSubscription, pausePlan } from "./subscriptions";
+import { repriceForPlanChange, currentSubscription, pausePlan } from "./subscriptions";
 
 const LIVE = ["pending_payment", "active", "paused"] as const;
 
@@ -212,6 +212,7 @@ export async function requestSwap(ctx: Ctx, input: { swapRuleId?: string | null;
     const [row] = await ctx.db.insert(clientSwaps).values({ clientId, swapRuleId: ruleId, status: "approved", effectiveWeekStart: week,
       requestedByUserId: actorUserId(actor), decidedAt: ctx.now, note: "Swap table, within plan limit" }).returning();
     await writeAudit(ctx.db, actor, { action: "swap.request_table", entity: "client_swaps", entityId: row.id, after: { rule: rule.code, effectiveWeekStart: week } });
+    if (rule.costMode === "price_difference") await repriceForPlanChange(ctx, clientId, week, `Swap ${rule.code}`);
     return row;
   }
   const text = input.customRequest?.trim().slice(0, 300);
@@ -237,6 +238,10 @@ export async function endSwap(ctx: Ctx, swapId: string) {
     await ctx.db.update(clientSwaps).set({ endedWeekStart: ended, ...(ended <= s.effectiveWeekStart ? { status: "ended" as const } : {}) }).where(eq(clientSwaps.id, s.id));
   }
   await writeAudit(ctx.db, actor, { action: "swap.end", entity: "client_swaps", entityId: s.id, after: { endedWeekStart: week } });
+  if (s.swapRuleId) {
+    const [rule] = await ctx.db.select().from(swapRules).where(eq(swapRules.id, s.swapRuleId));
+    if (rule?.costMode === "price_difference") await repriceForPlanChange(ctx, clientId, week, `Swap ${rule.code} ended`);
+  }
   return { endedWeekStart: week };
 }
 
@@ -255,6 +260,7 @@ export async function addExtraProtein(ctx: Ctx, slot: Slot) {
   if (price == null) throw new ServiceError("Prices are being updated — extra protein can be added once the price is set.", "price_missing");
   const [row] = await ctx.db.insert(clientAddons).values({ clientId, kind: "extra_protein", slot, effectiveWeekStart: week, pricePerPortionBirr: price, createdBy: actorUserId(actor) }).returning();
   await writeAudit(ctx.db, actor, { action: "addon.add", entity: "client_addons", entityId: row.id, after: { slot, price, effectiveWeekStart: week } });
+  await repriceForPlanChange(ctx, clientId, week, `Extra protein (${slot}) added`);
   return row;
 }
 
@@ -266,6 +272,7 @@ export async function removeExtraProtein(ctx: Ctx, addonId: string) {
   const ended = a.effectiveWeekStart > week ? a.effectiveWeekStart : week;
   await ctx.db.update(clientAddons).set({ endedWeekStart: ended }).where(eq(clientAddons.id, a.id));
   await writeAudit(ctx.db, actor, { action: "addon.remove", entity: "client_addons", entityId: a.id, after: { endedWeekStart: ended } });
+  await repriceForPlanChange(ctx, clientId, ended, `Extra protein (${a.slot}) removed`);
   return { endedWeekStart: ended };
 }
 

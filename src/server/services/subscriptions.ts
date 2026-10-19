@@ -215,3 +215,25 @@ export async function endExpiredPlans(db: DbOrTx, today: DateStr) {
   }
   return ended;
 }
+
+/**
+ * Re-quotes a plan after the client's own plan change (extra-protein add-on, or a "price difference" swap) from the
+ * week the change takes effect (D029, D037). Server-internal: callers have already authorized the change itself.
+ * The price lock covers price-formula changes, not changes to what the client chose. Invoices already issued keep
+ * their amount; invoices generated from now on use the new plan price.
+ */
+export async function repriceForPlanChange(ctx: Ctx, clientId: string, effectiveWeek: DateStr, reason: string) {
+  const sub = await currentSubscription(ctx.db, clientId);
+  if (!sub || !["active", "paused", "pending_payment"].includes(sub.status)) return null;
+  const [np] = await ctx.db.select().from(nutritionProfiles).where(and(eq(nutritionProfiles.clientId, clientId), eq(nutritionProfiles.isCurrent, true)));
+  if (!np) return null;
+  const plan = (await loadClientPlanInputs(ctx.db, [clientId], effectiveWeek)).get(clientId)!;
+  const quote = await quotePrice(ctx.db, { profile: profileOf(np.size, np.goal), deliveryOption: sub.deliveryOption, packageId: sub.packageId,
+    swapRuleIds: plan.swapRuleIds, addonSlots: plan.addons.map((a) => a.slot) }, effectiveWeek);
+  if (!quote.ok || quote.planPrice === sub.planPriceBirr) return null;
+  await ctx.db.update(subscriptions).set({ priceDayBirr: quote.priceDayBirr, priceMonthBirr: quote.priceMonth, planPriceBirr: quote.planPrice,
+    priceBreakdown: breakdownJson(quote) }).where(eq(subscriptions.id, sub.id));
+  await writeAudit(ctx.db, ctx.actor, { action: "price.plan_change", entity: "subscriptions", entityId: sub.id,
+    before: { planPriceBirr: sub.planPriceBirr }, after: { planPriceBirr: quote.planPrice, effectiveWeek }, reason });
+  return { planPriceBirr: quote.planPrice };
+}
