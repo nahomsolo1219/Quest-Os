@@ -1,7 +1,7 @@
 // Public sign-up (CLI-02, APP-02, quick start step 3): creates the lead, the client's login (phone + password),
 // a provisional nutrition profile from the calculator and, when prices exist, the chosen plan with its first invoice.
-import { and, eq, isNull } from "drizzle-orm";
-import { areas, clients, nutritionProfiles, packages, user } from "@db/schema";
+import { and, eq, isNotNull, isNull } from "drizzle-orm";
+import { areas, clients, consultations, nutritionProfiles, packages, subscriptions, user } from "@db/schema";
 import type { DbOrTx } from "@db/client";
 import { can, ForbiddenError, loadActor } from "@/server/authz";
 import { createClientUser } from "@/server/auth";
@@ -53,6 +53,7 @@ export type SignUpResult = {
     | { status: "failed"; error: string };
 };
 
+export const STAFF_LEAD_EXISTS = "The Quest Meals team has already started your plan with this phone number. Call or visit us and we will set up your login.";
 export const DUPLICATE_PHONE = "This phone number already has an account — sign in.";
 
 const cleanList = (xs: string[]) => [...new Set(xs.map((x) => x.trim().toLowerCase()).filter(Boolean))].slice(0, 20);
@@ -84,11 +85,22 @@ export async function signUp(ctx: Ctx, input: SignUpInput): Promise<SignUpResult
     if (taken) throw new ServiceError(DUPLICATE_PHONE, "duplicate_phone");
     const [existing] = await tx.select().from(clients).where(eq(clients.phone, phone));
     if (existing && (existing.userId || existing.status !== "lead")) throw new ServiceError(DUPLICATE_PHONE, "duplicate_phone");
+    if (existing) {
+      // There is no phone verification, so a staff-entered lead is claimed only while no staff work hangs on it
+      // (no plan, no consultation, no nutritionist-set profile). Otherwise the team finishes the account.
+      const [hasPlan] = await tx.select({ id: subscriptions.id }).from(subscriptions).where(eq(subscriptions.clientId, existing.id)).limit(1);
+      const [hasConsult] = await tx.select({ id: consultations.id }).from(consultations).where(eq(consultations.clientId, existing.id)).limit(1);
+      const [setByStaff] = await tx.select({ id: nutritionProfiles.id }).from(nutritionProfiles)
+        .where(and(eq(nutritionProfiles.clientId, existing.id), isNotNull(nutritionProfiles.setByUserId))).limit(1);
+      if (hasPlan || hasConsult || setByStaff) throw new ServiceError(STAFF_LEAD_EXISTS, "lead_in_progress");
+    }
     const u = await createClientUser(tx, { name: `${input.firstName.trim()} ${input.lastName.trim()}`, phone, password: input.password });
     const values = {
       userId: u.id, firstName: input.firstName.trim(), lastName: input.lastName.trim(), phone,
       sex: input.sex, age: Math.round(input.age), weightG: Math.round(input.weightKg * 1000), heightCm: Math.round(input.heightCm),
-      activity: input.activity, goal: input.goal, allergies: cleanList(input.allergies), dislikes: cleanList(input.dislikes),
+      activity: input.activity, goal: input.goal,
+      // never drop an allergy or dislike staff already recorded: merge
+      allergies: cleanList([...(existing?.allergies ?? []), ...input.allergies]), dislikes: cleanList([...(existing?.dislikes ?? []), ...input.dislikes]),
       address: input.address.trim() || null, areaId: input.areaId, landmark: input.landmark.trim() || null,
     };
     // A lead that staff entered (walk-in, phone) and that has no login yet is claimed by the sign-up (D392).

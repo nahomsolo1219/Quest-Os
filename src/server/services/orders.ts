@@ -1,7 +1,7 @@
 // Weekly orders and quick start (module 7): the Thursday lock, the daily 18:00 quick-start lock, and drops.
-import { and, asc, eq, gte, inArray, lte, ne, sql } from "drizzle-orm";
+import { and, asc, eq, gt, gte, inArray, lte, ne, sql } from "drizzle-orm";
 import {
-  accountCredits, areas, clients, deliveryDrops, invoices, orderDays, orderMeals, pauses, payments, subscriptions, weeklyOrders,
+  accountCredits, areas, auditLog, clients, deliveryDrops, invoices, orderDays, orderMeals, pauses, payments, subscriptions, weeklyOrders,
 } from "@db/schema";
 import type { DbOrTx } from "@db/client";
 import { buildOrderDays, lockWeek, type OrderDayDraft } from "@/domain/orders";
@@ -55,7 +55,7 @@ export async function lockWeekOrders({ db, now }: Snapshot, weekStart: DateStr) 
   const live = subs.filter((s) => !(s.isQuickStart && s.status === "pending_payment"));
   const clientIds = [...new Set(live.map((s) => s.clientId))];
   const [plans, pauseRows, invRows, existingDays] = await Promise.all([
-    loadClientPlanInputs(db, clientIds, weekStart),
+    loadClientPlanInputs(db, clientIds, weekStart, weeklyCutoff(weekStart, settings.schedule)),
     clientIds.length ? db.select().from(pauses).where(inArray(pauses.clientId, clientIds)) : [],
     paidInvoicesBy(db, clientIds, weeklyCutoff(weekStart, settings.schedule)),
     clientIds.length ? db.select({ clientId: orderDays.clientId, serviceDate: orderDays.serviceDate }).from(orderDays)
@@ -97,7 +97,7 @@ export async function lockWeekOrders({ db, now }: Snapshot, weekStart: DateStr) 
       if (o.status === "locked") await db.update(clients).set({ status: "active" }).where(and(eq(clients.id, o.clientId), eq(clients.status, "paused")));
     }
   }
-  await ensureDrops(db, weekStart, weekEnd);
+  await ensureDrops(db, weekStart, weekEnd, weeklyCutoff(weekStart, settings.schedule));
   return summary;
 }
 
@@ -227,18 +227,28 @@ export async function lockQuickStarts({ db, now }: Snapshot) {
 const QUICK_START_EXPIRY_MS = 72 * 60 * 60 * 1000;
 
 /** Creates delivery / pick-up drops for order days in [from, to] (idempotent; address snapshot at creation). */
-export async function ensureDrops(db: DbOrTx, from: DateStr, to: DateStr) {
+export async function ensureDrops(db: DbOrTx, from: DateStr, to: DateStr, addressAsOf?: Date) {
   const days = await db.select({ day: orderDays, option: weeklyOrders.deliveryOption }).from(orderDays)
     .innerJoin(weeklyOrders, eq(weeklyOrders.id, orderDays.weeklyOrderId))
     .where(and(gte(orderDays.dropDate, from), lte(orderDays.dropDate, to), eq(weeklyOrders.status, "locked")));
   if (days.length === 0) return 0;
   const clientIds = [...new Set(days.map((d) => d.day.clientId))];
   const cs = await db.select({ c: clients, areaSort: areas.sort }).from(clients).leftJoin(areas, eq(areas.id, clients.areaId)).where(inArray(clients.id, clientIds));
+  // Address changes made after the cutoff start the week after (business rule 2): take the address in force then.
+  const later = addressAsOf
+    ? await db.select().from(auditLog).where(and(eq(auditLog.entity, "clients"), inArray(auditLog.entityId, clientIds),
+        gt(auditLog.createdAt, addressAsOf))).orderBy(asc(auditLog.createdAt))
+    : [];
   let created = 0;
   for (const clientId of clientIds) {
     const mine = days.filter((d) => d.day.clientId === clientId);
     const option = mine[0].option as DeliveryOption;
-    const info = cs.find((x) => x.c.id === clientId)!;
+    const found = cs.find((x) => x.c.id === clientId)!;
+    const info = { ...found, c: { ...found.c } };
+    for (const field of ["address", "landmark", "areaId"] as const) {
+      const first = later.find((a) => a.entityId === clientId && a.before && typeof a.before === "object" && field in (a.before as object));
+      if (first) (info.c as Record<string, unknown>)[field] = (first.before as Record<string, unknown>)[field];
+    }
     const plansFor = dropsFor(option, mine.map((d) => ({ serviceDate: d.day.serviceDate, cookDate: d.day.cookDate, dropDate: d.day.dropDate, menu: d.day.menu })));
     for (const p of plansFor) {
       const rows = await db.insert(deliveryDrops).values({

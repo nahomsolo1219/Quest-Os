@@ -8,7 +8,7 @@ import { priceLockedUntil, quickStartAmount, type PriceBreakdown } from "@/domai
 import { nextLockableWeek, quickStartPlan, weekLockedAt, weeklyCutoff } from "@/domain/schedule";
 import { applyPause, invoicePeriods, invoiceAmount, pausedServiceDays, renewEndDate, subscriptionEndDate } from "@/domain/subscriptions";
 import { roundToNearest } from "@/domain/money";
-import { addisDate, weekStartOf } from "@/domain/time";
+import { addDays, addisDate, weekStartOf } from "@/domain/time";
 import type { BillingPeriod, DateStr, DeliveryOption } from "@/domain/types";
 import { writeAudit } from "./audit";
 import { loadClientPlanInputs } from "./client-plan";
@@ -216,23 +216,33 @@ export async function endExpiredPlans(db: DbOrTx, today: DateStr) {
 }
 
 /**
- * Re-quotes a plan after the client's own plan change (extra-protein add-on, or a "price difference" swap) from the
- * week the change takes effect (D029, D037). Server-internal: callers have already authorized the change itself.
- * The price lock covers price-formula changes, not changes to what the client chose. Invoices already issued keep
- * their amount; invoices generated from now on use the new plan price.
+ * Adjusts a plan's price after a change to what the client ordered (extra-protein add-on, or a "price difference"
+ * swap), from the week it takes effect (D029, D037, D040). The old and the new choices are priced with the SAME
+ * current formula and only the difference is added to the plan's locked price, so ingredient-price or settings
+ * changes never reach a client during the 4-month price lock (rule 7). Audited. Callers authorize the change itself.
  */
 export async function repriceForPlanChange(ctx: Ctx, clientId: string, effectiveWeek: DateStr, reason: string) {
   const sub = await currentSubscription(ctx.db, clientId);
   if (!sub || !["active", "paused", "pending_payment"].includes(sub.status)) return null;
   const [np] = await ctx.db.select().from(nutritionProfiles).where(and(eq(nutritionProfiles.clientId, clientId), eq(nutritionProfiles.isCurrent, true)));
   if (!np) return null;
-  const plan = (await loadClientPlanInputs(ctx.db, [clientId], effectiveWeek)).get(clientId)!;
-  const quote = await quotePrice(ctx.db, { profile: profileOf(np.size, np.goal), deliveryOption: sub.deliveryOption, packageId: sub.packageId,
-    swapRuleIds: plan.swapRuleIds, addonSlots: plan.addons.map((a) => a.slot) }, effectiveWeek);
-  if (!quote.ok || quote.planPrice === sub.planPriceBirr) return null;
-  await ctx.db.update(subscriptions).set({ priceDayBirr: quote.priceDayBirr, priceMonthBirr: quote.priceMonth, planPriceBirr: quote.planPrice,
-    priceBreakdown: breakdownJson(quote) }).where(eq(subscriptions.id, sub.id));
+  const quoteFor = async (week: DateStr) => {
+    const plan = (await loadClientPlanInputs(ctx.db, [clientId], week)).get(clientId)!;
+    return quotePrice(ctx.db, { profile: profileOf(np.size, np.goal), deliveryOption: sub.deliveryOption, packageId: sub.packageId,
+      swapRuleIds: plan.swapRuleIds, addonSlots: plan.addons.map((a) => a.slot) }, effectiveWeek);
+  };
+  const [before, after] = await Promise.all([quoteFor(addDays(effectiveWeek, -7)), quoteFor(effectiveWeek)]);
+  if (!before.ok || !after.ok) return null;
+  const deltaMonth = after.priceMonth - before.priceMonth;
+  if (deltaMonth === 0) return null;
+  const priceMonth = sub.priceMonthBirr + deltaMonth;
+  const planPrice = sub.planPriceBirr + deltaMonth;
+  const priceDayBirr = Math.round(sub.priceDayBirr + (after.priceDay - before.priceDay));
+  const breakdown = { ...((sub.priceBreakdown as Record<string, unknown> | null) ?? {}),
+    priceDay: (((sub.priceBreakdown as { priceDay?: number } | null)?.priceDay) ?? sub.priceDayBirr) + (after.priceDay - before.priceDay) };
+  await ctx.db.update(subscriptions).set({ priceDayBirr, priceMonthBirr: priceMonth, planPriceBirr: planPrice, priceBreakdown: breakdown })
+    .where(eq(subscriptions.id, sub.id));
   await writeAudit(ctx.db, ctx.actor, { action: "price.plan_change", entity: "subscriptions", entityId: sub.id,
-    before: { planPriceBirr: sub.planPriceBirr }, after: { planPriceBirr: quote.planPrice, effectiveWeek }, reason });
-  return { planPriceBirr: quote.planPrice };
+    before: { planPriceBirr: sub.planPriceBirr }, after: { planPriceBirr: planPrice, deltaMonth, effectiveWeek }, reason });
+  return { planPriceBirr: planPrice };
 }
