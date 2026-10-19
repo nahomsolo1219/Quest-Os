@@ -1,6 +1,6 @@
 # Week simulation report
 
-**Result: PASS** · 2026-10-19 · 9.1 s
+**Result: PASS** · 2026-10-19 · 8.9 s
 
 | Summary | |
 |---|---|
@@ -71,7 +71,7 @@ Last call: {"unpaid":1,"reminded":1}
 
 - ✅ unpaid invoices due at today's cutoff = 1
 - ✅ Hiwot got the 16:00 last-call notification = 1
-Thursday lock: {"locked":7,"skippedUnpaid":1,"paused":1,"meals":196,"alreadyLocked":0,"skippedNames":["Hiwot D."],"pausedNames":["Mikias A."],"invoicesCreated":6}
+Thursday lock: {"locked":7,"skippedUnpaid":1,"paused":1,"meals":196,"alreadyLocked":0,"skippedNames":["Hiwot D."],"pausedNames":["Mikias A."],"invoicesCreated":6,"quickStartsAdded":0}
 
 Quick-start lock: {"added":0,"shifted":0,"replanned":0,"expired":0,"meals":0,"names":[]}
 

@@ -147,3 +147,24 @@ describe("periods lengthened after billing bill the remainder (final review)", (
     expect(next[0]).toMatchObject({ start: "2026-12-03", end: "2026-12-25", isFullMonth: false });
   });
 });
+
+describe("re-billing after a void never bills a day twice (final review)", () => {
+  it("a voided short period is not re-billed over a live remainder invoice", async () => {
+    const { DEFAULT_SCHEDULE, DEFAULT_PRICING } = await import("./settings");
+    const st = { schedule: DEFAULT_SCHEDULE, pricing: DEFAULT_PRICING };
+    const sub = { startDate: "2026-10-21", endDate: "2027-01-03", billingPeriod: "monthly" as const, planPriceBirr: 52000, quickStartPeriodEnd: "2026-10-25",
+      pauses: [{ startWeek: "2026-11-02", weeks: 1 }, { startWeek: "2026-11-23", weeks: 1 }] };
+    const existing = [
+      { periodStart: "2026-10-21", periodEnd: "2026-10-25", status: "paid" as const, kind: "quick_start" as const },
+      { periodStart: "2026-10-26", periodEnd: "2026-11-25", status: "paid" as const, kind: "monthly" as const },
+      { periodStart: "2026-11-26", periodEnd: "2026-11-27", status: "void" as const, kind: "monthly" as const },
+      { periodStart: "2026-11-28", periodEnd: "2026-12-25", status: "issued" as const, kind: "monthly" as const },
+    ];
+    const next = nextInvoicesToGenerate(sub, existing, "2026-11-23", st);
+    expect(next.filter((x) => x.start <= "2026-12-25" && x.end >= "2026-11-28")).toEqual([]);
+    expect(next).toEqual([]); // 26–27 Nov are paused, so nothing at all is due
+    // the next period starts after the live remainder: only its own days
+    const later = nextInvoicesToGenerate(sub, existing, "2026-12-21", st);
+    expect(later.map((x) => [x.start, x.end])).toEqual([["2026-12-26", "2027-01-03"]]);
+  });
+});

@@ -104,9 +104,8 @@ export type InvoiceDraft = BillingPeriodRange & { amountBirr: number; dueAt: Dat
 /**
  * Invoices the Thursday lock should create for a subscription. The lock that locks `lockWeek` bills every
  * period starting no later than the end of the following week (the "week after next" from the lock's own week),
- * skipping periods that already have a non-void invoice with the same start (only the uncovered remainder is billed
- * when the period has since been lengthened) or whose dates are fully covered
- * (e.g. by the quick-start invoice). Each is due at the cutoff of the week its period starts in.
+ * billing only the days of each period that no non-void invoice covers (one invoice per uncovered run; a period
+ * lengthened after it was billed bills its remainder; days the quick-start invoice covers are skipped). Each is due at the cutoff of the week its period starts in.
  */
 export function nextInvoicesToGenerate(
   sub: {
@@ -128,22 +127,19 @@ export function nextInvoicesToGenerate(
   const live = existing.filter((i) => i.status !== "void");
   return invoicePeriods({ ...sub, billingAnchor: anchor }, s.schedule, undefined, horizon)
     .filter((p) => p.start <= horizon)
-    // A period lengthened after it was billed (renewal or pause moved the end date) bills only the remainder,
-    // from the day after the invoices already starting at its start end (D076).
+    // Bill only the days no live invoice covers, as one invoice per uncovered run (D076, D078): a period lengthened
+    // after it was billed bills its remainder; a period whose short invoice was voided never re-bills days that a
+    // live remainder invoice already bills.
     .flatMap((p) => {
-      let start = p.start;
-      for (;;) {
-        const at = live.find((i) => i.periodStart === start && (i.kind == null || i.kind === p.kind));
-        if (!at) break;
-        if (at.periodEnd >= p.end) return [];
-        start = addDays(at.periodEnd, 1);
+      const runs: { start: DateStr; end: DateStr }[] = [];
+      for (let d = p.start; d <= p.end; d = addDays(d, 1)) {
+        if (live.some((i) => d >= i.periodStart && d <= i.periodEnd)) continue;
+        const last = runs[runs.length - 1];
+        if (last && last.end === addDays(d, -1)) last.end = d;
+        else runs.push({ start: d, end: d });
       }
-      return start === p.start ? [p] : [{ ...p, start, isFullMonth: false, serviceDays: serviceDaysBetween(start, p.end, s.schedule).length }];
-    })
-    .filter((p) => {
-      const days: DateStr[] = [];
-      for (let d = p.start; d <= p.end; d = addDays(d, 1)) days.push(d);
-      return coveredDates(live.map((i) => ({ ...i, status: undefined })), days).size < days.length;
+      if (runs.length === 1 && runs[0].start === p.start && runs[0].end === p.end) return [p];
+      return runs.map((r) => ({ ...p, start: r.start, end: r.end, isFullMonth: false, serviceDays: serviceDaysBetween(r.start, r.end, s.schedule).length }));
     })
     .map((p) => {
       const paused = pausedServiceDays(sub.pauses ?? [], p.start, p.end, s.schedule);
