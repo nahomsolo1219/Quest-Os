@@ -30,7 +30,7 @@ export async function notify(db: DbOrTx, input: NotifyInput): Promise<number> {
   }))).onConflictDoNothing({ target: notifications.dedupeKey }).returning({ id: notifications.id, userId: notifications.userId });
 
   if (mode === "now" && inserted.length > 0) {
-    const chatByUser = await telegramChats(db, inserted.map((r) => r.userId));
+    const chatByUser = await telegramChats(db, inserted.map((r) => r.userId), isClientFacing(input.link ?? null));
     for (const row of inserted) {
       const chat = chatByUser.get(row.userId);
       const status = chat && telegramConfigured()
@@ -44,15 +44,21 @@ export async function notify(db: DbOrTx, input: NotifyInput): Promise<number> {
 }
 
 /**
- * Linked Telegram chats that may receive messages: staff always; clients only while their "Send me notifications on
- * Telegram" switch is on (doc 8: clients who opt in).
+ * Linked Telegram chats that may receive messages. Client-facing notifications only while the client's "Send me
+ * notifications on Telegram" switch is on (doc 8: clients who opt in); staff alerts always.
  */
-async function telegramChats(db: DbOrTx, userIds: string[]): Promise<Map<string, string>> {
+async function telegramChats(db: DbOrTx, userIds: string[], clientFacing: boolean): Promise<Map<string, string>> {
   if (userIds.length === 0) return new Map();
   const rows = await db.select({ userId: telegramLinks.userId, chatId: telegramLinks.chatId, optIn: clients.telegramOptIn })
     .from(telegramLinks).leftJoin(clients, eq(clients.userId, telegramLinks.userId))
     .where(and(inArray(telegramLinks.userId, userIds), sql`${telegramLinks.chatId} is not null`));
-  return new Map(rows.filter((r) => r.optIn !== false).map((r) => [r.userId, r.chatId!]));
+  // the client switch governs client notifications only; staff alerts (to a coach who is also a subscriber) still go
+  return new Map(rows.filter((r) => !clientFacing || r.optIn !== false).map((r) => [r.userId, r.chatId!]));
+}
+
+/** Client-facing notifications link into the client app (or nowhere); staff alerts link to /staff, /kitchen, /delivery. */
+function isClientFacing(link: string | null): boolean {
+  return !link || link.startsWith("/app");
 }
 
 function appUrl() {
@@ -92,7 +98,7 @@ export async function sendCommunityDigests(db: DbOrTx): Promise<number> {
   if (pending.length === 0) return 0;
   const byUser = new Map<string, typeof pending>();
   for (const n of pending) byUser.set(n.userId, [...(byUser.get(n.userId) ?? []), n]);
-  const chats = await telegramChats(db, [...byUser.keys()]);
+  const chats = await telegramChats(db, [...byUser.keys()], true);
   let sent = 0;
   for (const [userId, items] of byUser) {
     const chat = chats.get(userId);

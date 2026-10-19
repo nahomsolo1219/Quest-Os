@@ -185,9 +185,83 @@ describe("renewal after the price lock", () => {
       const [after] = await tx.select().from(s.subscriptions).where(eq(s.subscriptions.id, sub.id));
       expect(r.planPriceBirr).toBe(after.planPriceBirr);
       expect(after.planPriceBirr).not.toBe(sub.planPriceBirr);
-      expect(after.priceLockedUntil).toBe("2027-03-01");
+      expect(after.priceLockedUntil).toBe("2027-02-25"); // locked again for 4 months from the day it is re-priced
       const [audit] = await tx.select().from(s.auditLog).where(and(eq(s.auditLog.action, "price.renewal"), eq(s.auditLog.entityId, sub.id)));
       expect(audit).toBeTruthy();
+    });
+  });
+});
+
+describe("final review, second pass", () => {
+  it("a week only partly paid at a billing boundary: the uncooked days come off the unpaid invoice", async () => {
+    await inRollback(db, async (tx) => {
+      const sub = await activeWeekly(tx);
+      await tx.delete(s.invoices).where(and(eq(s.invoices.subscriptionId, sub.id), sql`${s.invoices.periodStart} >= '2026-10-26'`));
+      const [paidInv] = await tx.insert(s.invoices).values({ clientId: sub.clientId, subscriptionId: sub.id, kind: "monthly", periodStart: "2026-10-26", periodEnd: "2026-10-28",
+        serviceDays: 3, amountBirr: 6000, status: "paid", dueAt: at("2026-10-22T15:00:00Z") }).returning();
+      await tx.insert(s.payments).values({ invoiceId: paidInv.id, clientId: sub.clientId, amountBirr: 6000, method: "cash", status: "confirmed", confirmedAt: at("2026-10-21T08:00:00Z") });
+      const [unpaid] = await tx.insert(s.invoices).values({ clientId: sub.clientId, subscriptionId: sub.id, kind: "monthly", periodStart: "2026-10-29", periodEnd: "2026-11-28",
+        serviceDays: 26, amountBirr: 52000, status: "issued", dueAt: at("2026-10-22T15:00:00Z") }).returning();
+      await runJob(tx as never, "thursday-lock", THU_LOCK);
+      const [o] = await tx.select().from(s.weeklyOrders).where(and(eq(s.weeklyOrders.clientId, sub.clientId), eq(s.weeklyOrders.weekStart, "2026-10-26")));
+      expect(o.status).toBe("locked");
+      const cooked = await tx.select().from(s.orderDays).where(eq(s.orderDays.weeklyOrderId, o.id));
+      expect(cooked.map((d) => d.serviceDate).sort()).toEqual(["2026-10-26", "2026-10-27", "2026-10-28"]);
+      const [after] = await tx.select().from(s.invoices).where(eq(s.invoices.id, unpaid.id));
+      expect(after.serviceDays).toBe(23); // Thu, Fri, Sat not cooked
+      expect(after.amountBirr).toBe(52000 - Math.round((sub.planPriceBirr - sub.discountMonthBirr) * 3 / 26 / 10) * 10);
+      await runJob(tx as never, "thursday-lock", THU_LOCK); // re-run: no second reduction
+      expect((await tx.select().from(s.invoices).where(eq(s.invoices.id, unpaid.id)))[0].amountBirr).toBe(after.amountBirr);
+    });
+  });
+
+  it("a receipt waiting for an invoice that a pause brought to 0 becomes credit when confirmed", async () => {
+    await inRollback(db, async (tx) => {
+      const ops = await actorByEmail(tx, "nebiyou@questmeals.demo");
+      const sub = await activeWeekly(tx);
+      const [inv] = await tx.select().from(s.invoices).where(and(eq(s.invoices.subscriptionId, sub.id), eq(s.invoices.periodStart, "2026-10-26"))).limit(1);
+      await tx.update(s.invoices).set({ periodEnd: "2026-11-08", serviceDays: 12, amountBirr: 1000, status: "issued" }).where(eq(s.invoices.id, inv.id));
+      await tx.update(s.subscriptions).set({ endDate: "2026-11-30" }).where(eq(s.subscriptions.id, sub.id));
+      const ctx: Ctx = { db: tx, actor: ops, now: at("2026-10-20T07:00:00Z") };
+      const p = await submitPayment(ctx, { invoiceId: inv.id, method: "cash" });
+      await pausePlan(ctx, { clientId: sub.clientId, startWeek: "2026-10-26", weeks: 1 });
+      const creditBefore = await credits(tx, sub.clientId);
+      const r = await confirmPayment(ctx, p.id);
+      expect(r.creditBirr).toBe(1000);
+      expect(await credits(tx, sub.clientId)).toBe(creditBefore + 1000);
+    });
+  });
+
+  it("renewing inside the price lock keeps the price; the daily job re-prices once the lock ends", async () => {
+    await inRollback(db, async (tx) => {
+      await setAllPrices(tx);
+      const ops = await actorByEmail(tx, "nebiyou@questmeals.demo");
+      const sub = await activeWeekly(tx);
+      await tx.update(s.subscriptions).set({ priceLockedUntil: "2026-11-01" }).where(eq(s.subscriptions.id, sub.id));
+      await renewPlan({ db: tx, actor: ops, now: at("2026-10-25T07:00:00Z") }, sub.clientId);
+      expect((await tx.select().from(s.subscriptions).where(eq(s.subscriptions.id, sub.id)))[0].planPriceBirr).toBe(sub.planPriceBirr);
+      await runJob(tx as never, "daily-renewals", at("2026-10-31T06:00:00Z")); // still locked
+      expect((await tx.select().from(s.subscriptions).where(eq(s.subscriptions.id, sub.id)))[0].planPriceBirr).toBe(sub.planPriceBirr);
+      const r = await runJob(tx as never, "daily-renewals", at("2026-11-01T06:00:00Z"));
+      expect((r.result as { repriced: number }).repriced).toBe(1);
+      const [after] = await tx.select().from(s.subscriptions).where(eq(s.subscriptions.id, sub.id));
+      expect(after.planPriceBirr).not.toBe(sub.planPriceBirr);
+      expect(after.priceLockedUntil).toBe("2027-03-01");
+    });
+  });
+
+  it("a coach who is also a subscriber keeps staff Telegram alerts with the client switch off", async () => {
+    await inRollback(db, async (tx) => {
+      process.env.TELEGRAM_BOT_TOKEN = "123:abc";
+      const fetchMock = vi.fn(async () => new Response("{}", { status: 200 }));
+      vi.stubGlobal("fetch", fetchMock);
+      const dagi = await actorByEmail(tx, "dagi@questmeals.demo");
+      await tx.insert(s.clients).values({ userId: dagi.userId, firstName: "Dagi", lastName: "Bekele", phone: "+251966000001", status: "active", telegramOptIn: false });
+      await tx.insert(s.telegramLinks).values({ userId: dagi.userId, chatId: "777", linkedAt: new Date() });
+      await notify(tx, { userIds: [dagi.userId], kind: "community.report", title: "Report", link: "/staff/community", dedupeKey: "coach-1" });
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      await notify(tx, { userIds: [dagi.userId], kind: "reminder.weekly", title: "Reminder", link: "/app/plan", dedupeKey: "coach-2" });
+      expect(fetchMock).toHaveBeenCalledTimes(1);
     });
   });
 });

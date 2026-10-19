@@ -126,14 +126,22 @@ export async function confirmPayment(ctx: Ctx, paymentId: string) {
     if (!p) throw new ServiceError("That payment was not found.");
     if (p.status !== "submitted") throw new ServiceError("This payment was already handled.");
     const [inv] = await tx.select().from(invoices).where(eq(invoices.id, p.invoiceId)).for("update");
-    if (inv.status === "paid") throw new ServiceError("This invoice is already paid. Reject this receipt (it is a duplicate) so nothing is counted twice.");
+    if (inv.status === "paid") {
+      // A genuine duplicate: other confirmed receipts already cover the invoice. (An invoice that a pause, skip or
+      // credit brought to 0 is "paid" without receipts — a receipt waiting for it is real money and becomes credit below.)
+      const [before] = await tx.select({ n: sql<number>`coalesce(sum(${payments.amountBirr}), 0)::int` }).from(payments)
+        .where(and(eq(payments.invoiceId, inv.id), eq(payments.status, "confirmed")));
+      if (inv.amountBirr > 0 && (before?.n ?? 0) >= inv.amountBirr) {
+        throw new ServiceError("This invoice is already paid. Reject this receipt (it is a duplicate) so nothing is counted twice.");
+      }
+    }
     await tx.update(payments).set({ status: "confirmed", confirmedByUserId: actorUserId(ctx.actor), confirmedAt: ctx.now }).where(eq(payments.id, p.id));
     const [paid] = await tx.select({ n: sql<number>`coalesce(sum(${payments.amountBirr}), 0)::int` }).from(payments)
       .where(and(eq(payments.invoiceId, inv.id), eq(payments.status, "confirmed")));
     // Money that arrived for a cancelled invoice (week paused or skipped after the receipt was sent), or more than a
     // reduced invoice now asks, is kept as account credit for the next invoice — never lost.
     const confirmedSum = paid?.n ?? 0;
-    const surplus = inv.status === "void" ? p.amountBirr : Math.max(0, confirmedSum - inv.amountBirr);
+    const surplus = inv.status === "void" ? p.amountBirr : Math.min(p.amountBirr, Math.max(0, confirmedSum - inv.amountBirr));
     if (surplus > 0) await tx.insert(accountCredits).values({ clientId: p.clientId, amountBirr: surplus,
       reason: inv.status === "void" ? `Payment for a cancelled invoice (${inv.periodStart})` : `Paid more than invoice ${inv.periodStart} now asks` });
     if (confirmedSum >= inv.amountBirr && inv.status === "issued") await tx.update(invoices).set({ status: "paid" }).where(eq(invoices.id, inv.id));

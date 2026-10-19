@@ -12,7 +12,8 @@ import { notify, sendCommunityDigests, userIdsWithRoles } from "@/server/service
 import { ensureDrops, lockQuickStarts, lockWeekOrders } from "@/server/services/orders";
 import { loadSettings } from "@/server/services/settings";
 import { sendChallengeReminders } from "@/server/services/community";
-import { endExpiredPlans } from "@/server/services/subscriptions";
+import { endExpiredPlans, repriceRenewedPlansAtLockEnd } from "@/server/services/subscriptions";
+import { SYSTEM_ACTOR } from "@/server/services/context";
 
 export const JOB_NAMES = [
   "tuesday-reminder", "thursday-last-call", "thursday-lock", "friday-shopping",
@@ -113,6 +114,7 @@ const jobs: Record<JobName, (c: JobCtx) => Promise<{ runKey: string; result: Job
   async "daily-renewals"({ db, now }) {
     const today = addisDate(now);
     const ended = await endExpiredPlans(db, today);
+    const repriced = await repriceRenewedPlansAtLockEnd({ db, actor: SYSTEM_ACTOR, now });
     const subs = await db.select({ s: subscriptions, userId: clients.userId }).from(subscriptions).innerJoin(clients, eq(clients.id, subscriptions.clientId))
       .where(eq(subscriptions.status, "active"));
     let renewals = 0;
@@ -127,7 +129,7 @@ const jobs: Record<JobName, (c: JobCtx) => Promise<{ runKey: string; result: Job
     const ci = await notify(db, { userIds: checkins.map((u) => u.userId!), kind: "reminder.checkin", title: "Check-in day", body: "Log your weight today.",
       link: "/app/progress", dedupeKey: `checkin:${today}` });
     const digests = await sendCommunityDigests(db);
-    return { runKey: today, result: { ended, renewals, checkinReminders: ci, digests } };
+    return { runKey: today, result: { ended, repriced, renewals, checkinReminders: ci, digests } };
   },
 };
 

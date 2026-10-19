@@ -1,5 +1,5 @@
 // Plans: create (regular or quick start), pause, renew, owner discounts and price changes (modules 5 and 7).
-import { and, desc, eq, inArray, ne } from "drizzle-orm";
+import { and, desc, eq, inArray, ne, sql } from "drizzle-orm";
 import { clients, invoices, nutritionProfiles, packages, pauses, subscriptions } from "@db/schema";
 import type { DbOrTx } from "@db/client";
 import { assertCan, assertCanForClient, can } from "@/server/authz";
@@ -35,10 +35,11 @@ const PAUSE_REASONS: Record<string, string> = {
   after_end: "That week is after the plan ends.",
 };
 
-async function quoteFor(db: DbOrTx, clientId: string, packageId: string, deliveryOption: DeliveryOption, today: DateStr, standardMenu: boolean) {
+async function quoteFor(db: DbOrTx, clientId: string, packageId: string, deliveryOption: DeliveryOption, today: DateStr, standardMenu: boolean, choicesWeek?: DateStr) {
   const [np] = await db.select().from(nutritionProfiles).where(and(eq(nutritionProfiles.clientId, clientId), eq(nutritionProfiles.isCurrent, true)));
   if (!np) throw new ServiceError("Set the client's calorie target and size first.");
-  const plan = (await loadClientPlanInputs(db, [clientId], weekStartOf(today))).get(clientId)!;
+  // the choices in force from `choicesWeek` (default: the next lockable week, so changes already made count)
+  const plan = (await loadClientPlanInputs(db, [clientId], choicesWeek ?? weekStartOf(today))).get(clientId)!;
   const choices: PricedChoices = standardMenu ? { swapRuleIds: [], addonSlots: [] } : { swapRuleIds: plan.swapRuleIds, addonSlots: plan.addons.map((a) => a.slot) };
   const quote = await quotePrice(db, { profile: profileOf(np.size, np.goal), deliveryOption, packageId, ...choices }, today);
   if (!quote.ok) throw new ServiceError(`Price cannot be published yet: price missing for ${quote.missing.join(", ")}.`, "price_missing");
@@ -156,22 +157,15 @@ export async function renewPlan(ctx: Ctx, clientId: string) {
   const endDate = renewEndDate(sub.endDate, sub.termMonths);
   await ctx.db.update(subscriptions).set({ endDate }).where(eq(subscriptions.id, sub.id));
   await writeAudit(ctx.db, ctx.actor, { action: "subscription.renew", entity: "subscriptions", entityId: sub.id, before: { endDate: sub.endDate }, after: { endDate } });
-  // A price change applies at the next renewal (doc 6): once the 4-month lock is over, the renewed term is priced
-  // from the current formula and locked again from the renewal.
-  const renewalStart = addDays(sub.endDate, 1);
-  if (renewalStart >= sub.priceLockedUntil || addisDate(ctx.now) >= sub.priceLockedUntil) {
-    const settings = await loadSettings(ctx.db);
-    try {
-      const { quote, choices } = await quoteFor(ctx.db, sub.clientId, sub.packageId, sub.deliveryOption, addisDate(ctx.now), false);
-      await ctx.db.update(subscriptions).set({ priceDayBirr: quote.priceDayBirr, priceMonthBirr: quote.priceMonth, planPriceBirr: quote.planPrice,
-        priceBreakdown: breakdownJson(quote, choices), priceLockedUntil: priceLockedUntil(renewalStart, settings.pricing.priceLockMonths) })
-        .where(eq(subscriptions.id, sub.id));
-      await writeAudit(ctx.db, ctx.actor, { action: "price.renewal", entity: "subscriptions", entityId: sub.id,
-        before: { planPriceBirr: sub.planPriceBirr }, after: { planPriceBirr: quote.planPrice }, reason: "Price lock ended: renewed at the current price" });
-      return { endDate, planPriceBirr: quote.planPrice };
-    } catch (e) {
-      if (!(e instanceof ServiceError)) throw e; // price missing: keep the old price until prices exist
-    }
+  // A price change applies at the next renewal (doc 6). Renewed after the lock: the renewed plan is priced from the
+  // current formula now and locked again. Renewed inside the lock: the old price stays until the lock ends and the
+  // daily job re-prices it on that date (repriceAtLockEnd) — never inside the lock without an owner.
+  if (addisDate(ctx.now) >= sub.priceLockedUntil) {
+    const r = await repriceAtRenewal(ctx, sub.id);
+    if (r) return { endDate, planPriceBirr: r.planPriceBirr };
+  } else {
+    await ctx.db.update(subscriptions).set({ priceBreakdown: { ...((sub.priceBreakdown as Record<string, unknown> | null) ?? {}), repriceAtLockEnd: true } })
+      .where(eq(subscriptions.id, sub.id));
   }
   return { endDate };
 }
@@ -202,7 +196,8 @@ export async function repricePlan(ctx: Ctx, input: { subscriptionId: string; rea
   const locked = today < sub.priceLockedUntil;
   if (locked && !can(ctx.actor, "discounts.apply")) throw new ServiceError("The price is locked until " + sub.priceLockedUntil + ". Only an owner can change it earlier.");
   if (locked && !input.reason?.trim()) throw new ServiceError("Give a reason for changing a locked price.");
-  const { quote, choices } = await quoteFor(ctx.db, sub.clientId, sub.packageId, sub.deliveryOption, today, false);
+  const nextWeek = nextLockableWeek(ctx.now, (await loadSettings(ctx.db)).schedule);
+  const { quote, choices } = await quoteFor(ctx.db, sub.clientId, sub.packageId, sub.deliveryOption, today, false, nextWeek);
   await ctx.db.update(subscriptions).set({ priceDayBirr: quote.priceDayBirr, priceMonthBirr: quote.priceMonth, planPriceBirr: quote.planPrice,
     priceBreakdown: breakdownJson(quote, choices), ...(locked ? {} : { priceLockedUntil: priceLockedUntil(today) }) }).where(eq(subscriptions.id, sub.id));
   await writeAudit(ctx.db, ctx.actor, { action: locked ? "price.change_early" : "price.change", entity: "subscriptions", entityId: sub.id,
@@ -262,4 +257,35 @@ export async function repriceForPlanChange(ctx: Ctx, clientId: string, effective
   await writeAudit(ctx.db, ctx.actor, { action: "price.plan_change", entity: "subscriptions", entityId: sub.id,
     before: { planPriceBirr: sub.planPriceBirr }, after: { planPriceBirr: planPrice, deltaMonth, effectiveWeek }, reason });
   return { planPriceBirr: planPrice };
+}
+
+/** Prices a renewed plan from the current formula and locks it again from today (audited as price.renewal). */
+export async function repriceAtRenewal(ctx: Ctx, subscriptionId: string): Promise<{ planPriceBirr: number } | null> {
+  const [sub] = await ctx.db.select().from(subscriptions).where(eq(subscriptions.id, subscriptionId));
+  if (!sub) return null;
+  const settings = await loadSettings(ctx.db);
+  const today = addisDate(ctx.now);
+  try {
+    const { quote, choices } = await quoteFor(ctx.db, sub.clientId, sub.packageId, sub.deliveryOption, today, false, nextLockableWeek(ctx.now, settings.schedule));
+    await ctx.db.update(subscriptions).set({ priceDayBirr: quote.priceDayBirr, priceMonthBirr: quote.priceMonth, planPriceBirr: quote.planPrice,
+      priceBreakdown: breakdownJson(quote, choices), priceLockedUntil: priceLockedUntil(today, settings.pricing.priceLockMonths) })
+      .where(eq(subscriptions.id, sub.id));
+    await writeAudit(ctx.db, ctx.actor, { action: "price.renewal", entity: "subscriptions", entityId: sub.id,
+      before: { planPriceBirr: sub.planPriceBirr }, after: { planPriceBirr: quote.planPrice }, reason: "Price lock ended: renewed at the current price" });
+    return { planPriceBirr: quote.planPrice };
+  } catch (e) {
+    if (e instanceof ServiceError) return null; // price missing: keep the old price until prices exist
+    throw e;
+  }
+}
+
+/** Daily: renewed plans whose price lock ended today or earlier get the current price (D058). */
+export async function repriceRenewedPlansAtLockEnd(ctx: Ctx): Promise<number> {
+  const today = addisDate(ctx.now);
+  const due = await ctx.db.select().from(subscriptions)
+    .where(and(inArray(subscriptions.status, ["active", "paused"]), sql`(${subscriptions.priceBreakdown} ->> 'repriceAtLockEnd')::boolean is true`,
+      sql`${subscriptions.priceLockedUntil} <= ${today}`));
+  let n = 0;
+  for (const sub of due) if (await repriceAtRenewal(ctx, sub.id)) n++;
+  return n;
 }

@@ -79,41 +79,43 @@ export async function lockWeekOrders({ db, now }: Snapshot, weekStart: DateStr) 
 
   const summary = { locked: 0, skippedUnpaid: 0, paused: 0, meals: 0, alreadyLocked: 0, skippedNames: [] as string[], pausedNames: [] as string[] };
   for (const o of result.orders) {
-    const { row, created } = await upsertWeeklyOrder(db, {
-      clientId: o.clientId, subscriptionId: o.subscriptionId, weekStart: o.weekStart, profile: o.profile, status: o.status,
-      isQuickStart: false, lockedAt: now, deliveryOption: o.deliveryOption, skipReason: o.skipReason,
-      isDemo: subs.find((s) => s.id === o.subscriptionId)?.isDemo ?? false,
-    });
-    if (!created && row.status !== "locked") { summary.alreadyLocked++; continue; }
-    if (!created && o.status !== "locked") { summary.alreadyLocked++; continue; }
-    const name = `${plans.get(o.clientId)?.firstName ?? ""} ${plans.get(o.clientId)?.lastName?.[0] ?? ""}.`;
-    if (o.status === "locked") {
-      const added = await insertOrderDays(db, row.id, o.clientId, o.profile, o.days, false, plans.get(o.clientId)?.kitchenNotes ?? []);
-      summary.meals += added;
-      if (created) summary.locked++; else if (added === 0) summary.alreadyLocked++; else summary.locked++;
-    } else if (o.status === "paused") { summary.paused++; summary.pausedNames.push(name); }
-    else {
-      summary.skippedUnpaid++; summary.skippedNames.push(name);
-      // Not paid by the cutoff = not cooked: the week's days come off the invoice(s) that billed them, so the client
-      // is never asked to pay for food that will not be made (a late payment for it becomes credit).
-      if (created) {
-        const sub = subs.find((x) => x.id === o.subscriptionId)!;
-        const billed = await db.select().from(invoices).where(and(eq(invoices.subscriptionId, sub.id), ne(invoices.status, "void"),
-          lte(invoices.periodStart, weekEnd), gte(invoices.periodEnd, weekStart)));
-        for (const inv of billed) {
-          const from = inv.periodStart > weekStart ? inv.periodStart : weekStart;
-          const to = inv.periodEnd < weekEnd ? inv.periodEnd : weekEnd;
-          const days = serviceDaysBetween(from, to, settings.schedule).length;
-          const amountOff = roundToNearest(((sub.planPriceBirr - sub.discountMonthBirr) * days) / settings.pricing.serviceDaysPerMonth, 10);
-          await takeDaysOffInvoice(db, inv, days, amountOff, "week not cooked (unpaid at the cutoff)");
-        }
+    // One transaction per client: the order, its days and any invoice reduction land together, so a run that stops
+    // partway is redone cleanly by the next run (job idempotency, money integrity).
+    await db.transaction(async (tx) => {
+      const { row, created } = await upsertWeeklyOrder(tx, {
+        clientId: o.clientId, subscriptionId: o.subscriptionId, weekStart: o.weekStart, profile: o.profile, status: o.status,
+        isQuickStart: false, lockedAt: now, deliveryOption: o.deliveryOption, skipReason: o.skipReason,
+        isDemo: subs.find((s) => s.id === o.subscriptionId)?.isDemo ?? false,
+      });
+      if (!created && (row.status !== "locked" || o.status !== "locked")) { summary.alreadyLocked++; return; }
+      const name = `${plans.get(o.clientId)?.firstName ?? ""} ${plans.get(o.clientId)?.lastName?.[0] ?? ""}.`;
+      if (o.status === "locked") {
+        const added = await insertOrderDays(tx, row.id, o.clientId, o.profile, o.days, false, plans.get(o.clientId)?.kitchenNotes ?? []);
+        summary.meals += added;
+        if (created || added > 0) summary.locked++; else summary.alreadyLocked++;
+      } else if (o.status === "paused") { summary.paused++; summary.pausedNames.push(name); }
+      else { summary.skippedUnpaid++; summary.skippedNames.push(name); }
+      if (!created || o.status === "paused") return;
+      // Not paid by the cutoff = not cooked (rule 1): every service day of this week that the plan covers but the lock
+      // did not cook — the whole week when skipped, or the unpaid part of a week at a billing boundary — comes off the
+      // invoice that billed it, so the client is never asked to pay for food that will not be made.
+      const sub = subs.find((x) => x.id === o.subscriptionId)!;
+      const cooked = new Set([...o.days.map((d) => d.serviceDate), ...existingDays.filter((d) => d.clientId === o.clientId).map((d) => d.serviceDate)]);
+      const from = sub.startDate > weekStart ? sub.startDate : weekStart;
+      const to = sub.endDate < weekEnd ? sub.endDate : weekEnd;
+      const uncooked = serviceDaysBetween(from, to, settings.schedule).filter((d) => !cooked.has(d));
+      if (uncooked.length === 0) return;
+      const billed = await tx.select().from(invoices).where(and(eq(invoices.subscriptionId, sub.id), ne(invoices.status, "void"),
+        lte(invoices.periodStart, weekEnd), gte(invoices.periodEnd, weekStart)));
+      for (const inv of billed) {
+        const days = uncooked.filter((d) => d >= inv.periodStart && d <= inv.periodEnd).length;
+        const amountOff = roundToNearest(((sub.planPriceBirr - sub.discountMonthBirr) * days) / settings.pricing.serviceDaysPerMonth, 10);
+        await takeDaysOffInvoice(tx, inv, days, amountOff, "days not cooked (unpaid at the cutoff)");
       }
-    }
+    });
     // client status follows the locked week
-    if (created) {
-      if (o.status === "paused") await db.update(clients).set({ status: "paused" }).where(and(eq(clients.id, o.clientId), eq(clients.status, "active")));
-      if (o.status === "locked") await db.update(clients).set({ status: "active" }).where(and(eq(clients.id, o.clientId), eq(clients.status, "paused")));
-    }
+    if (o.status === "paused") await db.update(clients).set({ status: "paused" }).where(and(eq(clients.id, o.clientId), eq(clients.status, "active")));
+    if (o.status === "locked") await db.update(clients).set({ status: "active" }).where(and(eq(clients.id, o.clientId), eq(clients.status, "paused")));
   }
   await ensureDrops(db, weekStart, weekEnd, weeklyCutoff(weekStart, settings.schedule));
   return summary;
