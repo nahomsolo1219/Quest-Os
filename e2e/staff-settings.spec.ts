@@ -27,6 +27,8 @@ test("swap table: edit a rule label", async ({ page }, info) => {
   await page.goto("/staff/settings/swaps");
   const label = `Injera → rice, 45 g dry (${info.project.name})`;
   const labels = page.getByRole("textbox", { name: "Label" });
+  // the swap-table form fills its inputs after hydration: wait for real values before reading them
+  await expect(labels.first()).not.toHaveValue("");
   const values = await labels.evaluateAll((els) => els.map((e) => (e as HTMLInputElement).value));
   const i = values.findIndex((v) => v.startsWith("Injera → rice"));
   expect(i, `rules: ${values.join(" | ")}`).toBeGreaterThanOrEqual(0);
