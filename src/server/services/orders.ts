@@ -105,7 +105,7 @@ export async function lockWeekOrders({ db, now }: Snapshot, weekStart: DateStr) 
       const uncooked = serviceDaysBetween(from, to, settings.schedule).filter((d) => !cooked.has(d));
       if (uncooked.length === 0) return;
       const billed = await tx.select().from(invoices).where(and(eq(invoices.subscriptionId, sub.id), ne(invoices.status, "void"),
-        lte(invoices.periodStart, weekEnd), gte(invoices.periodEnd, weekStart)));
+        lte(invoices.periodStart, weekEnd), gte(invoices.periodEnd, weekStart))).for("update");
       for (const inv of billed) {
         const days = uncooked.filter((d) => d >= inv.periodStart && d <= inv.periodEnd).length;
         await takeDaysOffInvoice(tx, inv, days, "days not cooked (unpaid at the cutoff)");

@@ -120,16 +120,20 @@ export async function pausePlan(ctx: Ctx, input: { clientId: string; startWeek: 
   if (!sub || !["active", "paused"].includes(sub.status)) throw new ServiceError("There is no active plan to pause.");
   const res = applyPause({ endDate: sub.endDate }, input.startWeek, input.weeks, ctx.now, settings.schedule);
   if (!res.ok) throw new ServiceError(PAUSE_REASONS[res.reason]);
-  const existing = await ctx.db.select().from(pauses).where(eq(pauses.subscriptionId, sub.id));
-  if (existing.some((p) => p.startWeek <= res.endWeek && addWeeks(p.startWeek, p.weeks) > res.startWeek)) throw new ServiceError("Part of that time is already paused.");
   await ctx.db.transaction(async (tx) => {
+    // Serialised per plan: the subscription row is locked, then the overlap is checked and the invoices are read
+    // locked, so a double tap or a payment confirmation running at the same time cannot double-reduce or read stale rows.
+    const [locked] = await tx.select().from(subscriptions).where(eq(subscriptions.id, sub.id)).for("update");
+    if (locked.endDate !== sub.endDate) throw new ServiceError("The plan just changed. Refresh and try again.");
+    const existing = await tx.select().from(pauses).where(eq(pauses.subscriptionId, sub.id));
+    if (existing.some((p) => p.startWeek <= res.endWeek && addWeeks(p.startWeek, p.weeks) > res.startWeek)) throw new ServiceError("Part of that time is already paused.");
     await tx.insert(pauses).values({ subscriptionId: sub.id, clientId: sub.clientId, startWeek: res.startWeek, weeks: res.weeks, requestedByUserId: actorUserId(ctx.actor) });
     await tx.update(subscriptions).set({ endDate: res.endDate }).where(eq(subscriptions.id, sub.id));
     // Paused days are not charged (rule 6: they extend the plan). Invoices already made for the paused weeks:
     // a weekly invoice inside the pause is voided (and refunded as credit when paid); any other invoice that
     // overlaps the pause is reduced (unpaid) or credited (paid) by the paused service days.
     const pauseList = [{ startWeek: res.startWeek, weeks: res.weeks }];
-    const overlapping = await tx.select().from(invoices).where(and(eq(invoices.subscriptionId, sub.id), ne(invoices.status, "void")));
+    const overlapping = await tx.select().from(invoices).where(and(eq(invoices.subscriptionId, sub.id), ne(invoices.status, "void"))).for("update");
     for (const inv of overlapping) {
       if (inv.periodEnd < res.startWeek || inv.periodStart > res.endWeek) continue;
       const pausedDays = pausedServiceDays(pauseList, inv.periodStart, inv.periodEnd, settings.schedule);

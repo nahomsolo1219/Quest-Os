@@ -218,7 +218,9 @@ export async function takeDaysOffInvoice(db: DbOrTx, inv: typeof invoices.$infer
   // The removed value comes out of the invoice amount first, then out of the credit applied to it, so the stored
   // amount + credit always equals the worth of the days left (a later reduction or void never over-credits).
   const fromAmount = Math.min(amountOff, inv.amountBirr);
-  const fromCredit = Math.min(amountOff - fromAmount, inv.creditAppliedBirr);
+  // only a positive credit (credit the client had) is given back; a negative one (money the client owes) stays on the
+  // invoice until it is paid, or is returned by a void
+  const fromCredit = Math.min(amountOff - fromAmount, Math.max(0, inv.creditAppliedBirr));
   const amountLeft = inv.amountBirr - fromAmount;
   await db.update(invoices).set({
     amountBirr: amountLeft, creditAppliedBirr: inv.creditAppliedBirr - fromCredit, serviceDays: inv.serviceDays - daysOff,

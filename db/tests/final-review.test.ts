@@ -348,3 +348,58 @@ describe("final review, fourth pass", () => {
     });
   });
 });
+
+describe("final review, fifth pass", () => {
+  it("a negative credit applied (the client owes money) survives reductions and is returned by a void", async () => {
+    await inRollback(db, async (tx) => {
+      const { takeDaysOffInvoice } = await import("../../src/server/services/billing");
+      const sub = await activeWeekly(tx);
+      // 24 days worth 6,000 plus 500 the client owes
+      const [inv] = await tx.insert(s.invoices).values({ clientId: sub.clientId, subscriptionId: sub.id, kind: "monthly", periodStart: "2027-01-04", periodEnd: "2027-02-03",
+        serviceDays: 24, amountBirr: 6500, creditAppliedBirr: -500, status: "issued", dueAt: at("2026-12-31T15:00:00Z") }).returning();
+      const fresh = async () => (await tx.select().from(s.invoices).where(eq(s.invoices.id, inv.id)))[0];
+      const before = await credits(tx, sub.clientId);
+      await takeDaysOffInvoice(tx, await fresh(), 6, "week paused"); // 1,500 off the 6,000 of food
+      const now = await fresh();
+      expect([now.amountBirr, now.creditAppliedBirr, now.serviceDays]).toEqual([5000, -500, 18]);
+      await takeDaysOffInvoice(tx, now, 18, "rest paused");
+      expect((await fresh()).status).toBe("void");
+      expect(await credits(tx, sub.clientId)).toBe(before - 500); // the 500 owed is still owed
+    });
+  });
+
+  it("two pause requests at once: only one is applied", async () => {
+    const { db: db2, sql: conn2 } = testDb();
+    const ops = await actorByEmail(db as never, "nebiyou@questmeals.demo");
+    const [sub] = await db.select().from(s.subscriptions).where(and(eq(s.subscriptions.status, "active"), eq(s.subscriptions.billingPeriod, "monthly"))).limit(1);
+    const invBefore = await db.select().from(s.invoices).where(eq(s.invoices.subscriptionId, sub.id));
+    const creditIds = new Set((await db.select({ id: s.accountCredits.id }).from(s.accountCredits).where(eq(s.accountCredits.clientId, sub.clientId))).map((r) => r.id));
+    const auditCut = new Date();
+    const ctx1: Ctx = { db, actor: ops, now: at("2026-10-20T07:00:00Z") };
+    const ctx2: Ctx = { db: db2, actor: ops, now: at("2026-10-20T07:00:00Z") };
+    const results = await Promise.allSettled([
+      pausePlan(ctx1, { clientId: sub.clientId, startWeek: "2026-11-02", weeks: 1 }),
+      pausePlan(ctx2, { clientId: sub.clientId, startWeek: "2026-11-02", weeks: 1 }),
+    ]);
+    try {
+      expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+      const rows = await db.select().from(s.pauses).where(and(eq(s.pauses.subscriptionId, sub.id), eq(s.pauses.startWeek, "2026-11-02")));
+      expect(rows).toHaveLength(1);
+    } finally {
+      // undo (this test runs outside a rollback because it needs two connections)
+      const [p] = await db.select().from(s.pauses).where(and(eq(s.pauses.subscriptionId, sub.id), eq(s.pauses.startWeek, "2026-11-02")));
+      if (p) {
+        await db.delete(s.pauses).where(eq(s.pauses.id, p.id));
+        await db.update(s.subscriptions).set({ endDate: sub.endDate }).where(eq(s.subscriptions.id, sub.id));
+      }
+      for (const i of invBefore) {
+        await db.update(s.invoices).set({ amountBirr: i.amountBirr, creditAppliedBirr: i.creditAppliedBirr, serviceDays: i.serviceDays, status: i.status }).where(eq(s.invoices.id, i.id));
+      }
+      for (const c of await db.select().from(s.accountCredits).where(eq(s.accountCredits.clientId, sub.clientId))) {
+        if (!creditIds.has(c.id)) await db.delete(s.accountCredits).where(eq(s.accountCredits.id, c.id));
+      }
+      await db.delete(s.auditLog).where(and(eq(s.auditLog.action, "subscription.pause"), eq(s.auditLog.entityId, sub.id), sql`${s.auditLog.createdAt} >= ${auditCut.toISOString()}`));
+      await conn2.end({ timeout: 5 });
+    }
+  });
+});
