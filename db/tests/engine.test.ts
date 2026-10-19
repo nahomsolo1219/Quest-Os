@@ -6,7 +6,7 @@ import * as s from "../schema";
 import { runJob } from "../../src/server/jobs";
 import { SYSTEM_ACTOR, type Ctx } from "../../src/server/services/context";
 import { confirmPayment, rejectPayment, submitPayment } from "../../src/server/services/billing";
-import { applyDiscount, createSubscription, pausePlan } from "../../src/server/services/subscriptions";
+import { applyDiscount, createSubscription, pausePlan, repricePlan } from "../../src/server/services/subscriptions";
 import { ForbiddenError, type Actor } from "../../src/server/authz";
 import { inRollback, testDb } from "./helpers";
 
@@ -194,6 +194,33 @@ describe("Plans", () => {
       await runJob(tx as never, "thursday-lock", THU_LOCK);
       const [o] = await tx.select().from(s.weeklyOrders).where(and(eq(s.weeklyOrders.clientId, sub.clientId), eq(s.weeklyOrders.weekStart, "2026-10-26")));
       expect(o.status).toBe("paused");
+    });
+  });
+
+  it("price lock: during the first 4 months only an owner can re-price, with a reason (PLN-07)", async () => {
+    await inRollback(db, async (tx) => {
+      await setAllPrices(tx);
+      const ops = await staffActor(tx, "nebiyou@questmeals.demo");
+      const owner = await staffActor(tx, "fahim@questmeals.demo");
+      const [sub] = await tx.select().from(s.subscriptions).where(eq(s.subscriptions.status, "active")).limit(1);
+      expect(sub.priceLockedUntil > "2026-10-20").toBe(true);
+      const now = at("2026-10-20T07:00:00Z");
+      await expect(repricePlan({ db: tx, actor: ops, now }, { subscriptionId: sub.id, reason: "x" })).rejects.toThrow(/locked until/);
+      await expect(repricePlan({ db: tx, actor: owner, now }, { subscriptionId: sub.id })).rejects.toThrow(/reason/);
+      await repricePlan({ db: tx, actor: owner, now }, { subscriptionId: sub.id, reason: "Agreed with client" });
+      expect(await count(tx, "audit_log", `action = 'price.change_early' and entity_id = '${sub.id}' and reason = 'Agreed with client'`)).toBe(1);
+    });
+  });
+
+  it("locked orders keep their grams when the portion table changes later (ORD-04)", async () => {
+    await inRollback(db, async (tx) => {
+      await runJob(tx as never, "thursday-lock", THU_LOCK);
+      const [m] = await tx.select().from(s.orderMeals).limit(1);
+      const before = JSON.stringify(m.items);
+      await tx.update(s.profilePortions).set({ qty: sql`${s.profilePortions.qty} + 50` });
+      const [after] = await tx.select().from(s.orderMeals).where(eq(s.orderMeals.id, m.id));
+      expect(JSON.stringify(after.items)).toBe(before);
+      expect(after.kcal).toBe(m.kcal);
     });
   });
 

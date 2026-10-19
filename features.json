@@ -25,21 +25,21 @@
     "module": "local",
     "description": "Gregorian dates in the UI; user-facing strings kept in one strings file per feature",
     "test": "e2e/client-app.spec.ts",
-    "status": "in_progress"
+    "status": "passing"
   },
   {
     "id": "AUTH-01",
     "module": "auth",
     "description": "Staff sign in with email and password",
     "test": "e2e/auth.spec.ts",
-    "status": "in_progress"
+    "status": "passing"
   },
   {
     "id": "AUTH-02",
     "module": "auth",
     "description": "Clients sign in with phone number and password (no SMS verification)",
     "test": "e2e/auth.spec.ts",
-    "status": "in_progress"
+    "status": "passing"
   },
   {
     "id": "AUTH-03",
@@ -60,7 +60,7 @@
     "module": "auth",
     "description": "Each role is routed to its home screen and blocked from other areas",
     "test": "e2e/auth.spec.ts",
-    "status": "in_progress"
+    "status": "passing"
   },
   {
     "id": "SEC-01",
@@ -228,7 +228,7 @@
     "module": "clients",
     "description": "Sign-up form captures age, sex, weight, height, activity, goal, allergies, dislikes, address, area, delivery or pick-up",
     "test": "e2e/signup.spec.ts",
-    "status": "in_progress"
+    "status": "passing"
   },
   {
     "id": "CLI-03",
@@ -242,14 +242,14 @@
     "module": "clients",
     "description": "Client list with filters by status, plan, area and payment status",
     "test": "e2e/staff-ops.spec.ts",
-    "status": "in_progress"
+    "status": "passing"
   },
   {
     "id": "CLI-05",
     "module": "clients",
     "description": "Client page shows profile, nutrition, plan, swaps, payments, orders, check-ins, notes and audit trail",
     "test": "e2e/staff-ops.spec.ts",
-    "status": "in_progress"
+    "status": "passing"
   },
   {
     "id": "CLI-06",
@@ -263,7 +263,7 @@
     "module": "clients",
     "description": "Onboarding wizard takes a lead through intake, macros, plan, swaps and invoice",
     "test": "e2e/staff-ops.spec.ts",
-    "status": "in_progress"
+    "status": "passing"
   },
   {
     "id": "CLI-08",
@@ -417,14 +417,14 @@
     "module": "menu",
     "description": "Every meal shows kcal, protein, carbs and fat per profile",
     "test": "e2e/staff-nutrition.spec.ts",
-    "status": "in_progress"
+    "status": "passing"
   },
   {
     "id": "MENU-14",
     "module": "menu",
     "description": "Pantry items (awaze, garlic, lemon, rosemary, herbs, salt, pepper) listed on recipe cards as \"pantry\"",
     "test": "e2e/kitchen.spec.ts",
-    "status": "in_progress"
+    "status": "passing"
   },
   {
     "id": "SWP-01",
@@ -494,7 +494,7 @@
     "module": "swaps",
     "description": "Staff can edit the swap table",
     "test": "e2e/staff-settings.spec.ts",
-    "status": "in_progress"
+    "status": "passing"
   },
   {
     "id": "PLN-01",
@@ -542,8 +542,8 @@
     "id": "PLN-07",
     "module": "pricing",
     "description": "Prices are locked for four months from subscription start; owner can apply a change earlier with a logged reason",
-    "test": "db/tests/services.test.ts",
-    "status": "in_progress"
+    "test": "db/tests/engine.test.ts",
+    "status": "passing"
   },
   {
     "id": "PLN-08",
@@ -571,7 +571,7 @@
     "module": "pricing",
     "description": "Calculator shows an indicative price only when every needed ingredient price exists",
     "test": "e2e/signup.spec.ts",
-    "status": "in_progress"
+    "status": "passing"
   },
   {
     "id": "PAY-01",
@@ -585,14 +585,14 @@
     "module": "payments",
     "description": "Client pays by Telebirr, CBE or cash and uploads a receipt photo (compressed client-side)",
     "test": "e2e/client-app.spec.ts",
-    "status": "in_progress"
+    "status": "passing"
   },
   {
     "id": "PAY-03",
     "module": "payments",
     "description": "Ops confirmation queue with receipt preview; confirm is one tap; reject needs a reason",
     "test": "e2e/staff-ops.spec.ts",
-    "status": "in_progress"
+    "status": "passing"
   },
   {
     "id": "PAY-04",
@@ -640,15 +640,15 @@
     "id": "ORD-04",
     "module": "orders",
     "description": "Locked orders snapshot grams after swaps so later menu edits do not change them",
-    "test": "db/tests/services.test.ts",
-    "status": "in_progress"
+    "test": "db/tests/engine.test.ts",
+    "status": "passing"
   },
   {
     "id": "ORD-05",
     "module": "orders",
     "description": "Weekly order review before and after lock shows locked, skipped for non-payment and paused, with conflicts in red",
     "test": "e2e/staff-ops.spec.ts",
-    "status": "in_progress"
+    "status": "passing"
   },
   {
     "id": "ORD-06",
@@ -725,7 +725,7 @@
     "module": "kitchen",
     "description": "Recipe cards per meal with portions per profile and pantry items",
     "test": "e2e/kitchen.spec.ts",
-    "status": "in_progress"
+    "status": "passing"
   },
   {
     "id": "KIT-03",
@@ -753,7 +753,7 @@
     "module": "kitchen",
     "description": "Production sheet, packing list and labels print cleanly on A4 and read on a phone",
     "test": "e2e/kitchen.spec.ts",
-    "status": "in_progress"
+    "status": "passing"
   },
   {
     "id": "KIT-07",
@@ -795,7 +795,7 @@
     "module": "inventory",
     "description": "Stock count per ingredient with one tap per line; Sunday count resets on-hand",
     "test": "e2e/kitchen.spec.ts",
-    "status": "in_progress"
+    "status": "passing"
   },
   {
     "id": "INV-06",
@@ -829,15 +829,15 @@
     "id": "DEL-02",
     "module": "delivery",
     "description": "Ops can drag to reorder drops and assign riders",
-    "test": "e2e/delivery.spec.ts",
-    "status": "in_progress"
+    "test": "db/tests/delivery.test.ts",
+    "status": "passing"
   },
   {
     "id": "DEL-03",
     "module": "delivery",
     "description": "Rider view with tap-to-call, address and one-tap delivered",
     "test": "e2e/delivery.spec.ts",
-    "status": "in_progress"
+    "status": "passing"
   },
   {
     "id": "DEL-04",
@@ -851,7 +851,7 @@
     "module": "delivery",
     "description": "Pick-up list for the cafe counter for pick-up clients",
     "test": "e2e/delivery.spec.ts",
-    "status": "in_progress"
+    "status": "passing"
   },
   {
     "id": "DEL-06",
@@ -872,7 +872,7 @@
     "module": "client-app",
     "description": "Public calorie calculator works without login and shows TDEE, size and macros",
     "test": "e2e/signup.spec.ts",
-    "status": "in_progress"
+    "status": "passing"
   },
   {
     "id": "APP-02",
@@ -886,49 +886,49 @@
     "module": "client-app",
     "description": "Today screen shows today's meals with macros and eat-by dates",
     "test": "e2e/client-app.spec.ts",
-    "status": "in_progress"
+    "status": "passing"
   },
   {
     "id": "APP-04",
     "module": "client-app",
     "description": "This week's menu with the client's profile portions",
     "test": "e2e/client-app.spec.ts",
-    "status": "in_progress"
+    "status": "passing"
   },
   {
     "id": "APP-05",
     "module": "client-app",
     "description": "My plan shows package, delivery, price, macros and size; size change can only be requested",
     "test": "e2e/client-app.spec.ts",
-    "status": "in_progress"
+    "status": "passing"
   },
   {
     "id": "APP-06",
     "module": "client-app",
     "description": "Client can request swaps within the plan limit, effective next week",
     "test": "e2e/client-app.spec.ts",
-    "status": "in_progress"
+    "status": "passing"
   },
   {
     "id": "APP-07",
     "module": "client-app",
     "description": "Client can pause in whole weeks before the cutoff; paused weeks extend the plan end date",
     "test": "e2e/client-app.spec.ts",
-    "status": "in_progress"
+    "status": "passing"
   },
   {
     "id": "APP-08",
     "module": "client-app",
     "description": "Invoices list with receipt upload",
     "test": "e2e/client-app.spec.ts",
-    "status": "in_progress"
+    "status": "passing"
   },
   {
     "id": "APP-09",
     "module": "client-app",
     "description": "Client logs weight; progress chart shows check-ins",
     "test": "e2e/client-app.spec.ts",
-    "status": "in_progress"
+    "status": "passing"
   },
   {
     "id": "APP-10",
@@ -941,8 +941,8 @@
     "id": "APP-11",
     "module": "client-app",
     "description": "Client app works at 390 px wide",
-    "test": "e2e/client-app.spec.ts",
-    "status": "in_progress"
+    "test": "e2e/screenshots.spec.ts",
+    "status": "passing"
   },
   {
     "id": "CHK-01",
@@ -970,14 +970,14 @@
     "module": "checkins",
     "description": "Nutritionist check-in log screen",
     "test": "e2e/staff-nutrition.spec.ts",
-    "status": "in_progress"
+    "status": "passing"
   },
   {
     "id": "RULE-01",
     "module": "rules",
     "description": "Pay before cooking: unconfirmed payment at the relevant cutoff leaves the client out",
     "test": "scripts/simulate-week.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "RULE-02",
@@ -1082,7 +1082,7 @@
     "module": "community",
     "description": "Photos compressed client-side to at most 1,600 px on the long edge",
     "test": "e2e/community.spec.ts",
-    "status": "in_progress"
+    "status": "passing"
   },
   {
     "id": "COM-03",
@@ -1166,14 +1166,14 @@
     "module": "community",
     "description": "Community screens work at 390 px",
     "test": "e2e/community.spec.ts",
-    "status": "in_progress"
+    "status": "passing"
   },
   {
     "id": "NOT-01",
     "module": "notifications",
     "description": "In-app notification centre with unread count and mark as read",
     "test": "e2e/client-app.spec.ts",
-    "status": "in_progress"
+    "status": "passing"
   },
   {
     "id": "NOT-02",
@@ -1278,7 +1278,7 @@
     "module": "settings",
     "description": "Owner settings: pricing, packages, nutrition defaults, service days, cutoff times, quick-start capacity, swap table, areas",
     "test": "e2e/staff-settings.spec.ts",
-    "status": "in_progress"
+    "status": "passing"
   },
   {
     "id": "SET-02",
@@ -1299,35 +1299,35 @@
     "module": "pwa",
     "description": "Web app manifest, icons and installable PWA",
     "test": "e2e/pwa.spec.ts",
-    "status": "in_progress"
+    "status": "passing"
   },
   {
     "id": "PWA-02",
     "module": "pwa",
     "description": "Offline fallback page served by the service worker",
     "test": "e2e/pwa.spec.ts",
-    "status": "in_progress"
+    "status": "passing"
   },
   {
     "id": "UX-01",
     "module": "ux",
     "description": "Every list has an empty state that says what to do next",
     "test": "e2e/ux.spec.ts",
-    "status": "in_progress"
+    "status": "passing"
   },
   {
     "id": "UX-02",
     "module": "ux",
     "description": "Every action shows success or a specific error",
     "test": "e2e/ux.spec.ts",
-    "status": "in_progress"
+    "status": "passing"
   },
   {
     "id": "UX-03",
     "module": "ux",
     "description": "Staff screens work at 390 px and 1280 px (screenshots reviewed)",
     "test": "e2e/screenshots.spec.ts",
-    "status": "in_progress"
+    "status": "passing"
   },
   {
     "id": "PERF-01",
@@ -1341,7 +1341,7 @@
     "module": "a11y",
     "description": "Inputs have labels; tap targets at least 44 px on phone screens",
     "test": "e2e/a11y.spec.ts",
-    "status": "in_progress"
+    "status": "passing"
   },
   {
     "id": "A11Y-02",
@@ -1355,14 +1355,14 @@
     "module": "simulation",
     "description": "Week-in-the-life simulation passes from the seed with asserted counts and totals",
     "test": "scripts/simulate-week.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "SIM-02",
     "module": "simulation",
     "description": "Simulation report saved to docs/simulation-report.md",
     "test": "docs/simulation-report.md",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "DOC-01",
