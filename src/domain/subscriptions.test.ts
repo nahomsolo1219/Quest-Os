@@ -119,3 +119,31 @@ describe("invoices skip paused weeks (spec review)", () => {
     expect(monthly[0].amountBirr).toBe(Math.round((52000 * 21) / 26 / 10) * 10);
   });
 });
+
+describe("periods lengthened after billing bill the remainder (final review)", () => {
+  const st = async () => {
+    const { DEFAULT_SCHEDULE, DEFAULT_PRICING } = await import("./settings");
+    return { schedule: DEFAULT_SCHEDULE, pricing: DEFAULT_PRICING };
+  };
+  it("weekly: a renewal after the clipped last week was billed bills the rest of that week", async () => {
+    const sub = { startDate: "2026-10-26", endDate: "2026-12-25", billingPeriod: "weekly" as const, planPriceBirr: 58400 };
+    const existing = [{ periodStart: "2026-11-23", periodEnd: "2026-11-25", status: "paid" as const, kind: "weekly" as const }];
+    const next = nextInvoicesToGenerate(sub, existing, "2026-11-23", await st()).filter((x) => x.start >= "2026-11-23");
+    expect(next[0]).toMatchObject({ start: "2026-11-26", end: "2026-11-29", isFullMonth: false });
+    expect(next[0].serviceDays).toBe(3); // Thu, Fri, Sat (Sunday is not a service day)
+    expect(next.map((x) => x.start)).toEqual(["2026-11-26", "2026-11-30"]);
+    // once billed, nothing more for that week
+    const again = nextInvoicesToGenerate(sub, [...existing, { periodStart: "2026-11-26", periodEnd: "2026-11-29", status: "issued", kind: "weekly" }], "2026-11-23", await st()).filter((x) => x.start >= "2026-11-23");
+    expect(again.map((x) => x.start)).toEqual(["2026-11-30"]);
+  });
+
+  it("monthly: pause then renewal bills the month's remainder after the pause-extension invoice", async () => {
+    const sub = { startDate: "2026-10-26", endDate: "2027-01-02", billingPeriod: "monthly" as const, planPriceBirr: 52000 };
+    const existing = [
+      { periodStart: "2026-10-26", periodEnd: "2026-11-25", status: "paid" as const, kind: "monthly" as const },
+      { periodStart: "2026-11-26", periodEnd: "2026-12-02", status: "paid" as const, kind: "monthly" as const },
+    ];
+    const next = nextInvoicesToGenerate(sub, existing, "2026-11-30", await st());
+    expect(next[0]).toMatchObject({ start: "2026-12-03", end: "2026-12-25", isFullMonth: false });
+  });
+});

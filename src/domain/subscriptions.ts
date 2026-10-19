@@ -104,7 +104,8 @@ export type InvoiceDraft = BillingPeriodRange & { amountBirr: number; dueAt: Dat
 /**
  * Invoices the Thursday lock should create for a subscription. The lock that locks `lockWeek` bills every
  * period starting no later than the end of the following week (the "week after next" from the lock's own week),
- * skipping periods that already have a non-void invoice with the same start or whose dates are fully covered
+ * skipping periods that already have a non-void invoice with the same start (only the uncovered remainder is billed
+ * when the period has since been lengthened) or whose dates are fully covered
  * (e.g. by the quick-start invoice). Each is due at the cutoff of the week its period starts in.
  */
 export function nextInvoicesToGenerate(
@@ -127,7 +128,18 @@ export function nextInvoicesToGenerate(
   const live = existing.filter((i) => i.status !== "void");
   return invoicePeriods({ ...sub, billingAnchor: anchor }, s.schedule, undefined, horizon)
     .filter((p) => p.start <= horizon)
-    .filter((p) => !live.some((i) => i.periodStart === p.start && (i.kind == null || i.kind === p.kind)))
+    // A period lengthened after it was billed (renewal or pause moved the end date) bills only the remainder,
+    // from the day after the invoices already starting at its start end (D076).
+    .flatMap((p) => {
+      let start = p.start;
+      for (;;) {
+        const at = live.find((i) => i.periodStart === start && (i.kind == null || i.kind === p.kind));
+        if (!at) break;
+        if (at.periodEnd >= p.end) return [];
+        start = addDays(at.periodEnd, 1);
+      }
+      return start === p.start ? [p] : [{ ...p, start, isFullMonth: false, serviceDays: serviceDaysBetween(start, p.end, s.schedule).length }];
+    })
     .filter((p) => {
       const days: DateStr[] = [];
       for (let d = p.start; d <= p.end; d = addDays(d, 1)) days.push(d);

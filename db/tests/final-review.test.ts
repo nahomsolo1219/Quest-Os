@@ -571,3 +571,25 @@ describe("final review, eleventh pass", () => {
     });
   });
 });
+
+describe("final review, twelfth pass", () => {
+  it("renewing after a clipped last week was billed bills the rest of that week before its cutoff", async () => {
+    await inRollback(db, async (tx) => {
+      const ops = await actorByEmail(tx, "nebiyou@questmeals.demo");
+      const sub = await activeWeekly(tx);
+      await tx.update(s.subscriptions).set({ endDate: "2026-11-04" }).where(eq(s.subscriptions.id, sub.id)); // ends Wednesday
+      await tx.delete(s.invoices).where(and(eq(s.invoices.subscriptionId, sub.id), sql`${s.invoices.periodStart} >= '2026-11-02'`));
+      await tx.insert(s.invoices).values({ clientId: sub.clientId, subscriptionId: sub.id, kind: "weekly", periodStart: "2026-11-02", periodEnd: "2026-11-04",
+        serviceDays: 3, amountBirr: 6000, status: "issued", dueAt: at("2026-10-29T15:00:00Z") });
+      await renewPlan({ db: tx, actor: ops, now: at("2026-10-27T06:00:00Z") }, sub.clientId);
+      const inv = await tx.select().from(s.invoices).where(and(eq(s.invoices.subscriptionId, sub.id), sql`${s.invoices.periodStart} >= '2026-11-02'`));
+      const rest = inv.find((i) => i.periodStart === "2026-11-05");
+      expect(rest).toMatchObject({ periodEnd: "2026-11-08", serviceDays: 3 }); // Thu–Sat (Sunday's meals come with Saturday)
+      expect(rest!.dueAt.toISOString()).toBe("2026-10-29T15:00:00.000Z");
+      // the week of 9 Nov follows at the 29 Oct lock as usual
+      await runJob(tx as never, "thursday-lock", at("2026-10-29T15:00:05Z"));
+      const later = await tx.select().from(s.invoices).where(and(eq(s.invoices.subscriptionId, sub.id), eq(s.invoices.periodStart, "2026-11-09")));
+      expect(later).toHaveLength(1);
+    });
+  });
+});
