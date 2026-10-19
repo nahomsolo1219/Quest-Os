@@ -416,3 +416,24 @@ describe("final review, sixth pass", () => {
     });
   });
 });
+
+describe("final review, seventh pass", () => {
+  it("a pause after the quick-start lock already added the week is refused (the lock committed first)", async () => {
+    await inRollback(db, async (tx) => {
+      await setAllPrices(tx);
+      const ops = await actorByEmail(tx, "nebiyou@questmeals.demo");
+      const [c] = await tx.insert(s.clients).values({ firstName: "Q", lastName: "T", phone: "+251955000002", status: "lead", sex: "male", age: 30, weightG: 80000,
+        heightCm: 180, activity: "moderate", goal: "lean" }).returning();
+      await tx.insert(s.nutritionProfiles).values({ clientId: c.id, bmr: 1780, tdee: 2759, suggestedKcal: 2207, suggestedSize: "M", suggestedProteinG: 158,
+        suggestedCarbG: 210, suggestedFatG: 70, kcalTarget: 2100, size: "M", goal: "lean", proteinG: 158, carbG: 210, fatG: 70, provisional: true, isCurrent: true });
+      const [pkg] = await tx.select().from(s.packages).where(eq(s.packages.code, "essential"));
+      const thu10 = at("2026-10-22T07:00:00Z");
+      const q = await createSubscription({ db: tx, actor: ops, now: thu10 }, { clientId: c.id, packageId: pkg.id, deliveryOption: "pickup", billingPeriod: "weekly", termMonths: 1, start: "quick_start" });
+      const p = await submitPayment({ db: tx, actor: ops, now: thu10 }, { invoiceId: q.invoice.id, method: "cash" });
+      await confirmPayment({ db: tx, actor: ops, now: thu10 }, p.id);
+      await runJob(tx as never, "daily-quick-start", THU_LOCK); // adds Fri 23 Oct – Sun 1 Nov, incl. the week of 26 Oct
+      await expect(pausePlan({ db: tx, actor: ops, now: at("2026-10-22T14:59:59Z") }, { clientId: c.id, startWeek: "2026-10-26", weeks: 1 }))
+        .rejects.toThrow(/already locked/);
+    });
+  });
+});

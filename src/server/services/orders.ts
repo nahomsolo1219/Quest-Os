@@ -230,22 +230,26 @@ export async function lockQuickStarts({ db, now }: Snapshot) {
       summary.shifted++;
       if (startDate !== nextDay) continue; // pushed further by capacity: the lock before that date adds them
     }
-    // paid and starting on the next service day: add the whole quick-start period now
+    // paid and starting on the next service day: add the whole quick-start period now, serialised on the plan row
+    // with pausePlan (a pause that committed first is honoured; one arriving later sees the orders and is refused)
     const plans = await loadClientPlanInputs(db, [sub.clientId], weekStartOf(startDate));
     const plan = plans.get(sub.clientId);
     if (!plan) continue;
     const client = { ...withDelivery(plan, sub.deliveryOption), swapRuleIds: [], addons: [] }; // standard menu, no swaps (quick start step 3)
-    // a week the client paused before it locked is not cooked (rule 6), even when this lock runs before the weekly one
-    const qsPauses = (await db.select().from(pauses).where(eq(pauses.subscriptionId, sub.id))).map((p) => ({ startWeek: p.startWeek, weeks: p.weeks }));
-    const mealDates: MealDate[] = mealDatesBetween(startDate, periodEnd, settings.schedule).filter((md) => !isPausedWeek(qsPauses, weekStartOf(md.serviceDate)));
-    const days = buildOrderDays(client, mealDates, data, { schedule: settings.schedule, pricing: settings.pricing, roundGramsTo: settings.nutrition.roundGramsTo });
-    const byWeek = new Map<DateStr, OrderDayDraft[]>();
-    for (const d of days) byWeek.set(weekStartOf(d.serviceDate), [...(byWeek.get(weekStartOf(d.serviceDate)) ?? []), d]);
-    for (const [week, wdays] of byWeek) {
-      const { row } = await upsertWeeklyOrder(db, { clientId: sub.clientId, subscriptionId: sub.id, weekStart: week, profile: plan.profile,
-        status: "locked", isQuickStart: true, lockedAt: now, deliveryOption: sub.deliveryOption, isDemo: sub.isDemo });
-      summary.meals += await insertOrderDays(db, row.id, sub.clientId, plan.profile, wdays, true);
-    }
+    const qsStart = startDate, qsEnd = periodEnd;
+    await db.transaction(async (tx) => {
+      await tx.select({ id: subscriptions.id }).from(subscriptions).where(eq(subscriptions.id, sub.id)).for("update");
+      const qsPauses = (await tx.select().from(pauses).where(eq(pauses.subscriptionId, sub.id))).map((p) => ({ startWeek: p.startWeek, weeks: p.weeks }));
+      const mealDates: MealDate[] = mealDatesBetween(qsStart, qsEnd, settings.schedule).filter((md) => !isPausedWeek(qsPauses, weekStartOf(md.serviceDate)));
+      const days = buildOrderDays(client, mealDates, data, { schedule: settings.schedule, pricing: settings.pricing, roundGramsTo: settings.nutrition.roundGramsTo });
+      const byWeek = new Map<DateStr, OrderDayDraft[]>();
+      for (const d of days) byWeek.set(weekStartOf(d.serviceDate), [...(byWeek.get(weekStartOf(d.serviceDate)) ?? []), d]);
+      for (const [week, wdays] of byWeek) {
+        const { row } = await upsertWeeklyOrder(tx, { clientId: sub.clientId, subscriptionId: sub.id, weekStart: week, profile: plan.profile,
+          status: "locked", isQuickStart: true, lockedAt: now, deliveryOption: sub.deliveryOption, isDemo: sub.isDemo });
+        summary.meals += await insertOrderDays(tx, row.id, sub.clientId, plan.profile, wdays, true);
+      }
+    });
     summary.added++;
     summary.names.push(`${plan.firstName} ${plan.lastName[0] ?? ""}.`);
     await ensureDrops(db, startDate, periodEnd);
