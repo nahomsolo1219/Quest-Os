@@ -96,7 +96,8 @@ export const invoices = pgTable(
     ...timestamps(),
   },
   (t) => [
-    unique("invoices_subscription_kind_period_uq").on(t.subscriptionId, t.kind, t.periodStart),
+    // one live invoice per period start; a voided one does not block re-billing the period (D077)
+    uniqueIndex("invoices_subscription_kind_period_uq").on(t.subscriptionId, t.kind, t.periodStart).where(sql`${t.status} <> 'void'`),
     index("invoices_client_idx").on(t.clientId, t.periodStart),
     index("invoices_status_idx").on(t.status),
   ],

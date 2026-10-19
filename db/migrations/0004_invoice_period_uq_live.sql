@@ -1,0 +1,2 @@
+ALTER TABLE "invoices" DROP CONSTRAINT "invoices_subscription_kind_period_uq";--> statement-breakpoint
+CREATE UNIQUE INDEX "invoices_subscription_kind_period_uq" ON "invoices" USING btree ("subscription_id","kind","period_start") WHERE "invoices"."status" <> 'void';

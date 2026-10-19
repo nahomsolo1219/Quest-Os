@@ -593,3 +593,31 @@ describe("final review, twelfth pass", () => {
     });
   });
 });
+
+describe("final review, thirteenth pass", () => {
+  it("a period whose invoice a pause voided is billed again once the plan extends past it", async () => {
+    await inRollback(db, async (tx) => {
+      await setAllPrices(tx);
+      const ops = await actorByEmail(tx, "nebiyou@questmeals.demo");
+      const [c] = await tx.insert(s.clients).values({ firstName: "V", lastName: "R", phone: "+251955000013", status: "lead", sex: "male", age: 30, weightG: 80000,
+        heightCm: 180, activity: "moderate", goal: "lean" }).returning();
+      await tx.insert(s.nutritionProfiles).values({ clientId: c.id, bmr: 1780, tdee: 2759, suggestedKcal: 2207, suggestedSize: "M", suggestedProteinG: 158,
+        suggestedCarbG: 210, suggestedFatG: 70, kcalTarget: 2100, size: "M", goal: "lean", proteinG: 158, carbG: 210, fatG: 70, provisional: true, isCurrent: true });
+      const [pkg] = await tx.select().from(s.packages).where(eq(s.packages.code, "essential"));
+      const q = await createSubscription({ db: tx, actor: ops, now: at("2026-10-20T07:00:00Z") }, { clientId: c.id, packageId: pkg.id, deliveryOption: "pickup", billingPeriod: "monthly", termMonths: 1, start: "next_week" });
+      expect(q.subscription.startDate).toBe("2026-10-26");
+      const p = await submitPayment({ db: tx, actor: ops, now: at("2026-10-20T08:00:00Z") }, { invoiceId: q.invoice.id, method: "cash" });
+      await confirmPayment({ db: tx, actor: ops, now: at("2026-10-20T08:00:00Z") }, p.id);
+      await pausePlan({ db: tx, actor: ops, now: at("2026-11-02T07:00:00Z") }, { clientId: c.id, startWeek: "2026-11-09", weeks: 1 });
+      await runJob(tx as never, "thursday-lock", at("2026-11-12T15:00:05Z"));
+      const live = () => tx.select().from(s.invoices).where(and(eq(s.invoices.subscriptionId, q.subscription.id), sql`${s.invoices.status} <> 'void'`));
+      expect((await live()).map((i) => i.periodStart)).toContain("2026-11-26");
+      await pausePlan({ db: tx, actor: ops, now: at("2026-11-13T07:00:00Z") }, { clientId: c.id, startWeek: "2026-11-23", weeks: 2 }); // voids 26 Nov–2 Dec
+      await runJob(tx as never, "thursday-lock", at("2026-11-19T15:00:05Z"));
+      const [sub] = await tx.select().from(s.subscriptions).where(eq(s.subscriptions.id, q.subscription.id));
+      const rebilled = (await live()).find((i) => i.periodStart === "2026-11-26");
+      expect(rebilled?.periodEnd).toBe(sub.endDate);
+      expect(rebilled!.serviceDays).toBeGreaterThan(0); // the days after the pause are billed, so they can be paid and cooked
+    });
+  });
+});
