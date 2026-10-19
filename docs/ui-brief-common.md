@@ -1,0 +1,37 @@
+# Common brief for UI builders (milestones 3–4)
+
+Repo: /home/user/Quest-Os. Read `CLAUDE.md`, `PLAN.md` (sections 2, 4, 5), `.claude/agents/ui-builder.md`, the SPEC.md sections named in your brief, and `DECISIONS.md`.
+
+## What already exists (read, reuse, do not rewrite)
+- Domain (pure, tested): `src/domain/*` — import from `@/domain/<module>`. Formatting: `formatBirr`, `formatDate`, `displayName`, `profileLabel`, `normalizeEthiopianPhone`, `addisDate` etc. Never compute Addis dates yourself; use `src/domain/time.ts`.
+- DB: Drizzle schema `@db/schema` (see `db/schema/*.ts`), client `@db/client` (`db`, types `DbOrTx`).
+- Authz: `@/server/authz` (`assertCan`, `assertCanForClient`, `assertClientAccess`, `can`, `hasRole`, `canUpdateDrop`, `PERMISSIONS`, `ForbiddenError`). Every service function authorizes first.
+- Session: `@/server/session` — `requirePageActor(...roles)` for pages (redirects), `getActor()`, `serviceCtx(actor)` → `{ db, actor, now }`.
+- Server actions: `@/server/actions` — `runAction(zodSchema, input, (ctx, data) => service(ctx, data), "Success message")` returns `{ok, data, message} | {ok:false, error}`. Put actions in `actions.ts` files next to pages (`"use server"`), validate with Zod there.
+- Services (lead-owned, read-only for you; call them): `services/context.ts` (Ctx, ServiceError, SYSTEM_ACTOR, actorUserId), `audit.ts` (writeAudit), `settings.ts` (loadSettings, updateSettings, publicCalculatorSettings), `notifications.ts` (notify, userIdsWithRoles, listMyNotifications, unreadCount, markRead, createTelegramLink, completeTelegramLink, telegramStatus, unlinkTelegram, sendCommunityDigests), `menu-data.ts` (loadMenuData, loadIngredients, loadMeals, loadSwapRules, loadPortions), `portions.ts` (recomputePortions, setPortionCell), `client-plan.ts`, `pricing.ts` (quotePrice, rotationWeek, extraProteinQuote), `billing.ts` (listClientInvoices, submitPayment, paymentQueue, confirmPayment, rejectPayment, receiptUrl, generateInvoicesForLock), `orders.ts` (lockWeekOrders, lockQuickStarts, ensureDrops, weekOrderRows, quickStartsTakenByDate), `subscriptions.ts` (createSubscription, currentSubscription, pausePlan, renewPlan, applyDiscount, repricePlan, endExpiredPlans), jobs `src/server/jobs/index.ts` (runJob).
+  If you need a change in a lead-owned file, do NOT edit it: write what you need in your own service file, or describe the change in your final report.
+- Storage: `@/server/storage` (`putImage(prefix, ownerId, file)`, `storage().signedUrl(key)`, `parseKey`). Files are private; issue signed URLs only after an authorization check.
+- UI kit: shadcn/ui in `src/components/ui/*` (button, input, label, card, badge, table, select, textarea, dialog, tabs, checkbox, separator, sheet, dropdown-menu, alert, sonner (toast via `import { toast } from "sonner"`), switch, avatar, progress, skeleton, form, radio-group, popover). Shell components in `src/components/shell/`: `PageHeader`, `EmptyState`, `Stat`, `MacroRow`, `DataTable` (TanStack Table v8 wrapper with search + select filters; define columns in a client component), nav config `nav-config.ts` (lead-owned; tell the lead if a link is missing). Layouts exist: `src/app/staff/layout.tsx`, `src/app/kitchen/layout.tsx`, `src/app/delivery/layout.tsx`, `src/app/app/layout.tsx` (allows client, coach, owner, operations — client-only pages must call `requirePageActor("client")`).
+- Forms: React Hook Form + Zod (`@hookform/resolvers/zod`), see `src/app/(public)/login/login-form.tsx` for the pattern. Photo uploads: compress client-side with `browser-image-compression` (max 1600 px long edge, ~0.5 MB) before sending via FormData to a server action.
+- Brand: primary `#c2410c` (Tailwind `bg-primary`/`text-primary`), large numbers via `.stat-number`, print CSS helpers in `globals.css` (`.no-print`, `.print-break`, `.print-avoid-break`, `.label-sheet`).
+- Strings: keep user-facing strings for each feature in a `strings.ts` next to its pages (no i18n framework).
+
+## Rules
+- Next.js 15 App Router: `params`/`searchParams` are Promises (`await params`). Server components by default; client components only where interaction needs it (keep client JS small — client pages must stay under 200 KB first-load JS).
+- Every page: `export const dynamic = "force-dynamic"` when it reads the DB per request. Mobile first (390 px), works at 1280 px. Tap targets ≥ 44 px (`min-h-11`, `h-11`). Every input has a `<Label htmlFor>`. Every list has an empty state that says what to do next. Every action shows a toast with success or the specific error.
+- Use plain words: client, plan, cutoff, production sheet, packing list, drop, receipt.
+- Never trust the client for prices, swap limits, cutoffs or roles: services decide.
+- Time: use `ctx.now` in services; never `new Date()` for business logic.
+
+## Environment
+- Postgres (Docker) is running; dev DB `questmeals` is seeded (demo, today = real date). A dev server is ALREADY running on http://localhost:3000 (`npm run dev`, log at /tmp/qm-dev.log) — do not start another on 3000; it hot-reloads your files.
+- Demo logins: staff password `QuestDemo2026!` — dagi@questmeals.demo (owner, coach), kidus@ (owner, coach), fahim@ (owner), nebiyou@ (operations, delivery), nutritionist@, kitchen@, rider@ (delivery). Clients: phones 0911000001…0911000009 password `Client2026!` (0911000010 is a lead without account).
+- Ingredient prices are empty in the seed (by design). For local testing that needs prices you may set them in the DEV database only, e.g. `PGPASSWORD=postgres psql -h localhost -p 54329 -U postgres -d questmeals -c "update ingredients set cost_per_unit_birr = case when purchase_unit='piece' then 15 else 400 end"` (never in seed or migrations). You may `npm run db:reset` the dev DB if you broke it (other builders share it, so avoid unless needed).
+- Screenshot helper: `node scripts/shot.mjs <email|phone> <password> <path> <out.png> [width]` (signs in through the API, full-page screenshot). Save screenshots under the scratchpad `/tmp/claude-0/-home-user-Quest-Os/91adbd76-97a7-5d5a-a001-d12db4e4fbc6/scratchpad/<area>/` and LOOK at them (Read the PNG) at 390 and 1280 px.
+- DB tests: add `db/tests/<area>.test.ts` for your services using the existing pattern (see `db/tests/engine.test.ts`: `testDb()`, `inRollback`, staff actors from demo emails, fixed instants). Run with `npm run test:db -- <area>`. Test DB is reset by global setup each run.
+
+## Done when
+`npx tsc --noEmit` and `npx eslint <your folders>` are clean, your db tests pass (`npm run test:db -- <area>`), and you have looked at screenshots of every screen at 390 and 1280 px. Commit ONLY your files (`git add <your paths>`; never `git add -A`; retry if the index is locked), message ending with:
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01J5TZBoTUbKrsfGt4dJ2isp
+Final report: screens and services built, the features.json ids you implemented (and how each is proven: test file or screenshot), command outputs (summary lines), any change you need in lead-owned files, and decisions you made (append them to the END of DECISIONS.md with a shell append `cat >> DECISIONS.md <<EOF` — never rewrite the file, others append concurrently — as "- D3xx (<area>) …" using your assigned number range).
