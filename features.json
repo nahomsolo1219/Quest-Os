@@ -4,21 +4,21 @@
     "module": "local",
     "description": "Amounts show as whole birr with thousands separators, e.g. \"58,400 ETB\"",
     "test": "src/domain/money.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "LOC-02",
     "module": "local",
     "description": "All business dates, cutoffs and \"today\" are computed in Africa/Addis_Ababa through one helper, independent of server time zone",
     "test": "src/domain/time.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "LOC-03",
     "module": "local",
     "description": "Phone input accepted as 09..., 07..., 9..., +251... and normalised to E.164 +2519XXXXXXXX / +2517XXXXXXXX; invalid numbers rejected",
     "test": "src/domain/phone.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "LOC-04",
@@ -46,14 +46,14 @@
     "module": "auth",
     "description": "Staff with operations role can reset a client password",
     "test": "db/tests/auth.test.ts",
-    "status": "not_started"
+    "status": "in_progress"
   },
   {
     "id": "AUTH-04",
     "module": "auth",
     "description": "Roles are a set per user; one user can hold several roles (e.g. operations + delivery)",
     "test": "db/tests/authz.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "AUTH-05",
@@ -67,49 +67,49 @@
     "module": "security",
     "description": "Anonymous users can read only the public calculator settings and packages",
     "test": "db/tests/authz.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "SEC-02",
     "module": "security",
     "description": "A client can read only their own client record, plan, invoices, payments, orders and check-ins",
     "test": "db/tests/authz.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "SEC-03",
     "module": "security",
     "description": "A client cannot read or change another client's records through any service",
     "test": "db/tests/authz.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "SEC-04",
     "module": "security",
     "description": "Kitchen can read production data but cannot read payments or change prices",
     "test": "db/tests/authz.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "SEC-05",
     "module": "security",
     "description": "Delivery can read only drops (name, phone, address) for the day and update drop status",
     "test": "db/tests/authz.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "SEC-06",
     "module": "security",
     "description": "Only owners can apply manual discounts and edit pricing settings",
     "test": "db/tests/authz.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "SEC-07",
     "module": "security",
     "description": "Nutritionist can set targets and approve swaps; operations cannot override nutrition targets",
     "test": "db/tests/authz.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "SEC-08",
@@ -158,14 +158,14 @@
     "module": "data",
     "description": "Migrations apply cleanly to an empty Postgres and create every table in PLAN.md",
     "test": "db/tests/schema.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "DATA-02",
     "module": "data",
     "description": "All keys are UUIDs; money columns are integer birr; statuses are enums or checks",
     "test": "db/tests/schema.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "DATA-03",
@@ -179,35 +179,35 @@
     "module": "data",
     "description": "Seed loads all 48 ingredients with empty prices and nutrition per 100 g or per piece",
     "test": "db/tests/seed.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "DATA-05",
     "module": "data",
-    "description": "Seed loads menus A–D with 16 meals plus the savory snack alternative, with parts and part ingredients as in SPEC doc 4",
+    "description": "Seed loads menus A\u2013D with 16 meals plus the savory snack alternative, with parts and part ingredients as in SPEC doc 4",
     "test": "db/tests/seed.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "DATA-06",
     "module": "data",
     "description": "Seed loads the 10-row starter swap table, three packages, pricing, nutrition and schedule settings",
     "test": "db/tests/seed.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "DATA-07",
     "module": "data",
     "description": "Seed creates demo users for every role and 10 demo clients with varied goals, sizes, allergies, plans and delivery options, all marked is_demo",
     "test": "db/tests/seed.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "DATA-08",
     "module": "data",
     "description": "One script removes all demo data and leaves reference data intact",
     "test": "db/tests/seed.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "DATA-09",
@@ -233,7 +233,7 @@
   {
     "id": "CLI-03",
     "module": "clients",
-    "description": "Client status lifecycle lead → active → paused → ended is enforced",
+    "description": "Client status lifecycle lead \u2192 active \u2192 paused \u2192 ended is enforced",
     "test": "db/tests/clients.test.ts",
     "status": "not_started"
   },
@@ -277,35 +277,35 @@
     "module": "nutrition",
     "description": "BMR with Mifflin-St Jeor for men and women matches known values",
     "test": "src/domain/nutrition.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "NUT-02",
     "module": "nutrition",
     "description": "TDEE uses activity factors 1.2 / 1.375 / 1.55 / 1.725 / 1.9",
     "test": "src/domain/nutrition.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "NUT-03",
     "module": "nutrition",
-    "description": "Goal adjustment Lean ×0.80, Build ×1.10, editable in settings",
+    "description": "Goal adjustment Lean \u00d70.80, Build \u00d71.10, editable in settings",
     "test": "src/domain/nutrition.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "NUT-04",
     "module": "nutrition",
     "description": "Size is nearest of S 1,600 / M 2,100 / L 2,700; ties go smaller for Lean, larger for Build",
     "test": "src/domain/nutrition.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "NUT-05",
     "module": "nutrition",
     "description": "Macro split Lean 30/40/30, Build 25/50/25 using 4/4/9 kcal per gram, editable",
     "test": "src/domain/nutrition.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "NUT-06",
@@ -319,7 +319,7 @@
     "module": "nutrition",
     "description": "Client cannot change their own calorie target or size; they can request a change",
     "test": "db/tests/authz.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "NUT-08",
@@ -331,79 +331,79 @@
   {
     "id": "MENU-01",
     "module": "menu",
-    "description": "Rotation Mon A, Tue B, Wed C, Thu D, Fri A, Sat B, Sun C; service days Mon–Sat by default",
+    "description": "Rotation Mon A, Tue B, Wed C, Thu D, Fri A, Sat B, Sun C; service days Mon\u2013Sat by default",
     "test": "src/domain/schedule.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "MENU-02",
     "module": "menu",
     "description": "Sunday meals are cooked and delivered with Saturday's drop when Sunday is not a service day (setting)",
     "test": "src/domain/schedule.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "MENU-03",
     "module": "menu",
     "description": "Each meal is built from parts with a category and ingredients; seasoning parts are on recipe cards but not in macros",
     "test": "src/domain/recipes.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "MENU-04",
     "module": "menu",
     "description": "Every seeded meal's base macros match a hand calculation from ingredient nutrition",
     "test": "src/domain/recipes.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "MENU-05",
     "module": "menu",
     "description": "Egg whites use derived nutrition (17 kcal per white) and consume one egg each for stock and cost",
     "test": "src/domain/recipes.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "MENU-06",
     "module": "menu",
     "description": "Meal cost per portion computed from ingredient prices; shows \"price missing\" when any price is empty",
     "test": "src/domain/recipes.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "MENU-07",
     "module": "menu",
-    "description": "Portion profiles: six profiles (3 sizes × 2 goals) with scale factors for protein, carb+fruit and fat parts",
+    "description": "Portion profiles: six profiles (3 sizes \u00d7 2 goals) with scale factors for protein, carb+fruit and fat parts",
     "test": "src/domain/portions.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "MENU-08",
     "module": "menu",
-    "description": "Each profile menu day lands within ±3% of the size kcal target and each macro within ±10% of the goal split, or is flagged",
+    "description": "Each profile menu day lands within \u00b13% of the size kcal target and each macro within \u00b110% of the goal split, or is flagged",
     "test": "src/domain/portions.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "MENU-09",
     "module": "menu",
     "description": "Scale factors are clamped between 0.6 and 1.8; closest result kept and day flagged when targets cannot be met",
     "test": "src/domain/portions.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "MENU-10",
     "module": "menu",
     "description": "Veg and sauce parts stay at base grams; Greek yogurt and ayib count as protein",
     "test": "src/domain/portions.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "MENU-11",
     "module": "menu",
     "description": "Grams rounded to nearest 5 g; eggs, egg whites and injera to whole pieces",
     "test": "src/domain/portions.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "MENU-12",
@@ -431,63 +431,63 @@
     "module": "swaps",
     "description": "Swap table rules apply like-for-like: same grams, fixed grams, multiplier, or added protein",
     "test": "src/domain/swaps.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "SWP-02",
     "module": "swaps",
-    "description": "Beans → +60 g lean minced beef; injera → 45 g dry rice; rice → 150 g potatoes; feta/mozzarella → double grams ayib",
+    "description": "Beans \u2192 +60 g lean minced beef; injera \u2192 45 g dry rice; rice \u2192 150 g potatoes; feta/mozzarella \u2192 double grams ayib",
     "test": "src/domain/swaps.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "SWP-03",
     "module": "swaps",
-    "description": "Sweet snack → savory snack (2 boiled eggs, cucumber, mitmita) counts as a swap",
+    "description": "Sweet snack \u2192 savory snack (2 boiled eggs, cucumber, mitmita) counts as a swap",
     "test": "src/domain/swaps.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "SWP-04",
     "module": "swaps",
     "description": "Standing swap limit per package (Essential 3, Performance 6, Premium 10) enforced on the server",
     "test": "src/domain/swaps.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "SWP-05",
     "module": "swaps",
     "description": "Swaps outside the swap table need nutritionist approval",
     "test": "src/domain/swaps.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "SWP-06",
     "module": "swaps",
     "description": "Swap extra cost: zero or price difference, included in the client's food cost",
     "test": "src/domain/pricing.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "SWP-07",
     "module": "swaps",
-    "description": "Paid add-on extra protein (+50 g main protein) priced at cost × (1 + buffer) ÷ (1 − margin floor), rounded up to 10 ETB",
+    "description": "Paid add-on extra protein (+50 g main protein) priced at cost \u00d7 (1 + buffer) \u00f7 (1 \u2212 margin floor), rounded up to 10 ETB",
     "test": "src/domain/swaps.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "SWP-08",
     "module": "swaps",
     "description": "Allergies and dislikes are checked against every meal's ingredients after swaps",
     "test": "src/domain/swaps.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "SWP-09",
     "module": "swaps",
     "description": "Swap changes take effect from the next lockable week only",
     "test": "db/tests/services.test.ts",
-    "status": "not_started"
+    "status": "in_progress"
   },
   {
     "id": "SWP-10",
@@ -501,14 +501,14 @@
     "module": "pricing",
     "description": "Pricing formula reproduced exactly: food_day, buffered food, delivery_day, consult_day, fixed_day, price_day, price_month, plan_price",
     "test": "src/domain/pricing.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "PLN-02",
     "module": "pricing",
     "description": "price_month rounded to nearest 100 ETB",
     "test": "src/domain/pricing.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "PLN-03",
@@ -522,35 +522,35 @@
     "module": "pricing",
     "description": "Drops per month by delivery option: daily 26, three drops 78, every 3 days 9, weekly 4.33, pick-up 0",
     "test": "src/domain/pricing.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "PLN-05",
     "module": "pricing",
     "description": "Plan price = price_month + package service fee (default 0)",
     "test": "src/domain/pricing.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "PLN-06",
     "module": "pricing",
     "description": "Missing ingredient prices block publishing a client price and list the missing ingredients",
     "test": "src/domain/pricing.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "PLN-07",
     "module": "pricing",
     "description": "Prices are locked for four months from subscription start; owner can apply a change earlier with a logged reason",
     "test": "db/tests/services.test.ts",
-    "status": "not_started"
+    "status": "in_progress"
   },
   {
     "id": "PLN-08",
     "module": "pricing",
     "description": "Manual discounts need an owner and are logged with who and why",
-    "test": "db/tests/services.test.ts",
-    "status": "not_started"
+    "test": "db/tests/engine.test.ts",
+    "status": "passing"
   },
   {
     "id": "PLN-09",
@@ -578,7 +578,7 @@
     "module": "payments",
     "description": "Weekly or monthly invoices generated per subscription with integer birr amounts",
     "test": "src/domain/subscriptions.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "PAY-02",
@@ -598,50 +598,50 @@
     "id": "PAY-04",
     "module": "payments",
     "description": "Payment confirmation writes an audit row and marks the invoice paid when fully covered",
-    "test": "db/tests/services.test.ts",
-    "status": "not_started"
+    "test": "db/tests/engine.test.ts",
+    "status": "passing"
   },
   {
     "id": "PAY-05",
     "module": "payments",
     "description": "Unpaid = not cooked: days not covered by a paid invoice at the cutoff are left out of the order",
     "test": "src/domain/orders.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "PAY-06",
     "module": "payments",
     "description": "Invoice generation is idempotent (one invoice per subscription, kind and period)",
-    "test": "db/tests/jobs.test.ts",
-    "status": "not_started"
+    "test": "db/tests/engine.test.ts",
+    "status": "passing"
   },
   {
     "id": "ORD-01",
     "module": "orders",
     "description": "Thursday 18:00 Addis lock creates next week's orders for active, paid clients with days, meals, profile, swaps and pauses",
     "test": "src/domain/orders.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "ORD-02",
     "module": "orders",
     "description": "Thursday cutoff boundaries: a change at 17:59 Thursday applies next week; at 18:00 or later the week after",
     "test": "src/domain/schedule.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "ORD-03",
     "module": "orders",
     "description": "Paused weeks produce a paused order with no days",
     "test": "src/domain/orders.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "ORD-04",
     "module": "orders",
     "description": "Locked orders snapshot grams after swaps so later menu edits do not change them",
     "test": "db/tests/services.test.ts",
-    "status": "not_started"
+    "status": "in_progress"
   },
   {
     "id": "ORD-05",
@@ -655,70 +655,70 @@
     "module": "orders",
     "description": "Quick start: sign up and pay by 18:00 starts the next service day",
     "test": "src/domain/schedule.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "ORD-07",
     "module": "orders",
     "description": "Quick start at 17:59 vs 18:01 Addis time gives different start days",
     "test": "src/domain/schedule.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "ORD-08",
     "module": "orders",
     "description": "Quick start on a Saturday starts Monday when Sunday is not a service day",
     "test": "src/domain/schedule.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "ORD-09",
     "module": "orders",
     "description": "When the daily quick-start capacity (default 5) is full, the next available start date is offered",
     "test": "src/domain/schedule.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "ORD-10",
     "module": "orders",
-    "description": "Quick-start price = price per day × service days in the quick-start period, rounded to nearest 10",
+    "description": "Quick-start price = price per day \u00d7 service days in the quick-start period, rounded to nearest 10",
     "test": "src/domain/pricing.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "ORD-11",
     "module": "orders",
     "description": "Quick-start clients start on the standard menu with no swaps and a provisional size",
     "test": "db/tests/services.test.ts",
-    "status": "not_started"
+    "status": "in_progress"
   },
   {
     "id": "ORD-12",
     "module": "orders",
     "description": "Daily 18:00 job adds paid quick-start clients to the next day's production sheet and packing list; nothing cooked on spec",
-    "test": "db/tests/jobs.test.ts",
-    "status": "not_started"
+    "test": "db/tests/engine.test.ts",
+    "status": "passing"
   },
   {
     "id": "ORD-13",
     "module": "orders",
     "description": "Quick-start clients join the normal weekly cycle from the next Thursday cutoff",
     "test": "src/domain/schedule.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "ORD-14",
     "module": "orders",
     "description": "Weekly lock is idempotent: running twice creates no duplicate orders",
-    "test": "db/tests/jobs.test.ts",
-    "status": "not_started"
+    "test": "db/tests/engine.test.ts",
+    "status": "passing"
   },
   {
     "id": "KIT-01",
     "module": "kitchen",
-    "description": "Production sheet per cook day: total grams of each part by profile × count, with totals",
+    "description": "Production sheet per cook day: total grams of each part by profile \u00d7 count, with totals",
     "test": "src/domain/production.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "KIT-02",
@@ -732,21 +732,21 @@
     "module": "kitchen",
     "description": "Packing list per client with swaps applied and allergy conflicts in red",
     "test": "src/domain/production.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "KIT-04",
     "module": "kitchen",
     "description": "Labels print client first name + last initial, meal, slot, profile, kcal/P/C/F, cook date, eat-by, allergy note, \"Reheat until steaming hot\"",
     "test": "src/domain/production.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "KIT-05",
     "module": "kitchen",
     "description": "Eat-by = cook date + 3 days; meals with fish or injera = cook date + 2 days",
     "test": "src/domain/production.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "KIT-06",
@@ -759,29 +759,29 @@
     "id": "KIT-07",
     "module": "kitchen",
     "description": "Quick-start meals appear on the next day's production sheet with a quick-start marker",
-    "test": "db/tests/jobs.test.ts",
-    "status": "not_started"
+    "test": "db/tests/engine.test.ts",
+    "status": "in_progress"
   },
   {
     "id": "INV-01",
     "module": "inventory",
     "description": "Shopping list = required ingredients from locked orders minus stock on hand",
     "test": "src/domain/shopping.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "INV-02",
     "module": "inventory",
     "description": "Shopping list never goes negative and converts to purchase units kg, litre, piece",
     "test": "src/domain/shopping.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "INV-03",
     "module": "inventory",
     "description": "Egg whites count as eggs in the shopping list and stock",
     "test": "src/domain/shopping.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "INV-04",
@@ -802,7 +802,7 @@
     "module": "inventory",
     "description": "Waste log reduces stock on hand",
     "test": "src/domain/shopping.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "INV-07",
@@ -816,14 +816,14 @@
     "module": "inventory",
     "description": "Ingredients with missing price show \"price missing\" in the shopping list cost",
     "test": "src/domain/shopping.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "DEL-01",
     "module": "delivery",
     "description": "Daily drop list grouped by area in route order",
     "test": "src/domain/delivery.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "DEL-02",
@@ -858,14 +858,14 @@
     "module": "delivery",
     "description": "Drops are generated from locked order days by delivery option (one drop daily, three drops, Saturday includes Sunday)",
     "test": "src/domain/schedule.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "DEL-07",
     "module": "delivery",
     "description": "Drop generation is idempotent",
-    "test": "db/tests/jobs.test.ts",
-    "status": "not_started"
+    "test": "db/tests/engine.test.ts",
+    "status": "in_progress"
   },
   {
     "id": "APP-01",
@@ -956,14 +956,14 @@
     "module": "checkins",
     "description": "Check-in reminder on each client's check-in weekday",
     "test": "src/domain/checkins.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "CHK-03",
     "module": "checkins",
     "description": "Renewal reminders 5 days and 1 day before a plan ends",
     "test": "src/domain/checkins.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "CHK-04",
@@ -984,21 +984,21 @@
     "module": "rules",
     "description": "One cutoff for changes: swaps, pauses, address and size changes take effect from next lockable week",
     "test": "src/domain/schedule.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "RULE-03",
     "module": "rules",
     "description": "Pause in whole weeks extends the end date; no refund",
     "test": "src/domain/subscriptions.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "RULE-04",
     "module": "rules",
     "description": "Pause after the cutoff for a week is refused for that week",
     "test": "src/domain/subscriptions.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "RULE-05",
@@ -1019,42 +1019,42 @@
     "module": "dashboard",
     "description": "Owner dashboard: active clients, new and churned this month, MRR",
     "test": "src/domain/kpis.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "DSH-02",
     "module": "dashboard",
     "description": "Collected vs invoiced this month",
     "test": "src/domain/kpis.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "DSH-03",
     "module": "dashboard",
     "description": "Food cost % of revenue from purchases and margin estimate",
     "test": "src/domain/kpis.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "DSH-04",
     "module": "dashboard",
     "description": "On-time delivery % and quick starts this week",
     "test": "src/domain/kpis.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "DSH-05",
     "module": "dashboard",
     "description": "Average meal rating per meal over the last 4 weeks",
     "test": "src/domain/kpis.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "DSH-06",
     "module": "dashboard",
     "description": "Clients needing attention: unpaid, allergy conflicts, no check-in for 2 weeks",
     "test": "src/domain/kpis.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "DSH-07",
@@ -1096,14 +1096,14 @@
     "module": "community",
     "description": "Progress posts attach weight change from own check-ins only when \"share this\" is ticked",
     "test": "src/domain/community.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "COM-05",
     "module": "community",
     "description": "Weekly challenges with daily yes check-in once per day, streaks and leaderboard",
     "test": "src/domain/community.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "COM-06",
@@ -1122,7 +1122,7 @@
   {
     "id": "COM-08",
     "module": "community",
-    "description": "Meal ratings 1–5 with optional comment on the today screen, private by default",
+    "description": "Meal ratings 1\u20135 with optional comment on the today screen, private by default",
     "test": "db/tests/community.test.ts",
     "status": "not_started"
   },
@@ -1145,14 +1145,14 @@
     "module": "community",
     "description": "Active members full access; paused read and react only; ended lose access 14 days after plan end",
     "test": "src/domain/community.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "COM-12",
     "module": "community",
     "description": "Members show as first name + last initial with optional avatar",
     "test": "src/domain/community.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "COM-13",
@@ -1222,7 +1222,7 @@
     "module": "jobs",
     "description": "Thursday 18:00 lock + invoice generation + ops summary (locked, skipped, paused)",
     "test": "db/tests/jobs.test.ts",
-    "status": "not_started"
+    "status": "in_progress"
   },
   {
     "id": "JOB-04",
@@ -1236,7 +1236,7 @@
     "module": "jobs",
     "description": "Daily 18:00 quick-start lock, top-up list, counts to kitchen and ops",
     "test": "db/tests/jobs.test.ts",
-    "status": "not_started"
+    "status": "in_progress"
   },
   {
     "id": "JOB-06",
@@ -1264,7 +1264,7 @@
     "module": "jobs",
     "description": "Every job is idempotent: running twice does not double-lock, double-charge or double-notify",
     "test": "db/tests/jobs.test.ts",
-    "status": "not_started"
+    "status": "in_progress"
   },
   {
     "id": "JOB-10",
@@ -1348,7 +1348,7 @@
     "module": "a11y",
     "description": "Text colour contrast meets WCAG AA for the brand palette",
     "test": "src/domain/contrast.test.ts",
-    "status": "not_started"
+    "status": "passing"
   },
   {
     "id": "SIM-01",
