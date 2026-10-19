@@ -6,7 +6,8 @@ import path from "node:path";
 
 const SECRET_VARS = ["DATABASE_URL", "DATABASE_URL_TEST", "BETTER_AUTH_SECRET", "FILE_URL_SECRET", "CRON_SECRET",
   "S3_ACCESS_KEY_ID", "S3_SECRET_ACCESS_KEY", "TELEGRAM_BOT_TOKEN", "TELEGRAM_WEBHOOK_SECRET"];
-const PATTERNS = [/postgres(ql)?:\/\/[^"'\s]+:[^"'\s]+@/i, /BETTER_AUTH_SECRET/, /S3_SECRET_ACCESS_KEY/];
+// Variable NAMES may appear (Better Auth's client reads env by name and gets nothing in the browser); VALUES must not.
+const PATTERNS = [/postgres(ql)?:\/\/[^"'\s]+:[^"'\s]+@/i];
 
 function walk(dir: string): string[] {
   return readdirSync(dir).flatMap((f) => {

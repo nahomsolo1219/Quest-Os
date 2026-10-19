@@ -103,8 +103,7 @@ export async function createSubscription(ctx: Ctx, input: NewPlanInput, opts: { 
 }
 
 function breakdownJson(q: PriceBreakdown) {
-  const { lines: _lines, ...rest } = q;
-  return rest;
+  return Object.fromEntries(Object.entries(q).filter(([k]) => k !== "lines"));
 }
 
 export async function currentSubscription(db: DbOrTx, clientId: string) {
