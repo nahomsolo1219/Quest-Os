@@ -1,0 +1,1388 @@
+[
+  {
+    "id": "LOC-01",
+    "module": "local",
+    "description": "Amounts show as whole birr with thousands separators, e.g. \"58,400 ETB\"",
+    "test": "src/domain/money.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "LOC-02",
+    "module": "local",
+    "description": "All business dates, cutoffs and \"today\" are computed in Africa/Addis_Ababa through one helper, independent of server time zone",
+    "test": "src/domain/time.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "LOC-03",
+    "module": "local",
+    "description": "Phone input accepted as 09..., 07..., 9..., +251... and normalised to E.164 +2519XXXXXXXX / +2517XXXXXXXX; invalid numbers rejected",
+    "test": "src/domain/phone.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "LOC-04",
+    "module": "local",
+    "description": "Gregorian dates in the UI; user-facing strings kept in one strings file per feature",
+    "test": "e2e/client-app.spec.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "AUTH-01",
+    "module": "auth",
+    "description": "Staff sign in with email and password",
+    "test": "e2e/auth.spec.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "AUTH-02",
+    "module": "auth",
+    "description": "Clients sign in with phone number and password (no SMS verification)",
+    "test": "e2e/auth.spec.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "AUTH-03",
+    "module": "auth",
+    "description": "Staff with operations role can reset a client password",
+    "test": "db/tests/auth.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "AUTH-04",
+    "module": "auth",
+    "description": "Roles are a set per user; one user can hold several roles (e.g. operations + delivery)",
+    "test": "db/tests/authz.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "AUTH-05",
+    "module": "auth",
+    "description": "Each role is routed to its home screen and blocked from other areas",
+    "test": "e2e/auth.spec.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "SEC-01",
+    "module": "security",
+    "description": "Anonymous users can read only the public calculator settings and packages",
+    "test": "db/tests/authz.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "SEC-02",
+    "module": "security",
+    "description": "A client can read only their own client record, plan, invoices, payments, orders and check-ins",
+    "test": "db/tests/authz.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "SEC-03",
+    "module": "security",
+    "description": "A client cannot read or change another client's records through any service",
+    "test": "db/tests/authz.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "SEC-04",
+    "module": "security",
+    "description": "Kitchen can read production data but cannot read payments or change prices",
+    "test": "db/tests/authz.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "SEC-05",
+    "module": "security",
+    "description": "Delivery can read only drops (name, phone, address) for the day and update drop status",
+    "test": "db/tests/authz.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "SEC-06",
+    "module": "security",
+    "description": "Only owners can apply manual discounts and edit pricing settings",
+    "test": "db/tests/authz.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "SEC-07",
+    "module": "security",
+    "description": "Nutritionist can set targets and approve swaps; operations cannot override nutrition targets",
+    "test": "db/tests/authz.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "SEC-08",
+    "module": "security",
+    "description": "Receipt files are private: only the uploading client and staff with payments access get a signed URL",
+    "test": "db/tests/storage.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "SEC-09",
+    "module": "security",
+    "description": "Signed file URLs expire and invalid signatures are refused",
+    "test": "db/tests/storage.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "SEC-10",
+    "module": "security",
+    "description": "No database URL, bucket key, auth secret or cron secret is present in client JavaScript bundles",
+    "test": "scripts/check-bundle-secrets.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "SEC-11",
+    "module": "security",
+    "description": "Every server action and route validates input with Zod and checks the caller's role",
+    "test": "db/tests/authz.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "SEC-12",
+    "module": "security",
+    "description": "Job routes reject requests without the correct cron secret",
+    "test": "db/tests/jobs.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "SEC-13",
+    "module": "security",
+    "description": "Phone numbers and addresses never appear in community responses",
+    "test": "db/tests/community.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "DATA-01",
+    "module": "data",
+    "description": "Migrations apply cleanly to an empty Postgres and create every table in PLAN.md",
+    "test": "db/tests/schema.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "DATA-02",
+    "module": "data",
+    "description": "All keys are UUIDs; money columns are integer birr; statuses are enums or checks",
+    "test": "db/tests/schema.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "DATA-03",
+    "module": "data",
+    "description": "Audit log row (who, what, before, after, when) for changes to prices, settings, nutrition targets, discounts, payment confirmations and moderation",
+    "test": "db/tests/audit.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "DATA-04",
+    "module": "data",
+    "description": "Seed loads all 48 ingredients with empty prices and nutrition per 100 g or per piece",
+    "test": "db/tests/seed.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "DATA-05",
+    "module": "data",
+    "description": "Seed loads menus A–D with 16 meals plus the savory snack alternative, with parts and part ingredients as in SPEC doc 4",
+    "test": "db/tests/seed.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "DATA-06",
+    "module": "data",
+    "description": "Seed loads the 10-row starter swap table, three packages, pricing, nutrition and schedule settings",
+    "test": "db/tests/seed.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "DATA-07",
+    "module": "data",
+    "description": "Seed creates demo users for every role and 10 demo clients with varied goals, sizes, allergies, plans and delivery options, all marked is_demo",
+    "test": "db/tests/seed.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "DATA-08",
+    "module": "data",
+    "description": "One script removes all demo data and leaves reference data intact",
+    "test": "db/tests/seed.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "DATA-09",
+    "module": "data",
+    "description": "Storage keys use prefixes receipts/, community/, avatars/; local folder driver in dev/test, S3 driver selected by env",
+    "test": "db/tests/storage.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "CLI-01",
+    "module": "clients",
+    "description": "Lead capture with source (Instagram, referral, walk-in, other) creates a client with status lead",
+    "test": "e2e/staff-ops.spec.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "CLI-02",
+    "module": "clients",
+    "description": "Sign-up form captures age, sex, weight, height, activity, goal, allergies, dislikes, address, area, delivery or pick-up",
+    "test": "e2e/signup.spec.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "CLI-03",
+    "module": "clients",
+    "description": "Client status lifecycle lead → active → paused → ended is enforced",
+    "test": "db/tests/clients.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "CLI-04",
+    "module": "clients",
+    "description": "Client list with filters by status, plan, area and payment status",
+    "test": "e2e/staff-ops.spec.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "CLI-05",
+    "module": "clients",
+    "description": "Client page shows profile, nutrition, plan, swaps, payments, orders, check-ins, notes and audit trail",
+    "test": "e2e/staff-ops.spec.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "CLI-06",
+    "module": "clients",
+    "description": "Consultation with the nutritionist is recorded (in person or phone, notes)",
+    "test": "db/tests/clients.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "CLI-07",
+    "module": "clients",
+    "description": "Onboarding wizard takes a lead through intake, macros, plan, swaps and invoice",
+    "test": "e2e/staff-ops.spec.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "CLI-08",
+    "module": "clients",
+    "description": "Allergy/dislike conflicts without a swap are shown in red on the client page",
+    "test": "e2e/staff-ops.spec.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "NUT-01",
+    "module": "nutrition",
+    "description": "BMR with Mifflin-St Jeor for men and women matches known values",
+    "test": "src/domain/nutrition.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "NUT-02",
+    "module": "nutrition",
+    "description": "TDEE uses activity factors 1.2 / 1.375 / 1.55 / 1.725 / 1.9",
+    "test": "src/domain/nutrition.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "NUT-03",
+    "module": "nutrition",
+    "description": "Goal adjustment Lean ×0.80, Build ×1.10, editable in settings",
+    "test": "src/domain/nutrition.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "NUT-04",
+    "module": "nutrition",
+    "description": "Size is nearest of S 1,600 / M 2,100 / L 2,700; ties go smaller for Lean, larger for Build",
+    "test": "src/domain/nutrition.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "NUT-05",
+    "module": "nutrition",
+    "description": "Macro split Lean 30/40/30, Build 25/50/25 using 4/4/9 kcal per gram, editable",
+    "test": "src/domain/nutrition.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "NUT-06",
+    "module": "nutrition",
+    "description": "Nutritionist override stores who, when and the computed suggestion next to the override",
+    "test": "db/tests/nutrition.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "NUT-07",
+    "module": "nutrition",
+    "description": "Client cannot change their own calorie target or size; they can request a change",
+    "test": "db/tests/authz.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "NUT-08",
+    "module": "nutrition",
+    "description": "Quick-start clients get a provisional size from the calculator; nutritionist sees them in a confirm-within-48h queue",
+    "test": "db/tests/nutrition.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "MENU-01",
+    "module": "menu",
+    "description": "Rotation Mon A, Tue B, Wed C, Thu D, Fri A, Sat B, Sun C; service days Mon–Sat by default",
+    "test": "src/domain/schedule.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "MENU-02",
+    "module": "menu",
+    "description": "Sunday meals are cooked and delivered with Saturday's drop when Sunday is not a service day (setting)",
+    "test": "src/domain/schedule.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "MENU-03",
+    "module": "menu",
+    "description": "Each meal is built from parts with a category and ingredients; seasoning parts are on recipe cards but not in macros",
+    "test": "src/domain/recipes.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "MENU-04",
+    "module": "menu",
+    "description": "Every seeded meal's base macros match a hand calculation from ingredient nutrition",
+    "test": "src/domain/recipes.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "MENU-05",
+    "module": "menu",
+    "description": "Egg whites use derived nutrition (17 kcal per white) and consume one egg each for stock and cost",
+    "test": "src/domain/recipes.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "MENU-06",
+    "module": "menu",
+    "description": "Meal cost per portion computed from ingredient prices; shows \"price missing\" when any price is empty",
+    "test": "src/domain/recipes.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "MENU-07",
+    "module": "menu",
+    "description": "Portion profiles: six profiles (3 sizes × 2 goals) with scale factors for protein, carb+fruit and fat parts",
+    "test": "src/domain/portions.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "MENU-08",
+    "module": "menu",
+    "description": "Each profile menu day lands within ±3% of the size kcal target and each macro within ±10% of the goal split, or is flagged",
+    "test": "src/domain/portions.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "MENU-09",
+    "module": "menu",
+    "description": "Scale factors are clamped between 0.6 and 1.8; closest result kept and day flagged when targets cannot be met",
+    "test": "src/domain/portions.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "MENU-10",
+    "module": "menu",
+    "description": "Veg and sauce parts stay at base grams; Greek yogurt and ayib count as protein",
+    "test": "src/domain/portions.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "MENU-11",
+    "module": "menu",
+    "description": "Grams rounded to nearest 5 g; eggs, egg whites and injera to whole pieces",
+    "test": "src/domain/portions.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "MENU-12",
+    "module": "menu",
+    "description": "Computed profile grams are stored; nutritionist edits are kept and marked manual on recompute",
+    "test": "db/tests/nutrition.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "MENU-13",
+    "module": "menu",
+    "description": "Every meal shows kcal, protein, carbs and fat per profile",
+    "test": "e2e/staff-nutrition.spec.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "MENU-14",
+    "module": "menu",
+    "description": "Pantry items (awaze, garlic, lemon, rosemary, herbs, salt, pepper) listed on recipe cards as \"pantry\"",
+    "test": "e2e/kitchen.spec.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "SWP-01",
+    "module": "swaps",
+    "description": "Swap table rules apply like-for-like: same grams, fixed grams, multiplier, or added protein",
+    "test": "src/domain/swaps.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "SWP-02",
+    "module": "swaps",
+    "description": "Beans → +60 g lean minced beef; injera → 45 g dry rice; rice → 150 g potatoes; feta/mozzarella → double grams ayib",
+    "test": "src/domain/swaps.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "SWP-03",
+    "module": "swaps",
+    "description": "Sweet snack → savory snack (2 boiled eggs, cucumber, mitmita) counts as a swap",
+    "test": "src/domain/swaps.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "SWP-04",
+    "module": "swaps",
+    "description": "Standing swap limit per package (Essential 3, Performance 6, Premium 10) enforced on the server",
+    "test": "src/domain/swaps.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "SWP-05",
+    "module": "swaps",
+    "description": "Swaps outside the swap table need nutritionist approval",
+    "test": "src/domain/swaps.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "SWP-06",
+    "module": "swaps",
+    "description": "Swap extra cost: zero or price difference, included in the client's food cost",
+    "test": "src/domain/pricing.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "SWP-07",
+    "module": "swaps",
+    "description": "Paid add-on extra protein (+50 g main protein) priced at cost × (1 + buffer) ÷ (1 − margin floor), rounded up to 10 ETB",
+    "test": "src/domain/swaps.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "SWP-08",
+    "module": "swaps",
+    "description": "Allergies and dislikes are checked against every meal's ingredients after swaps",
+    "test": "src/domain/swaps.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "SWP-09",
+    "module": "swaps",
+    "description": "Swap changes take effect from the next lockable week only",
+    "test": "db/tests/services.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "SWP-10",
+    "module": "swaps",
+    "description": "Staff can edit the swap table",
+    "test": "e2e/staff-settings.spec.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "PLN-01",
+    "module": "pricing",
+    "description": "Pricing formula reproduced exactly: food_day, buffered food, delivery_day, consult_day, fixed_day, price_day, price_month, plan_price",
+    "test": "src/domain/pricing.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "PLN-02",
+    "module": "pricing",
+    "description": "price_month rounded to nearest 100 ETB",
+    "test": "src/domain/pricing.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "PLN-03",
+    "module": "pricing",
+    "description": "Buffers by food group and other pricing defaults as in SPEC doc 6, owner-editable with change log",
+    "test": "db/tests/audit.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "PLN-04",
+    "module": "pricing",
+    "description": "Drops per month by delivery option: daily 26, three drops 78, every 3 days 9, weekly 4.33, pick-up 0",
+    "test": "src/domain/pricing.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "PLN-05",
+    "module": "pricing",
+    "description": "Plan price = price_month + package service fee (default 0)",
+    "test": "src/domain/pricing.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "PLN-06",
+    "module": "pricing",
+    "description": "Missing ingredient prices block publishing a client price and list the missing ingredients",
+    "test": "src/domain/pricing.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "PLN-07",
+    "module": "pricing",
+    "description": "Prices are locked for four months from subscription start; owner can apply a change earlier with a logged reason",
+    "test": "db/tests/services.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "PLN-08",
+    "module": "pricing",
+    "description": "Manual discounts need an owner and are logged with who and why",
+    "test": "db/tests/services.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "PLN-09",
+    "module": "pricing",
+    "description": "Packages Essential / Performance / Premium with swap limit, check-in interval, coaching and delivery options, owner-editable",
+    "test": "db/tests/seed.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "PLN-10",
+    "module": "pricing",
+    "description": "Goal (Lean/Build) is a setting inside every package",
+    "test": "db/tests/services.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "PLN-11",
+    "module": "pricing",
+    "description": "Calculator shows an indicative price only when every needed ingredient price exists",
+    "test": "e2e/signup.spec.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "PAY-01",
+    "module": "payments",
+    "description": "Weekly or monthly invoices generated per subscription with integer birr amounts",
+    "test": "src/domain/subscriptions.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "PAY-02",
+    "module": "payments",
+    "description": "Client pays by Telebirr, CBE or cash and uploads a receipt photo (compressed client-side)",
+    "test": "e2e/client-app.spec.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "PAY-03",
+    "module": "payments",
+    "description": "Ops confirmation queue with receipt preview; confirm is one tap; reject needs a reason",
+    "test": "e2e/staff-ops.spec.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "PAY-04",
+    "module": "payments",
+    "description": "Payment confirmation writes an audit row and marks the invoice paid when fully covered",
+    "test": "db/tests/services.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "PAY-05",
+    "module": "payments",
+    "description": "Unpaid = not cooked: days not covered by a paid invoice at the cutoff are left out of the order",
+    "test": "src/domain/orders.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "PAY-06",
+    "module": "payments",
+    "description": "Invoice generation is idempotent (one invoice per subscription, kind and period)",
+    "test": "db/tests/jobs.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "ORD-01",
+    "module": "orders",
+    "description": "Thursday 18:00 Addis lock creates next week's orders for active, paid clients with days, meals, profile, swaps and pauses",
+    "test": "src/domain/orders.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "ORD-02",
+    "module": "orders",
+    "description": "Thursday cutoff boundaries: a change at 17:59 Thursday applies next week; at 18:00 or later the week after",
+    "test": "src/domain/schedule.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "ORD-03",
+    "module": "orders",
+    "description": "Paused weeks produce a paused order with no days",
+    "test": "src/domain/orders.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "ORD-04",
+    "module": "orders",
+    "description": "Locked orders snapshot grams after swaps so later menu edits do not change them",
+    "test": "db/tests/services.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "ORD-05",
+    "module": "orders",
+    "description": "Weekly order review before and after lock shows locked, skipped for non-payment and paused, with conflicts in red",
+    "test": "e2e/staff-ops.spec.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "ORD-06",
+    "module": "orders",
+    "description": "Quick start: sign up and pay by 18:00 starts the next service day",
+    "test": "src/domain/schedule.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "ORD-07",
+    "module": "orders",
+    "description": "Quick start at 17:59 vs 18:01 Addis time gives different start days",
+    "test": "src/domain/schedule.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "ORD-08",
+    "module": "orders",
+    "description": "Quick start on a Saturday starts Monday when Sunday is not a service day",
+    "test": "src/domain/schedule.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "ORD-09",
+    "module": "orders",
+    "description": "When the daily quick-start capacity (default 5) is full, the next available start date is offered",
+    "test": "src/domain/schedule.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "ORD-10",
+    "module": "orders",
+    "description": "Quick-start price = price per day × service days in the quick-start period, rounded to nearest 10",
+    "test": "src/domain/pricing.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "ORD-11",
+    "module": "orders",
+    "description": "Quick-start clients start on the standard menu with no swaps and a provisional size",
+    "test": "db/tests/services.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "ORD-12",
+    "module": "orders",
+    "description": "Daily 18:00 job adds paid quick-start clients to the next day's production sheet and packing list; nothing cooked on spec",
+    "test": "db/tests/jobs.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "ORD-13",
+    "module": "orders",
+    "description": "Quick-start clients join the normal weekly cycle from the next Thursday cutoff",
+    "test": "src/domain/schedule.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "ORD-14",
+    "module": "orders",
+    "description": "Weekly lock is idempotent: running twice creates no duplicate orders",
+    "test": "db/tests/jobs.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "KIT-01",
+    "module": "kitchen",
+    "description": "Production sheet per cook day: total grams of each part by profile × count, with totals",
+    "test": "src/domain/production.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "KIT-02",
+    "module": "kitchen",
+    "description": "Recipe cards per meal with portions per profile and pantry items",
+    "test": "e2e/kitchen.spec.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "KIT-03",
+    "module": "kitchen",
+    "description": "Packing list per client with swaps applied and allergy conflicts in red",
+    "test": "src/domain/production.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "KIT-04",
+    "module": "kitchen",
+    "description": "Labels print client first name + last initial, meal, slot, profile, kcal/P/C/F, cook date, eat-by, allergy note, \"Reheat until steaming hot\"",
+    "test": "src/domain/production.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "KIT-05",
+    "module": "kitchen",
+    "description": "Eat-by = cook date + 3 days; meals with fish or injera = cook date + 2 days",
+    "test": "src/domain/production.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "KIT-06",
+    "module": "kitchen",
+    "description": "Production sheet, packing list and labels print cleanly on A4 and read on a phone",
+    "test": "e2e/kitchen.spec.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "KIT-07",
+    "module": "kitchen",
+    "description": "Quick-start meals appear on the next day's production sheet with a quick-start marker",
+    "test": "db/tests/jobs.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "INV-01",
+    "module": "inventory",
+    "description": "Shopping list = required ingredients from locked orders minus stock on hand",
+    "test": "src/domain/shopping.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "INV-02",
+    "module": "inventory",
+    "description": "Shopping list never goes negative and converts to purchase units kg, litre, piece",
+    "test": "src/domain/shopping.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "INV-03",
+    "module": "inventory",
+    "description": "Egg whites count as eggs in the shopping list and stock",
+    "test": "src/domain/shopping.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "INV-04",
+    "module": "inventory",
+    "description": "Purchase log with supplier, quantity, price and date; latest purchase price updates ingredient cost and price history",
+    "test": "db/tests/services.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "INV-05",
+    "module": "inventory",
+    "description": "Stock count per ingredient with one tap per line; Sunday count resets on-hand",
+    "test": "e2e/kitchen.spec.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "INV-06",
+    "module": "inventory",
+    "description": "Waste log reduces stock on hand",
+    "test": "src/domain/shopping.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "INV-07",
+    "module": "inventory",
+    "description": "Next-morning top-up purchase list for fresh items needed by quick starts",
+    "test": "db/tests/jobs.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "INV-08",
+    "module": "inventory",
+    "description": "Ingredients with missing price show \"price missing\" in the shopping list cost",
+    "test": "src/domain/shopping.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "DEL-01",
+    "module": "delivery",
+    "description": "Daily drop list grouped by area in route order",
+    "test": "src/domain/delivery.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "DEL-02",
+    "module": "delivery",
+    "description": "Ops can drag to reorder drops and assign riders",
+    "test": "e2e/delivery.spec.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "DEL-03",
+    "module": "delivery",
+    "description": "Rider view with tap-to-call, address and one-tap delivered",
+    "test": "e2e/delivery.spec.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "DEL-04",
+    "module": "delivery",
+    "description": "Failed drop requires a reason",
+    "test": "db/tests/services.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "DEL-05",
+    "module": "delivery",
+    "description": "Pick-up list for the cafe counter for pick-up clients",
+    "test": "e2e/delivery.spec.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "DEL-06",
+    "module": "delivery",
+    "description": "Drops are generated from locked order days by delivery option (one drop daily, three drops, Saturday includes Sunday)",
+    "test": "src/domain/schedule.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "DEL-07",
+    "module": "delivery",
+    "description": "Drop generation is idempotent",
+    "test": "db/tests/jobs.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "APP-01",
+    "module": "client-app",
+    "description": "Public calorie calculator works without login and shows TDEE, size and macros",
+    "test": "e2e/signup.spec.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "APP-02",
+    "module": "client-app",
+    "description": "Public sign-up creates a lead and then a client account (phone + password)",
+    "test": "e2e/signup.spec.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "APP-03",
+    "module": "client-app",
+    "description": "Today screen shows today's meals with macros and eat-by dates",
+    "test": "e2e/client-app.spec.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "APP-04",
+    "module": "client-app",
+    "description": "This week's menu with the client's profile portions",
+    "test": "e2e/client-app.spec.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "APP-05",
+    "module": "client-app",
+    "description": "My plan shows package, delivery, price, macros and size; size change can only be requested",
+    "test": "e2e/client-app.spec.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "APP-06",
+    "module": "client-app",
+    "description": "Client can request swaps within the plan limit, effective next week",
+    "test": "e2e/client-app.spec.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "APP-07",
+    "module": "client-app",
+    "description": "Client can pause in whole weeks before the cutoff; paused weeks extend the plan end date",
+    "test": "e2e/client-app.spec.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "APP-08",
+    "module": "client-app",
+    "description": "Invoices list with receipt upload",
+    "test": "e2e/client-app.spec.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "APP-09",
+    "module": "client-app",
+    "description": "Client logs weight; progress chart shows check-ins",
+    "test": "e2e/client-app.spec.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "APP-10",
+    "module": "client-app",
+    "description": "Telegram opt-in from profile via one-time deep link",
+    "test": "db/tests/telegram.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "APP-11",
+    "module": "client-app",
+    "description": "Client app works at 390 px wide",
+    "test": "e2e/client-app.spec.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "CHK-01",
+    "module": "checkins",
+    "description": "Weekly check-ins with weight, nutritionist notes and adherence",
+    "test": "db/tests/services.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "CHK-02",
+    "module": "checkins",
+    "description": "Check-in reminder on each client's check-in weekday",
+    "test": "src/domain/checkins.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "CHK-03",
+    "module": "checkins",
+    "description": "Renewal reminders 5 days and 1 day before a plan ends",
+    "test": "src/domain/checkins.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "CHK-04",
+    "module": "checkins",
+    "description": "Nutritionist check-in log screen",
+    "test": "e2e/staff-nutrition.spec.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "RULE-01",
+    "module": "rules",
+    "description": "Pay before cooking: unconfirmed payment at the relevant cutoff leaves the client out",
+    "test": "scripts/simulate-week.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "RULE-02",
+    "module": "rules",
+    "description": "One cutoff for changes: swaps, pauses, address and size changes take effect from next lockable week",
+    "test": "src/domain/schedule.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "RULE-03",
+    "module": "rules",
+    "description": "Pause in whole weeks extends the end date; no refund",
+    "test": "src/domain/subscriptions.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "RULE-04",
+    "module": "rules",
+    "description": "Pause after the cutoff for a week is refused for that week",
+    "test": "src/domain/subscriptions.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "RULE-05",
+    "module": "rules",
+    "description": "Address changes made after the cutoff apply from the following week (drop snapshot keeps old address)",
+    "test": "db/tests/services.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "RULE-06",
+    "module": "rules",
+    "description": "Stock count reminder every Sunday before the week's cooking",
+    "test": "db/tests/jobs.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "DSH-01",
+    "module": "dashboard",
+    "description": "Owner dashboard: active clients, new and churned this month, MRR",
+    "test": "src/domain/kpis.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "DSH-02",
+    "module": "dashboard",
+    "description": "Collected vs invoiced this month",
+    "test": "src/domain/kpis.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "DSH-03",
+    "module": "dashboard",
+    "description": "Food cost % of revenue from purchases and margin estimate",
+    "test": "src/domain/kpis.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "DSH-04",
+    "module": "dashboard",
+    "description": "On-time delivery % and quick starts this week",
+    "test": "src/domain/kpis.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "DSH-05",
+    "module": "dashboard",
+    "description": "Average meal rating per meal over the last 4 weeks",
+    "test": "src/domain/kpis.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "DSH-06",
+    "module": "dashboard",
+    "description": "Clients needing attention: unpaid, allergy conflicts, no check-in for 2 weeks",
+    "test": "src/domain/kpis.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "DSH-07",
+    "module": "dashboard",
+    "description": "Partner contribution log with partner, date, type, amount or hours, note, and totals per partner",
+    "test": "e2e/staff-owner.spec.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "DSH-08",
+    "module": "dashboard",
+    "description": "Dashboard screen renders for owners only",
+    "test": "e2e/staff-owner.spec.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "COM-01",
+    "module": "community",
+    "description": "Feed: text posts with up to 4 photos, newest first, pinned on top, paginated",
+    "test": "db/tests/community.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "COM-02",
+    "module": "community",
+    "description": "Photos compressed client-side to at most 1,600 px on the long edge",
+    "test": "e2e/community.spec.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "COM-03",
+    "module": "community",
+    "description": "Comments one level deep and reactions (like, fire, strong)",
+    "test": "db/tests/community.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "COM-04",
+    "module": "community",
+    "description": "Progress posts attach weight change from own check-ins only when \"share this\" is ticked",
+    "test": "src/domain/community.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "COM-05",
+    "module": "community",
+    "description": "Weekly challenges with daily yes check-in once per day, streaks and leaderboard",
+    "test": "src/domain/community.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "COM-06",
+    "module": "community",
+    "description": "Q&A post type; coaches mark one reply as the answer",
+    "test": "db/tests/community.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "COM-07",
+    "module": "community",
+    "description": "Coach posts carry a \"Coach\" badge; coaches post announcements, pin posts, run challenges",
+    "test": "db/tests/community.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "COM-08",
+    "module": "community",
+    "description": "Meal ratings 1–5 with optional comment on the today screen, private by default",
+    "test": "db/tests/community.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "COM-09",
+    "module": "community",
+    "description": "Members can report posts or comments; reports go to an ops queue and a staff Telegram alert",
+    "test": "db/tests/community.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "COM-10",
+    "module": "community",
+    "description": "Ops/owners hide posts or comments with a reason and mute members for a set time (audited)",
+    "test": "db/tests/community.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "COM-11",
+    "module": "community",
+    "description": "Active members full access; paused read and react only; ended lose access 14 days after plan end",
+    "test": "src/domain/community.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "COM-12",
+    "module": "community",
+    "description": "Members show as first name + last initial with optional avatar",
+    "test": "src/domain/community.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "COM-13",
+    "module": "community",
+    "description": "Community notifications: replies, coach announcements, challenge reminders; Telegram at most a daily digest",
+    "test": "db/tests/notifications.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "COM-14",
+    "module": "community",
+    "description": "Community screens work at 390 px",
+    "test": "e2e/community.spec.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "NOT-01",
+    "module": "notifications",
+    "description": "In-app notification centre with unread count and mark as read",
+    "test": "e2e/client-app.spec.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "NOT-02",
+    "module": "notifications",
+    "description": "Telegram adapter sends when a bot token is configured and the user is linked",
+    "test": "db/tests/notifications.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "NOT-03",
+    "module": "notifications",
+    "description": "Without a bot token, notifications fall back to in-app only and the app keeps working",
+    "test": "db/tests/notifications.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "NOT-04",
+    "module": "notifications",
+    "description": "Staff and clients link Telegram with a deep link carrying a one-time token",
+    "test": "db/tests/telegram.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "NOT-05",
+    "module": "notifications",
+    "description": "Sending a real Telegram message to a real chat (needs a real bot token)",
+    "test": "manual",
+    "status": "not_started"
+  },
+  {
+    "id": "JOB-01",
+    "module": "jobs",
+    "description": "Tuesday 10:00 reminder to every active client about changes and payment due Thursday 18:00",
+    "test": "db/tests/jobs.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "JOB-02",
+    "module": "jobs",
+    "description": "Thursday 16:00 last-call reminder to clients with unpaid invoices",
+    "test": "db/tests/jobs.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "JOB-03",
+    "module": "jobs",
+    "description": "Thursday 18:00 lock + invoice generation + ops summary (locked, skipped, paused)",
+    "test": "db/tests/jobs.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "JOB-04",
+    "module": "jobs",
+    "description": "Friday 08:00 shopping list built and link sent to ops",
+    "test": "db/tests/jobs.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "JOB-05",
+    "module": "jobs",
+    "description": "Daily 18:00 quick-start lock, top-up list, counts to kitchen and ops",
+    "test": "db/tests/jobs.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "JOB-06",
+    "module": "jobs",
+    "description": "Daily 06:00 production sheet link to kitchen and route link to riders",
+    "test": "db/tests/jobs.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "JOB-07",
+    "module": "jobs",
+    "description": "Sunday 17:00 stock count reminder to kitchen",
+    "test": "db/tests/jobs.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "JOB-08",
+    "module": "jobs",
+    "description": "Daily 09:00 renewal and check-in reminders",
+    "test": "db/tests/jobs.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "JOB-09",
+    "module": "jobs",
+    "description": "Every job is idempotent: running twice does not double-lock, double-charge or double-notify",
+    "test": "db/tests/jobs.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "JOB-10",
+    "module": "jobs",
+    "description": "CRON.md lists exact schedules in UTC and Addis time for Railway cron",
+    "test": "CRON.md",
+    "status": "not_started"
+  },
+  {
+    "id": "SET-01",
+    "module": "settings",
+    "description": "Owner settings: pricing, packages, nutrition defaults, service days, cutoff times, quick-start capacity, swap table, areas",
+    "test": "e2e/staff-settings.spec.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "SET-02",
+    "module": "settings",
+    "description": "Settings changes are validated with Zod and written to the change log",
+    "test": "db/tests/audit.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "SET-03",
+    "module": "settings",
+    "description": "Ingredient prices and nutrition values editable by staff",
+    "test": "e2e/staff-settings.spec.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "PWA-01",
+    "module": "pwa",
+    "description": "Web app manifest, icons and installable PWA",
+    "test": "e2e/pwa.spec.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "PWA-02",
+    "module": "pwa",
+    "description": "Offline fallback page served by the service worker",
+    "test": "e2e/pwa.spec.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "UX-01",
+    "module": "ux",
+    "description": "Every list has an empty state that says what to do next",
+    "test": "e2e/ux.spec.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "UX-02",
+    "module": "ux",
+    "description": "Every action shows success or a specific error",
+    "test": "e2e/ux.spec.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "UX-03",
+    "module": "ux",
+    "description": "Staff screens work at 390 px and 1280 px (screenshots reviewed)",
+    "test": "e2e/screenshots.spec.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "PERF-01",
+    "module": "perf",
+    "description": "Client pages under 200 KB first-load JS where practical (Next build output)",
+    "test": "scripts/check-bundle-size.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "A11Y-01",
+    "module": "a11y",
+    "description": "Inputs have labels; tap targets at least 44 px on phone screens",
+    "test": "e2e/a11y.spec.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "A11Y-02",
+    "module": "a11y",
+    "description": "Text colour contrast meets WCAG AA for the brand palette",
+    "test": "src/domain/contrast.test.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "SIM-01",
+    "module": "simulation",
+    "description": "Week-in-the-life simulation passes from the seed with asserted counts and totals",
+    "test": "scripts/simulate-week.ts",
+    "status": "not_started"
+  },
+  {
+    "id": "SIM-02",
+    "module": "simulation",
+    "description": "Simulation report saved to docs/simulation-report.md",
+    "test": "docs/simulation-report.md",
+    "status": "not_started"
+  },
+  {
+    "id": "DOC-01",
+    "module": "docs",
+    "description": "README, DEPLOY, CRON, DECISIONS and PROGRESS are complete and accurate",
+    "test": "manual-review",
+    "status": "not_started"
+  },
+  {
+    "id": "DOC-02",
+    "module": "docs",
+    "description": "scripts/init.sh installs, starts local Postgres, migrates, seeds and starts the dev server",
+    "test": "scripts/init.sh",
+    "status": "not_started"
+  },
+  {
+    "id": "DOC-03",
+    "module": "docs",
+    "description": "npm run verify runs typecheck, lint, unit, db tests, e2e and the simulation and fails on any failure",
+    "test": "scripts/verify.sh",
+    "status": "not_started"
+  }
+]
