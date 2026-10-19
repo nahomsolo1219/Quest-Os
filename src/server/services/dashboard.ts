@@ -29,7 +29,7 @@ export async function ownerDashboard(ctx: Ctx) {
     ctx.db.select({ id: meals.id, name: meals.name, menu: meals.menu, slot: meals.slot }).from(meals).orderBy(asc(meals.sort)),
     ctx.db.select({ clientId: orderMeals.clientId, conflicts: orderMeals.conflicts }).from(orderMeals)
       .innerJoin(orderDays, eq(orderDays.id, orderMeals.orderDayId))
-      .where(and(gte(orderDays.serviceDate, weekStart), lte(orderDays.serviceDate, addDays(weekStart, 13)), sql`cardinality(${orderMeals.conflicts}) > 0`)),
+      .where(and(gte(orderDays.serviceDate, weekStart), lte(orderDays.serviceDate, addDays(weekStart, 13)), sql`exists (select 1 from unnest(${orderMeals.conflicts}) c where c not like 'Kitchen note:%')`)),
     ctx.db.select({ clientId: checkins.clientId, last: sql<string>`max(${checkins.checkinDate})::text` }).from(checkins).groupBy(checkins.clientId),
   ]);
 

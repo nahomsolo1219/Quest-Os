@@ -1,6 +1,6 @@
 # Week simulation report
 
-**Result: PASS** · 2026-10-19 · 8.8 s
+**Result: PASS** · 2026-10-19 · 9.1 s
 
 | Summary | |
 |---|---|
@@ -15,7 +15,7 @@
 | Meals cooked Mon–Sat | 240 |
 | Active clients | 10 |
 | MRR | 458,600 ETB |
-| Collected / invoiced | 381,740 ETB / 484,320 ETB |
+| Collected / invoiced | 381,740 ETB / 471,840 ETB |
 | Food cost % | 8.4% |
 | Margin estimate | 282,933 ETB |
 | On-time delivery | 91.1% |
@@ -80,6 +80,7 @@ Orders for the week of 26 Oct: Abel locked, Bethlehem locked, Hiwot skipped_unpa
 
 - ✅ Hiwot skipped for non-payment = skipped_unpaid
 - ✅ Mikias paused = paused
+- ✅ Hiwot's invoice for the skipped week is cancelled: nothing cooked, nothing to pay (D052) = void
 - ✅ order meals = 7 locked clients × 7 days × 4 = 196
 - ✅ invoices created for the following period = 6
 - ✅ 6 new invoices (period starting the week after next)
@@ -257,8 +258,8 @@ those and the one failed drop are what keeps on-time below 100%.
 | Active clients | 10 |
 | New this month | 11 |
 | MRR | 458,600 ETB |
-| Invoiced (October) | 484,320 ETB |
-| Collected (October) | 381,740 ETB (79% of invoiced) |
+| Invoiced (October) | 471,840 ETB |
+| Collected (October) | 381,740 ETB (81% of invoiced) |
 | Food cost | 32,057 ETB (8.4% of collected) |
 | Delivery cost | 6,750 ETB |
 | Margin estimate | 282,933 ETB |

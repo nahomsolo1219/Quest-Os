@@ -127,11 +127,16 @@ export async function confirmPayment(ctx: Ctx, paymentId: string) {
     if (p.status !== "submitted") throw new ServiceError("This payment was already handled.");
     const [inv] = await tx.select().from(invoices).where(eq(invoices.id, p.invoiceId)).for("update");
     if (inv.status === "paid") throw new ServiceError("This invoice is already paid. Reject this receipt (it is a duplicate) so nothing is counted twice.");
-    if (inv.status === "void") throw new ServiceError("This invoice was cancelled (for example the week was paused). Reject the receipt instead; the client has nothing to pay for it.");
     await tx.update(payments).set({ status: "confirmed", confirmedByUserId: actorUserId(ctx.actor), confirmedAt: ctx.now }).where(eq(payments.id, p.id));
     const [paid] = await tx.select({ n: sql<number>`coalesce(sum(${payments.amountBirr}), 0)::int` }).from(payments)
       .where(and(eq(payments.invoiceId, inv.id), eq(payments.status, "confirmed")));
-    if ((paid?.n ?? 0) >= inv.amountBirr && inv.status === "issued") await tx.update(invoices).set({ status: "paid" }).where(eq(invoices.id, inv.id));
+    // Money that arrived for a cancelled invoice (week paused or skipped after the receipt was sent), or more than a
+    // reduced invoice now asks, is kept as account credit for the next invoice — never lost.
+    const confirmedSum = paid?.n ?? 0;
+    const surplus = inv.status === "void" ? p.amountBirr : Math.max(0, confirmedSum - inv.amountBirr);
+    if (surplus > 0) await tx.insert(accountCredits).values({ clientId: p.clientId, amountBirr: surplus,
+      reason: inv.status === "void" ? `Payment for a cancelled invoice (${inv.periodStart})` : `Paid more than invoice ${inv.periodStart} now asks` });
+    if (confirmedSum >= inv.amountBirr && inv.status === "issued") await tx.update(invoices).set({ status: "paid" }).where(eq(invoices.id, inv.id));
     const [sub] = await tx.select().from(subscriptions).where(eq(subscriptions.id, inv.subscriptionId));
     if (sub?.status === "pending_payment") {
       await tx.update(subscriptions).set({ status: "active" }).where(eq(subscriptions.id, sub.id));
@@ -142,7 +147,7 @@ export async function confirmPayment(ctx: Ctx, paymentId: string) {
     const [c] = await tx.select({ userId: clients.userId }).from(clients).where(eq(clients.id, p.clientId));
     if (c?.userId) await notify(tx, { userIds: [c.userId], kind: "payment.confirmed", title: "Payment confirmed",
       body: `${formatBirr(p.amountBirr)} received. Thank you!`, link: "/app/payments", dedupeKey: `payment-confirmed:${p.id}` });
-    return { invoicePaid: (paid?.n ?? 0) >= inv.amountBirr };
+    return { invoicePaid: inv.status !== "void" && confirmedSum >= inv.amountBirr, creditBirr: surplus };
   });
 }
 
@@ -172,4 +177,26 @@ export async function unpaidInvoicesDueBy(db: DbOrTx, dueBy: Date) {
   return db.select({ invoice: invoices, userId: clients.userId, firstName: clients.firstName }).from(invoices)
     .innerJoin(clients, eq(clients.id, invoices.clientId))
     .where(and(eq(invoices.status, "issued"), lte(invoices.dueAt, dueBy)));
+}
+
+/**
+ * Takes days that will not be cooked (a paused week, or a week skipped for non-payment) off an unpaid or paid
+ * invoice: an invoice wholly inside is voided (paid → credit); otherwise an issued invoice is reduced and a paid one
+ * credited. When a reduction covers the rest of an invoice it becomes paid, and any surplus becomes credit.
+ */
+export async function takeDaysOffInvoice(db: DbOrTx, inv: typeof invoices.$inferSelect, daysOff: number, amountOff: number, reason: string) {
+  if (daysOff <= 0) return;
+  if (daysOff >= inv.serviceDays) {
+    await voidInvoice(db, inv.id, reason);
+    if (inv.status === "paid" && inv.amountBirr > 0) await db.insert(accountCredits).values({ clientId: inv.clientId, amountBirr: inv.amountBirr, reason: `Paid for ${reason} (${inv.periodStart})` });
+    return;
+  }
+  if (inv.status === "issued") {
+    const left = inv.amountBirr - amountOff;
+    await db.update(invoices).set({ amountBirr: Math.max(0, left), serviceDays: inv.serviceDays - daysOff, ...(left <= 0 ? { status: "paid" as const } : {}) })
+      .where(eq(invoices.id, inv.id));
+    if (left < 0) await db.insert(accountCredits).values({ clientId: inv.clientId, amountBirr: -left, reason: `${reason}: more taken off than invoice ${inv.periodStart} asked` });
+  } else if (inv.status === "paid") {
+    await db.insert(accountCredits).values({ clientId: inv.clientId, amountBirr: amountOff, reason: `${reason}: ${daysOff} paid service days of ${inv.periodStart}` });
+  }
 }

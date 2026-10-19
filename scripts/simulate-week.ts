@@ -260,6 +260,8 @@ async function main() {
     line();
     eqCheck(orders.find((o) => o.first_name === "Hiwot")?.status, "skipped_unpaid", "Hiwot skipped for non-payment");
     eqCheck(orders.find((o) => o.first_name === "Mikias")?.status, "paused", "Mikias paused");
+    const hiwotWeek = await q<{ status: string }>("select status from invoices where client_id = $1 and period_start = $2 and kind = 'weekly'", [hiwot.c.id, W]);
+    eqCheck(hiwotWeek[0]?.status, "void", "Hiwot's invoice for the skipped week is cancelled: nothing cooked, nothing to pay (D052)");
     const meals = await n(`select count(*)::int as n from order_meals m join order_days d on d.id = m.order_day_id join weekly_orders o on o.id = d.weekly_order_id
       where o.week_start = $1 and o.status = 'locked'`, [W]);
     eqCheck(meals, 7 * 7 * 4, "order meals = 7 locked clients × 7 days × 4");

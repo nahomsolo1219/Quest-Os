@@ -7,7 +7,11 @@ import type { OrderClient } from "@/domain/orders";
 import { swapActiveInWeek, type Addon } from "@/domain/swaps";
 import type { DateStr, DeliveryOption, Goal, Profile } from "@/domain/types";
 
-export type ClientPlanInput = Omit<OrderClient, "deliveryOption"> & { goal: Goal | null };
+export type ClientPlanInput = Omit<OrderClient, "deliveryOption"> & {
+  goal: Goal | null;
+  /** approved custom swaps (no swap-table rule): the kitchen applies them by hand from the packing list and labels */
+  kitchenNotes: string[];
+};
 
 /** Builds OrderClient inputs for many clients for one week (swaps/add-ons that are in force that week). */
 export async function loadClientPlanInputs(db: DbOrTx, clientIds: string[], weekStart: DateStr, asOf?: Date): Promise<Map<string, ClientPlanInput>> {
@@ -37,6 +41,8 @@ export async function loadClientPlanInputs(db: DbOrTx, clientIds: string[], week
       goal,
       profile,
       swapRuleIds: swaps.filter((s) => s.clientId === c.id && s.swapRuleId && swapActiveInWeek(s, weekStart)).map((s) => s.swapRuleId!),
+      kitchenNotes: swaps.filter((s) => s.clientId === c.id && !s.swapRuleId && s.customRequest && swapActiveInWeek(s, weekStart))
+        .map((s) => `Kitchen note: ${s.customRequest}${s.note ? ` (${s.note})` : ""}`),
       addons: addons.filter((a) => a.clientId === c.id && swapActiveInWeek(a, weekStart)).map((a): Addon => ({ kind: "extra_protein", slot: a.slot })),
     });
   }
@@ -44,5 +50,7 @@ export async function loadClientPlanInputs(db: DbOrTx, clientIds: string[], week
 }
 
 export function withDelivery(p: ClientPlanInput, deliveryOption: DeliveryOption): OrderClient {
-  return { ...p, deliveryOption };
+  const { kitchenNotes: _notes, goal: _goal, ...rest } = p;
+  void _notes; void _goal;
+  return { ...rest, deliveryOption };
 }

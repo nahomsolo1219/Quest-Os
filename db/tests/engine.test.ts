@@ -260,8 +260,9 @@ describe("Spec review fixes", () => {
       const [inv] = await tx.select().from(s.invoices).where(and(eq(s.invoices.periodStart, "2026-10-26"), eq(s.invoices.status, "issued"))).limit(1);
       await runJob(tx as never, "thursday-lock", THU_LOCK);
       const late: Ctx = { db: tx, actor: ops, now: at("2026-10-23T05:00:00Z") }; // Friday 08:00
-      const p = await submitPayment(late, { invoiceId: inv.id, method: "cash" });
-      await confirmPayment(late, p.id);
+      // the skipped week's invoice is cancelled at the lock (D052), so it cannot be paid late …
+      await expect(submitPayment(late, { invoiceId: inv.id, method: "cash" })).rejects.toThrow(/already paid or void/);
+      // … and re-running the lock still does not cook the client
       await runJob(tx as never, "thursday-lock", at("2026-10-23T06:00:00Z"));
       const [o] = await tx.select().from(s.weeklyOrders).where(and(eq(s.weeklyOrders.clientId, inv.clientId), eq(s.weeklyOrders.weekStart, "2026-10-26")));
       expect(o.status).toBe("skipped_unpaid");

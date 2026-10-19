@@ -6,18 +6,20 @@ import {
 import type { DbOrTx } from "@db/client";
 import { buildOrderDays, lockWeek, type OrderDayDraft } from "@/domain/orders";
 import { quickStartAmount } from "@/domain/pricing";
-import { dropsFor, mealDatesBetween, nextServiceDay, quickStartPlan, weekLockedAt, weeklyCutoff, type MealDate } from "@/domain/schedule";
+import { dropsFor, mealDatesBetween, nextServiceDay, quickStartPlan, serviceDaysBetween, weekLockedAt, weeklyCutoff, type MealDate } from "@/domain/schedule";
+import { roundToNearest } from "@/domain/money";
+import { isPausedWeek } from "@/domain/subscriptions";
 import { addDays, addisDate, addisInstant, weekStartOf } from "@/domain/time";
 import { subscriptionEndDate } from "@/domain/subscriptions";
 import type { DateStr, DeliveryOption, Profile } from "@/domain/types";
 import { loadClientPlanInputs, withDelivery } from "./client-plan";
 import { loadMenuData } from "./menu-data";
 import { loadSettings } from "./settings";
-import { generateInvoicesForSubscription, voidInvoice } from "./billing";
+import { generateInvoicesForSubscription, takeDaysOffInvoice, voidInvoice } from "./billing";
 
 type Snapshot = { db: DbOrTx; now: Date };
 
-async function insertOrderDays(db: DbOrTx, weeklyOrderId: string, clientId: string, profile: Profile, days: OrderDayDraft[], isQuickStart: boolean) {
+async function insertOrderDays(db: DbOrTx, weeklyOrderId: string, clientId: string, profile: Profile, days: OrderDayDraft[], isQuickStart: boolean, kitchenNotes: string[] = []) {
   let meals = 0;
   for (const d of days) {
     const [day] = await db.insert(orderDays).values({
@@ -28,7 +30,7 @@ async function insertOrderDays(db: DbOrTx, weeklyOrderId: string, clientId: stri
       await db.insert(orderMeals).values(d.meals.map((m) => ({
         orderDayId: day.id, clientId, mealId: m.mealId, slot: m.slot, profile,
         items: m.items.map((it) => ({ ...it, ingredients: it.ingredients.map((x) => ({ ...x, name: "" })) })),
-        kcal: m.kcal, proteinG: m.proteinG, carbG: m.carbG, fatG: m.fatG, conflicts: m.conflicts, cookDate: m.cookDate, eatBy: m.eatBy,
+        kcal: m.kcal, proteinG: m.proteinG, carbG: m.carbG, fatG: m.fatG, conflicts: [...m.conflicts, ...kitchenNotes], cookDate: m.cookDate, eatBy: m.eatBy,
       })));
       meals += d.meals.length;
     }
@@ -86,11 +88,27 @@ export async function lockWeekOrders({ db, now }: Snapshot, weekStart: DateStr) 
     if (!created && o.status !== "locked") { summary.alreadyLocked++; continue; }
     const name = `${plans.get(o.clientId)?.firstName ?? ""} ${plans.get(o.clientId)?.lastName?.[0] ?? ""}.`;
     if (o.status === "locked") {
-      const added = await insertOrderDays(db, row.id, o.clientId, o.profile, o.days, false);
+      const added = await insertOrderDays(db, row.id, o.clientId, o.profile, o.days, false, plans.get(o.clientId)?.kitchenNotes ?? []);
       summary.meals += added;
       if (created) summary.locked++; else if (added === 0) summary.alreadyLocked++; else summary.locked++;
     } else if (o.status === "paused") { summary.paused++; summary.pausedNames.push(name); }
-    else { summary.skippedUnpaid++; summary.skippedNames.push(name); }
+    else {
+      summary.skippedUnpaid++; summary.skippedNames.push(name);
+      // Not paid by the cutoff = not cooked: the week's days come off the invoice(s) that billed them, so the client
+      // is never asked to pay for food that will not be made (a late payment for it becomes credit).
+      if (created) {
+        const sub = subs.find((x) => x.id === o.subscriptionId)!;
+        const billed = await db.select().from(invoices).where(and(eq(invoices.subscriptionId, sub.id), ne(invoices.status, "void"),
+          lte(invoices.periodStart, weekEnd), gte(invoices.periodEnd, weekStart)));
+        for (const inv of billed) {
+          const from = inv.periodStart > weekStart ? inv.periodStart : weekStart;
+          const to = inv.periodEnd < weekEnd ? inv.periodEnd : weekEnd;
+          const days = serviceDaysBetween(from, to, settings.schedule).length;
+          const amountOff = roundToNearest(((sub.planPriceBirr - sub.discountMonthBirr) * days) / settings.pricing.serviceDaysPerMonth, 10);
+          await takeDaysOffInvoice(db, inv, days, amountOff, "week not cooked (unpaid at the cutoff)");
+        }
+      }
+    }
     // client status follows the locked week
     if (created) {
       if (o.status === "paused") await db.update(clients).set({ status: "paused" }).where(and(eq(clients.id, o.clientId), eq(clients.status, "active")));
@@ -207,7 +225,9 @@ export async function lockQuickStarts({ db, now }: Snapshot) {
     const plan = plans.get(sub.clientId);
     if (!plan) continue;
     const client = { ...withDelivery(plan, sub.deliveryOption), swapRuleIds: [], addons: [] }; // standard menu, no swaps (quick start step 3)
-    const mealDates: MealDate[] = mealDatesBetween(startDate, periodEnd, settings.schedule);
+    // a week the client paused before it locked is not cooked (rule 6), even when this lock runs before the weekly one
+    const qsPauses = (await db.select().from(pauses).where(eq(pauses.subscriptionId, sub.id))).map((p) => ({ startWeek: p.startWeek, weeks: p.weeks }));
+    const mealDates: MealDate[] = mealDatesBetween(startDate, periodEnd, settings.schedule).filter((md) => !isPausedWeek(qsPauses, weekStartOf(md.serviceDate)));
     const days = buildOrderDays(client, mealDates, data, { schedule: settings.schedule, pricing: settings.pricing, roundGramsTo: settings.nutrition.roundGramsTo });
     const byWeek = new Map<DateStr, OrderDayDraft[]>();
     for (const d of days) byWeek.set(weekStartOf(d.serviceDate), [...(byWeek.get(weekStartOf(d.serviceDate)) ?? []), d]);

@@ -1,6 +1,6 @@
 // Plans: create (regular or quick start), pause, renew, owner discounts and price changes (modules 5 and 7).
 import { and, desc, eq, inArray, ne } from "drizzle-orm";
-import { accountCredits, clients, invoices, nutritionProfiles, packages, pauses, subscriptions } from "@db/schema";
+import { clients, invoices, nutritionProfiles, packages, pauses, subscriptions } from "@db/schema";
 import type { DbOrTx } from "@db/client";
 import { assertCan, assertCanForClient, can } from "@/server/authz";
 import { profileOf } from "@/domain/nutrition";
@@ -9,13 +9,13 @@ import { nextLockableWeek, quickStartPlan, weekLockedAt, weeklyCutoff } from "@/
 import { applyPause, invoicePeriods, invoiceAmount, pausedServiceDays, renewEndDate, subscriptionEndDate } from "@/domain/subscriptions";
 import { roundToNearest } from "@/domain/money";
 import { addDays, addisDate, weekStartOf } from "@/domain/time";
-import type { BillingPeriod, DateStr, DeliveryOption } from "@/domain/types";
+import type { BillingPeriod, DateStr, DeliveryOption, Slot } from "@/domain/types";
 import { writeAudit } from "./audit";
 import { loadClientPlanInputs } from "./client-plan";
 import { actorUserId, ServiceError, type Ctx } from "./context";
 import { quickStartsTakenByDate } from "./orders";
 import { quotePrice } from "./pricing";
-import { generateInvoicesForSubscription, voidInvoice } from "./billing";
+import { generateInvoicesForSubscription, takeDaysOffInvoice } from "./billing";
 import { loadSettings } from "./settings";
 
 export type NewPlanInput = {
@@ -39,13 +39,14 @@ async function quoteFor(db: DbOrTx, clientId: string, packageId: string, deliver
   const [np] = await db.select().from(nutritionProfiles).where(and(eq(nutritionProfiles.clientId, clientId), eq(nutritionProfiles.isCurrent, true)));
   if (!np) throw new ServiceError("Set the client's calorie target and size first.");
   const plan = (await loadClientPlanInputs(db, [clientId], weekStartOf(today))).get(clientId)!;
-  const quote = await quotePrice(db, {
-    profile: profileOf(np.size, np.goal), deliveryOption, packageId,
-    swapRuleIds: standardMenu ? [] : plan.swapRuleIds, addonSlots: standardMenu ? [] : plan.addons.map((a) => a.slot),
-  }, today);
+  const choices: PricedChoices = standardMenu ? { swapRuleIds: [], addonSlots: [] } : { swapRuleIds: plan.swapRuleIds, addonSlots: plan.addons.map((a) => a.slot) };
+  const quote = await quotePrice(db, { profile: profileOf(np.size, np.goal), deliveryOption, packageId, ...choices }, today);
   if (!quote.ok) throw new ServiceError(`Price cannot be published yet: price missing for ${quote.missing.join(", ")}.`, "price_missing");
-  return { quote, np };
+  return { quote, np, choices };
 }
+
+/** The client choices (standing swaps, add-ons) that a plan's current price reflects. */
+export type PricedChoices = { swapRuleIds: string[]; addonSlots: Slot[] };
 
 /**
  * Creates a plan with its first invoice. Quick start: price per day × service days in the quick-start period,
@@ -65,7 +66,7 @@ export async function createSubscription(ctx: Ctx, input: NewPlanInput, opts: { 
     .where(and(eq(subscriptions.clientId, input.clientId), inArray(subscriptions.status, ["pending_payment", "active", "paused"])));
   if (live.length) throw new ServiceError("This client already has a plan. Renew or change it instead.");
   const today = addisDate(ctx.now);
-  const { quote, np } = await quoteFor(ctx.db, input.clientId, input.packageId, input.deliveryOption, today, input.start === "quick_start");
+  const { quote, np, choices } = await quoteFor(ctx.db, input.clientId, input.packageId, input.deliveryOption, today, input.start === "quick_start");
   const isQs = input.start === "quick_start";
 
   let startDate: DateStr, qsPeriodEnd: DateStr | null = null, first: { start: DateStr; end: DateStr; days: number; amount: number; dueAt: Date; kind: "weekly" | "monthly" | "quick_start" };
@@ -86,7 +87,7 @@ export async function createSubscription(ctx: Ctx, input: NewPlanInput, opts: { 
       clientId: input.clientId, packageId: pkg.id, goal: np.goal, deliveryOption: input.deliveryOption, billingPeriod: input.billingPeriod,
       startDate, endDate: subscriptionEndDate(startDate, input.termMonths), termMonths: input.termMonths,
       priceDayBirr: quote.priceDayBirr, priceMonthBirr: quote.priceMonth, planPriceBirr: quote.planPrice,
-      priceBreakdown: breakdownJson(quote), priceLockedUntil: priceLockedUntil(startDate, settings.pricing.priceLockMonths),
+      priceBreakdown: breakdownJson(quote, choices), priceLockedUntil: priceLockedUntil(startDate, settings.pricing.priceLockMonths),
       status: "pending_payment", isQuickStart: isQs, quickStartPeriodEnd: qsPeriodEnd,
     }).returning();
     const [inv] = await tx.insert(invoices).values({
@@ -102,8 +103,8 @@ export async function createSubscription(ctx: Ctx, input: NewPlanInput, opts: { 
   });
 }
 
-function breakdownJson(q: PriceBreakdown) {
-  return Object.fromEntries(Object.entries(q).filter(([k]) => k !== "lines"));
+function breakdownJson(q: PriceBreakdown, pricedChoices: PricedChoices) {
+  return { ...Object.fromEntries(Object.entries(q).filter(([k]) => k !== "lines")), pricedChoices };
 }
 
 export async function currentSubscription(db: DbOrTx, clientId: string) {
@@ -132,18 +133,8 @@ export async function pausePlan(ctx: Ctx, input: { clientId: string; startWeek: 
     for (const inv of overlapping) {
       if (inv.periodEnd < res.startWeek || inv.periodStart > res.endWeek) continue;
       const pausedDays = pausedServiceDays(pauseList, inv.periodStart, inv.periodEnd, settings.schedule);
-      if (pausedDays === 0) continue;
-      const amountOff = pausedDays >= inv.serviceDays
-        ? inv.amountBirr
-        : roundToNearest(((sub.planPriceBirr - sub.discountMonthBirr) * pausedDays) / settings.pricing.serviceDaysPerMonth, 10);
-      if (pausedDays >= inv.serviceDays) {
-        await voidInvoice(tx, inv.id, "week paused");
-        if (inv.status === "paid" && inv.amountBirr > 0) await tx.insert(accountCredits).values({ clientId: sub.clientId, amountBirr: inv.amountBirr, reason: `Paid for a paused week (${inv.periodStart})` });
-      } else if (inv.status === "issued") {
-        await tx.update(invoices).set({ amountBirr: Math.max(0, inv.amountBirr - amountOff), serviceDays: inv.serviceDays - pausedDays }).where(eq(invoices.id, inv.id));
-      } else {
-        await tx.insert(accountCredits).values({ clientId: sub.clientId, amountBirr: amountOff, reason: `Paused ${pausedDays} service days of a paid period (${inv.periodStart})` });
-      }
+      const amountOff = roundToNearest(((sub.planPriceBirr - sub.discountMonthBirr) * pausedDays) / settings.pricing.serviceDaysPerMonth, 10);
+      await takeDaysOffInvoice(tx, inv, pausedDays, amountOff, "week paused");
     }
     await writeAudit(tx, ctx.actor, { action: "subscription.pause", entity: "subscriptions", entityId: sub.id,
       before: { endDate: sub.endDate }, after: { endDate: res.endDate, startWeek: res.startWeek, weeks: res.weeks } });
@@ -165,6 +156,23 @@ export async function renewPlan(ctx: Ctx, clientId: string) {
   const endDate = renewEndDate(sub.endDate, sub.termMonths);
   await ctx.db.update(subscriptions).set({ endDate }).where(eq(subscriptions.id, sub.id));
   await writeAudit(ctx.db, ctx.actor, { action: "subscription.renew", entity: "subscriptions", entityId: sub.id, before: { endDate: sub.endDate }, after: { endDate } });
+  // A price change applies at the next renewal (doc 6): once the 4-month lock is over, the renewed term is priced
+  // from the current formula and locked again from the renewal.
+  const renewalStart = addDays(sub.endDate, 1);
+  if (renewalStart >= sub.priceLockedUntil || addisDate(ctx.now) >= sub.priceLockedUntil) {
+    const settings = await loadSettings(ctx.db);
+    try {
+      const { quote, choices } = await quoteFor(ctx.db, sub.clientId, sub.packageId, sub.deliveryOption, addisDate(ctx.now), false);
+      await ctx.db.update(subscriptions).set({ priceDayBirr: quote.priceDayBirr, priceMonthBirr: quote.priceMonth, planPriceBirr: quote.planPrice,
+        priceBreakdown: breakdownJson(quote, choices), priceLockedUntil: priceLockedUntil(renewalStart, settings.pricing.priceLockMonths) })
+        .where(eq(subscriptions.id, sub.id));
+      await writeAudit(ctx.db, ctx.actor, { action: "price.renewal", entity: "subscriptions", entityId: sub.id,
+        before: { planPriceBirr: sub.planPriceBirr }, after: { planPriceBirr: quote.planPrice }, reason: "Price lock ended: renewed at the current price" });
+      return { endDate, planPriceBirr: quote.planPrice };
+    } catch (e) {
+      if (!(e instanceof ServiceError)) throw e; // price missing: keep the old price until prices exist
+    }
+  }
   return { endDate };
 }
 
@@ -194,9 +202,9 @@ export async function repricePlan(ctx: Ctx, input: { subscriptionId: string; rea
   const locked = today < sub.priceLockedUntil;
   if (locked && !can(ctx.actor, "discounts.apply")) throw new ServiceError("The price is locked until " + sub.priceLockedUntil + ". Only an owner can change it earlier.");
   if (locked && !input.reason?.trim()) throw new ServiceError("Give a reason for changing a locked price.");
-  const { quote } = await quoteFor(ctx.db, sub.clientId, sub.packageId, sub.deliveryOption, today, false);
+  const { quote, choices } = await quoteFor(ctx.db, sub.clientId, sub.packageId, sub.deliveryOption, today, false);
   await ctx.db.update(subscriptions).set({ priceDayBirr: quote.priceDayBirr, priceMonthBirr: quote.priceMonth, planPriceBirr: quote.planPrice,
-    priceBreakdown: breakdownJson(quote), ...(locked ? {} : { priceLockedUntil: priceLockedUntil(today) }) }).where(eq(subscriptions.id, sub.id));
+    priceBreakdown: breakdownJson(quote, choices), ...(locked ? {} : { priceLockedUntil: priceLockedUntil(today) }) }).where(eq(subscriptions.id, sub.id));
   await writeAudit(ctx.db, ctx.actor, { action: locked ? "price.change_early" : "price.change", entity: "subscriptions", entityId: sub.id,
     before: { planPriceBirr: sub.planPriceBirr }, after: { planPriceBirr: quote.planPrice }, reason: input.reason ?? null });
   return { planPriceBirr: quote.planPrice };
@@ -226,19 +234,28 @@ export async function repriceForPlanChange(ctx: Ctx, clientId: string, effective
   if (!sub || !["active", "paused", "pending_payment"].includes(sub.status)) return null;
   const [np] = await ctx.db.select().from(nutritionProfiles).where(and(eq(nutritionProfiles.clientId, clientId), eq(nutritionProfiles.isCurrent, true)));
   if (!np) return null;
-  const quoteFor = async (week: DateStr) => {
+  const choicesIn = async (week: DateStr): Promise<PricedChoices> => {
     const plan = (await loadClientPlanInputs(ctx.db, [clientId], week)).get(clientId)!;
-    return quotePrice(ctx.db, { profile: profileOf(np.size, np.goal), deliveryOption: sub.deliveryOption, packageId: sub.packageId,
-      swapRuleIds: plan.swapRuleIds, addonSlots: plan.addons.map((a) => a.slot) }, effectiveWeek);
+    return { swapRuleIds: plan.swapRuleIds, addonSlots: plan.addons.map((a) => a.slot) };
   };
-  const [before, after] = await Promise.all([quoteFor(addDays(effectiveWeek, -7)), quoteFor(effectiveWeek)]);
+  const priceWith = (c: PricedChoices) => quotePrice(ctx.db, { profile: profileOf(np.size, np.goal), deliveryOption: sub.deliveryOption,
+    packageId: sub.packageId, ...c }, effectiveWeek);
+  // "before" = the choices the current price already reflects, so each change is counted once and a withdrawn
+  // change is taken back (older plans without the record fall back to the week before)
+  const priced = (sub.priceBreakdown as { pricedChoices?: PricedChoices } | null)?.pricedChoices ?? await choicesIn(addDays(effectiveWeek, -7));
+  const nextChoices = await choicesIn(effectiveWeek);
+  const [before, after] = await Promise.all([priceWith(priced), priceWith(nextChoices)]);
   if (!before.ok || !after.ok) return null;
   const deltaMonth = after.priceMonth - before.priceMonth;
-  if (deltaMonth === 0) return null;
+  if (deltaMonth === 0) {
+    await ctx.db.update(subscriptions).set({ priceBreakdown: { ...((sub.priceBreakdown as Record<string, unknown> | null) ?? {}), pricedChoices: nextChoices } })
+      .where(eq(subscriptions.id, sub.id));
+    return null;
+  }
   const priceMonth = sub.priceMonthBirr + deltaMonth;
   const planPrice = sub.planPriceBirr + deltaMonth;
   const priceDayBirr = Math.round(sub.priceDayBirr + (after.priceDay - before.priceDay));
-  const breakdown = { ...((sub.priceBreakdown as Record<string, unknown> | null) ?? {}),
+  const breakdown = { ...((sub.priceBreakdown as Record<string, unknown> | null) ?? {}), pricedChoices: nextChoices,
     priceDay: (((sub.priceBreakdown as { priceDay?: number } | null)?.priceDay) ?? sub.priceDayBirr) + (after.priceDay - before.priceDay) };
   await ctx.db.update(subscriptions).set({ priceDayBirr, priceMonthBirr: priceMonth, planPriceBirr: planPrice, priceBreakdown: breakdown })
     .where(eq(subscriptions.id, sub.id));
