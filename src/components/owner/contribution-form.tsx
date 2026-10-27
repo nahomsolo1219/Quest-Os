@@ -38,7 +38,7 @@ export function ContributionForm({ partners, today }: { partners: { id: string; 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <Label htmlFor="pc-partner">Partner</Label>
-          <select id="pc-partner" className="h-11 w-full rounded-md border bg-background px-3" {...register("partnerUserId")}>
+          <select id="pc-partner" className="h-11 w-full rounded-md border bg-card px-3" {...register("partnerUserId")}>
             <option value="">Pick a partner</option>
             {partners.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
@@ -51,7 +51,7 @@ export function ContributionForm({ partners, today }: { partners: { id: string; 
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="pc-type">Type</Label>
-          <select id="pc-type" className="h-11 w-full rounded-md border bg-background px-3" {...register("type")}>
+          <select id="pc-type" className="h-11 w-full rounded-md border bg-card px-3" {...register("type")}>
             <option value="cash">Cash</option><option value="time">Time</option><option value="equipment">Equipment</option><option value="other">Other</option>
           </select>
         </div>

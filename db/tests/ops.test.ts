@@ -11,7 +11,7 @@ import {
   clientConflicts, createClientAccount, createLead, ensureProvisionalProfile, getClientDetail, listClients, paymentStateOf,
   resetClientPassword, updateClient,
 } from "../../src/server/services/clients";
-import { lockWeekNow, previewWeek, quickStartQueue, recordCashPayment, todaySummary, weekReview } from "../../src/server/services/ops";
+import { lockWeekNow, previewWeek, quickStartQueue, recordCashPayment, todaySummary, todayTasks, weekReview } from "../../src/server/services/ops";
 import { createSubscription } from "../../src/server/services/subscriptions";
 import { inRollback, testDb } from "./helpers";
 
@@ -279,6 +279,23 @@ describe("Payments and orders", () => {
       await expect(lockWeekNow(after, "2026-10-26")).rejects.toThrow(/already locked/);
       const today = await todaySummary(after);
       expect(today.lockedWeekDone).toBe(true);
+    });
+  });
+});
+
+describe("Staff Today to-do rows (read-only, per role)", () => {
+  it("returns only the rows each role can act on, with counts that match the data", async () => {
+    await inRollback(db, async (tx) => {
+      const keys = async (email: string) => (await todayTasks({ db: tx, actor: await staffActor(tx, email), now: MON })).map((t) => t.key).sort();
+      expect(await keys("fahim@questmeals.demo")).toEqual(["leads", "overdue", "quickStarts", "receipts", "swaps", "unpaidNext"]);
+      expect(await keys("nebiyou@questmeals.demo")).toEqual(["drops", "leads", "overdue", "quickStarts", "receipts", "unpaidNext"]);
+      expect(await keys("nutritionist@questmeals.demo")).toEqual(["checkins", "sizes", "swaps"]);
+      const ops = await todayTasks({ db: tx, actor: await staffActor(tx, "nebiyou@questmeals.demo"), now: MON });
+      expect(ops.find((t) => t.key === "receipts")?.count).toBe(await count(tx, "payments", "status = 'submitted'"));
+      expect(ops.find((t) => t.key === "leads")?.count).toBe(await count(tx, "clients", "status = 'lead'"));
+      expect(ops.find((t) => t.key === "drops")?.count).toBe(await count(tx, "delivery_drops", "drop_date = '2026-10-19' and status = 'pending'"));
+      // kitchen staff cannot open Today; clients neither
+      await expect(todayTasks({ db: tx, actor: await staffActor(tx, "kitchen@questmeals.demo"), now: MON })).rejects.toBeInstanceOf(ForbiddenError);
     });
   });
 });

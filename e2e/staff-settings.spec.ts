@@ -43,11 +43,11 @@ test("swap table: edit a rule label", async ({ page }, info) => {
 });
 
 test("ingredient price edit adds a price history row", async ({ page }, info) => {
-  await page.goto("/staff/settings/ingredients");
+  await page.goto("/staff/settings/ingredients?show=all");
   const item = page.getByRole("listitem").filter({ has: page.getByRole("heading", { name: "Tilapia fillet", exact: true }) });
   const price = info.project.name === "phone" ? "700" : "720";
   await item.getByLabel("ETB per kg").fill(price);
-  await item.getByRole("button", { name: "Save price" }).click();
+  await item.getByRole("button", { name: "Save", exact: true }).click();
   await expect(toast(page, "Price saved. A price history row was added.")).toBeVisible();
   const rows = await query<{ cost: number; hist: number }>(
     `select i.cost_per_unit_birr as cost, (select count(*)::int from ingredient_prices p where p.ingredient_id = i.id) as hist

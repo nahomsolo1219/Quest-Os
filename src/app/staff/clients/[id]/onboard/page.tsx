@@ -70,7 +70,7 @@ export default async function OnboardPage({ params, searchParams }: { params: Pr
           </>
         ) : <p className="text-sm font-medium text-danger">Fill in sex, age, weight, height, activity and goal on the intake step first.</p>}
         {d.nutrition ? (
-          <div className="space-y-3 rounded-lg border p-3">
+          <div className="space-y-3 rounded-lg border p-3 bg-card">
             <p className="text-sm">{W.hasProfile} <span className="font-semibold">{profileLabel(profileOf(d.nutrition.size, d.nutrition.goal))}, {d.nutrition.kcalTarget} kcal</span>
               {d.nutrition.provisional ? <ToneBadge tone="warn" className="ml-2">Provisional — nutritionist to confirm within 48 h</ToneBadge> : null}</p>
             <Button asChild className="h-11"><Link href={href("plan")}>{W.skip}</Link></Button>

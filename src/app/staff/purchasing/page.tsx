@@ -11,6 +11,8 @@ import { formatBirr } from "@/domain/money";
 import { nextServiceDay, weekLockedAt } from "@/domain/schedule";
 import { addDays, addisDate, formatAddisDateTime, formatDate, isDateStr, weekStartOf } from "@/domain/time";
 import { cn } from "@/lib/utils";
+import { ResponsiveTable, type RtColumn } from "@/components/shell/responsive-table";
+import { UnderlineTabNav } from "@/components/shell/underline-tabs";
 import { requirePageActor, serviceCtx } from "@/server/session";
 import { priceHistory, purchaseLog, shoppingListForWeek, stockIngredients, topUpList } from "@/server/services/inventory";
 import { loadSettings } from "@/server/services/settings";
@@ -38,13 +40,8 @@ export default async function PurchasingPage({ searchParams }: { searchParams: P
   return (
     <div className="mx-auto max-w-5xl">
       <PageHeader title={S.title} description={S.description} />
-      <nav aria-label="Purchasing sections" className="no-print -mx-1 mb-4 flex gap-1 overflow-x-auto px-1">
-        {(Object.keys(S.tabs) as Tab[]).map((t) => (
-          <Link key={t} href={href(t)} aria-current={t === tab ? "page" : undefined}
-            className={cn("inline-flex min-h-11 shrink-0 items-center rounded-md border px-3 text-sm font-medium",
-              t === tab ? "border-primary bg-primary text-primary-foreground" : "bg-background hover:bg-muted")}>{S.tabs[t]}</Link>
-        ))}
-      </nav>
+      <UnderlineTabNav label="Purchasing sections"
+        items={(Object.keys(S.tabs) as Tab[]).map((t) => ({ key: t, href: href(t), label: S.tabs[t], active: t === tab }))} />
       {tab === "shopping" ? <Shopping ctx={ctx} week={week} /> : null}
       {tab === "topup" ? <TopUp ctx={ctx} date={topup} /> : null}
       {tab === "log" ? <PurchaseLog ctx={ctx} today={today} canWrite={canWrite} /> : null}
@@ -53,43 +50,29 @@ export default async function PurchasingPage({ searchParams }: { searchParams: P
   );
 }
 
-function BuyTable({ lines, totalBirr, showOnHand }: {
-  lines: Awaited<ReturnType<typeof shoppingListForWeek>>["lines"]; totalBirr: number; showOnHand: boolean;
-}) {
+type BuyLine = Awaited<ReturnType<typeof shoppingListForWeek>>["lines"][number];
+
+function BuyTable({ lines, totalBirr, showOnHand }: { lines: BuyLine[]; totalBirr: number; showOnHand: boolean }) {
+  const columns: RtColumn<BuyLine>[] = [
+    { key: "name", header: "Ingredient", cell: (l) => <>{l.name}{l.supplier ? <span className="block text-xs font-normal text-muted-foreground">{l.supplier}</span> : null}</> },
+    { key: "buy", header: "Buy", align: "right", card: "key", className: "whitespace-nowrap font-bold",
+      cell: (l) => <span className={cn("font-bold", l.buyQty === 0 && "font-medium text-muted-foreground")}>{l.buyQty === 0 ? "Covered" : units(l.buyUnits, l.unit)}</span> },
+    { key: "cost", header: "Est. cost", align: "right", card: "key", className: "whitespace-nowrap",
+      cell: (l) => l.costBirr == null ? <span className="font-semibold text-warning">{S.priceMissing}</span> : formatBirr(l.costBirr) },
+    { key: "need", header: "Need", align: "right", card: "key", className: "whitespace-nowrap", cell: (l) => units(l.needUnits, l.unit) },
+    ...(showOnHand ? [{ key: "onhand", header: "On hand", align: "right", card: "key", className: "whitespace-nowrap", cell: (l) => units(l.onHandUnits, l.unit) } satisfies RtColumn<BuyLine>] : []),
+  ];
   return (
-    <div className="overflow-x-auto rounded-xl border">
-      <table className="w-full min-w-[520px] text-sm">
-        <thead className="bg-muted/60 text-left">
-          <tr>
-            <th scope="col" className="p-2">Ingredient</th>
-            <th scope="col" className="p-2 text-right">Buy</th>
-            <th scope="col" className="p-2 text-right">Est. cost</th>
-            <th scope="col" className="p-2 text-right">Need</th>
-            {showOnHand ? <th scope="col" className="p-2 text-right">On hand</th> : null}
-          </tr>
-        </thead>
-        <tbody>
-          {lines.map((l) => (
-            <tr key={l.ingredientId} className={cn("border-t", l.buyQty === 0 && "text-muted-foreground")}>
-              <td className="p-2">{l.name}{l.supplier ? <span className="block text-xs text-muted-foreground">{l.supplier}</span> : null}</td>
-              <td className="whitespace-nowrap p-2 text-right font-bold tabular-nums">{l.buyQty === 0 ? "Covered" : units(l.buyUnits, l.unit)}</td>
-              <td className={cn("whitespace-nowrap p-2 text-right tabular-nums", l.costBirr == null && "font-semibold text-warning")}>
-                {l.costBirr == null ? S.priceMissing : formatBirr(l.costBirr)}
-              </td>
-              <td className="whitespace-nowrap p-2 text-right tabular-nums">{units(l.needUnits, l.unit)}</td>
-              {showOnHand ? <td className="whitespace-nowrap p-2 text-right tabular-nums">{units(l.onHandUnits, l.unit)}</td> : null}
-            </tr>
-          ))}
-        </tbody>
-        <tfoot>
-          <tr className="border-t bg-muted/40 font-bold">
-            <td className="p-2" colSpan={2}>Total (priced lines)</td>
-            <td className="whitespace-nowrap p-2 text-right tabular-nums">{formatBirr(totalBirr)}</td>
-            <td colSpan={showOnHand ? 2 : 1} />
-          </tr>
-        </tfoot>
-      </table>
-    </div>
+    <ResponsiveTable dense label="Shopping list" rows={lines} rowKey={(l) => l.ingredientId} columns={columns} minWidth={520}
+      rowClassName={(l) => (l.buyQty === 0 ? "text-muted-foreground" : undefined)}
+      cardFooter={<span className="flex justify-between gap-2"><span>Total (priced lines)</span><span className="tabular-nums">{formatBirr(totalBirr)}</span></span>}
+      footer={
+        <tr className="border-t bg-muted font-bold">
+          <th scope="row" className="sticky left-0 bg-muted px-3 py-2 text-left" colSpan={2}>Total (priced lines)</th>
+          <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums">{formatBirr(totalBirr)}</td>
+          <td colSpan={showOnHand ? 2 : 1} />
+        </tr>
+      } />
   );
 }
 
@@ -144,26 +127,17 @@ async function PurchaseLog({ ctx, today, canWrite }: { ctx: Ctx; today: string; 
       {canWrite ? <PurchaseForm ingredients={ingredients} today={today} /> : <p className="text-sm text-muted-foreground">Only operations log purchases.</p>}
       <h2 id="log-h" className="text-lg font-bold">Purchase log</h2>
       {log.length === 0 ? <EmptyState title={S.logEmpty}>{S.logEmptyBody}</EmptyState> : (
-        <div className="overflow-x-auto rounded-xl border">
-          <table className="w-full min-w-[640px] text-sm">
-            <thead className="bg-muted/60 text-left">
-              <tr><th scope="col" className="p-2">Date</th><th scope="col" className="p-2">Ingredient</th><th scope="col" className="p-2 text-right">Quantity</th>
-                <th scope="col" className="p-2 text-right">Total</th><th scope="col" className="p-2 text-right">Unit cost</th><th scope="col" className="p-2">Supplier</th></tr>
-            </thead>
-            <tbody>
-              {log.map((p) => (
-                <tr key={p.id} className="border-t">
-                  <td className="whitespace-nowrap p-2">{formatDate(p.purchasedOn)}</td>
-                  <td className="p-2"><Link className="text-primary underline-offset-4 hover:underline" href={`/staff/purchasing?tab=prices&ingredient=${p.ingredientId}`}>{p.ingredientName}</Link></td>
-                  <td className="whitespace-nowrap p-2 text-right tabular-nums">{units(p.qtyUnits, p.unit)}</td>
-                  <td className="whitespace-nowrap p-2 text-right tabular-nums">{formatBirr(p.totalPriceBirr)}</td>
-                  <td className="whitespace-nowrap p-2 text-right font-semibold tabular-nums">{p.unitCostBirr == null ? "–" : `${formatBirr(p.unitCostBirr)} / ${p.unit}`}</td>
-                  <td className="p-2">{p.supplier ?? "–"}{p.byName ? <span className="block text-xs text-muted-foreground">by {p.byName}</span> : null}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ResponsiveTable label="Purchase log" rows={log} rowKey={(p) => p.id} minWidth={680} columns={[
+          { key: "ingredient", header: "Ingredient", cell: (p) => (
+            <Link className="text-primary underline-offset-4 hover:underline" href={`/staff/purchasing?tab=prices&ingredient=${p.ingredientId}`}>{p.ingredientName}</Link>
+          ) },
+          { key: "date", header: "Date", card: "key", className: "whitespace-nowrap", cell: (p) => formatDate(p.purchasedOn) },
+          { key: "qty", header: "Quantity", align: "right", card: "key", className: "whitespace-nowrap", cell: (p) => units(p.qtyUnits, p.unit) },
+          { key: "total", header: "Total", align: "right", card: "key", className: "whitespace-nowrap", cell: (p) => formatBirr(p.totalPriceBirr) },
+          { key: "unit", header: "Unit cost", align: "right", card: "key", className: "whitespace-nowrap font-semibold",
+            cell: (p) => (p.unitCostBirr == null ? "–" : `${formatBirr(p.unitCostBirr)} / ${p.unit}`) },
+          { key: "supplier", header: "Supplier", card: "more", cell: (p) => <>{p.supplier ?? "–"}{p.byName ? <span className="block text-xs text-muted-foreground">by {p.byName}</span> : null}</> },
+        ]} />
       )}
     </section>
   );
@@ -179,7 +153,7 @@ async function Prices({ ctx, ingredientId }: { ctx: Ctx; ingredientId?: string }
         <input type="hidden" name="tab" value="prices" />
         <div className="min-w-0 flex-1 space-y-1.5 sm:max-w-sm">
           <Label htmlFor="price-ingredient">Ingredient</Label>
-          <select id="price-ingredient" name="ingredient" defaultValue={picked ?? ""} className="h-11 w-full rounded-md border bg-background px-3">
+          <select id="price-ingredient" name="ingredient" defaultValue={picked ?? ""} className="h-11 w-full rounded-md border bg-card px-3">
             <option value="">Pick an ingredient</option>
             {ingredients.map((i) => <option key={i.id} value={i.id}>{i.name}{i.costPerUnitBirr == null ? " · price missing" : ` · ${formatBirr(i.costPerUnitBirr)}/${i.unit}`}</option>)}
           </select>
@@ -188,7 +162,7 @@ async function Prices({ ctx, ingredientId }: { ctx: Ctx; ingredientId?: string }
       </form>
       <h2 id="prices-h" className="text-lg font-bold">{data ? `${data.ingredient.name}: ${data.ingredient.costPerUnitBirr == null ? S.priceMissing : `${formatBirr(data.ingredient.costPerUnitBirr)} per ${data.ingredient.unit}`}` : "Price history"}</h2>
       {!data ? <EmptyState title={S.pricesPick} /> : data.history.length === 0 ? <EmptyState title={S.pricesEmpty}>{S.pricesEmptyBody}</EmptyState> : (
-        <ul className="divide-y rounded-xl border">
+        <ul className="divide-y rounded-xl border bg-card">
           {data.history.map((h) => (
             <li key={h.id} className="flex flex-wrap justify-between gap-2 p-3 text-sm">
               <span className="font-semibold tabular-nums">{formatBirr(h.costPerUnitBirr)} / {data.ingredient.unit}</span>

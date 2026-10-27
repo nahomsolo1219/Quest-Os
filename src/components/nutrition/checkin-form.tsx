@@ -33,7 +33,7 @@ export function CheckinForm({ clientId, today, clients }: { clientId?: string; t
       {clients ? (
         <div className="space-y-1.5">
           <Label htmlFor="ck-client">Client</Label>
-          <select id="ck-client" className="h-11 w-full rounded-md border bg-background px-3" {...register("clientId")}>
+          <select id="ck-client" className="h-11 w-full rounded-md border bg-card px-3" {...register("clientId")}>
             <option value="">Pick a client</option>
             {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>

@@ -51,7 +51,7 @@ export default async function CheckinsPage() {
       <section className="space-y-2">
         <h2 className="text-lg font-semibold">{S.recentTitle}</h2>
         {d.recent.length === 0 ? <EmptyState title={S.recentEmpty} /> : (
-          <div className="overflow-x-auto rounded-xl border">
+          <div className="overflow-x-auto rounded-xl border bg-card">
             <Table>
               <TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Client</TableHead><TableHead>Weight</TableHead><TableHead>Adherence</TableHead><TableHead>Notes</TableHead></TableRow></TableHeader>
               <TableBody>

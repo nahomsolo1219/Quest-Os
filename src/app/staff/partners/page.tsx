@@ -47,7 +47,7 @@ export default async function PartnersPage() {
         <section className="space-y-2">
           <h2 className="text-lg font-semibold">{S.log}</h2>
           {d.entries.length === 0 ? <EmptyState title={S.empty} /> : (
-            <ul className="divide-y rounded-xl border px-3">
+            <ul className="divide-y rounded-xl border px-3 bg-card">
               {d.entries.map(({ c, partnerName }) => (
                 <li key={c.id} className="flex items-start justify-between gap-2 py-2">
                   <div className="min-w-0">

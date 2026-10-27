@@ -57,7 +57,7 @@ function Select({ id, label, options, placeholder, reg }: { id: string; label: s
   return (
     <div className="space-y-1.5">
       <Label htmlFor={id}>{label}</Label>
-      <select id={id} className="h-11 w-full rounded-md border bg-background px-3 text-sm" {...reg}>
+      <select id={id} className="h-11 w-full rounded-md border bg-card px-3 text-sm" {...reg}>
         <option value="">{placeholder}</option>
         {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
       </select>

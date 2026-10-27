@@ -39,7 +39,7 @@ export function PauseForm({ clientId, weeks: weekOptions }: { clientId: string; 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="pause-start">{S.pauseStart}</Label>
-          <select id="pause-start" className="h-11 w-full rounded-md border bg-background px-3 text-sm" value={startWeek} onChange={(e) => setStartWeek(e.target.value)}>
+          <select id="pause-start" className="h-11 w-full rounded-md border bg-card px-3 text-sm" value={startWeek} onChange={(e) => setStartWeek(e.target.value)}>
             {weekOptions.map((w) => <option key={w.value} value={w.value}>{w.label}</option>)}
           </select>
         </div>

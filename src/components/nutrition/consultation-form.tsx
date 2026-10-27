@@ -28,7 +28,7 @@ export function ConsultationForm({ clientId, nowLocal }: { clientId: string; now
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="cf-mode">How</Label>
-          <select id="cf-mode" className="h-11 w-full rounded-md border bg-background px-3" {...register("mode")}>
+          <select id="cf-mode" className="h-11 w-full rounded-md border bg-card px-3" {...register("mode")}>
             <option value="in_person">In person</option><option value="phone">Phone</option>
           </select>
         </div>

@@ -26,6 +26,8 @@ const columns: ColumnDef<ClientListRow, unknown>[] = [
 
 export function ClientsTable({ rows, areas, plans }: { rows: ClientListRow[]; areas: string[]; plans: string[] }) {
   return (
+    // white table on Mist (DataTable is lead-owned; style its scroll box from here)
+    <div className="[&_.overflow-x-auto]:bg-card [&_select]:bg-card [&_input]:bg-card">
     <DataTable
       data={rows}
       columns={columns}
@@ -39,5 +41,6 @@ export function ClientsTable({ rows, areas, plans }: { rows: ClientListRow[]; ar
       ]}
       empty={{ title: S.emptyTitle, body: S.emptyBody, action: <Button asChild className="h-11"><Link href="/staff/clients/new">{S.addLead}</Link></Button> }}
     />
+    </div>
   );
 }

@@ -63,20 +63,20 @@ export function PlanStep({ clientId, packages }: { clientId: string; packages: P
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="space-y-1.5">
           <Label htmlFor="plan-delivery">{W.delivery}</Label>
-          <select id="plan-delivery" className="h-11 w-full rounded-md border bg-background px-3 text-sm" value={deliveryOption} onChange={(e) => { setDelivery(e.target.value); reset(); }}>
+          <select id="plan-delivery" className="h-11 w-full rounded-md border bg-card px-3 text-sm" value={deliveryOption} onChange={(e) => { setDelivery(e.target.value); reset(); }}>
             {options.map((o) => <option key={o} value={o}>{DELIVERY_LABEL[o]}</option>)}
           </select>
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="plan-billing">{W.billing}</Label>
-          <select id="plan-billing" className="h-11 w-full rounded-md border bg-background px-3 text-sm" value={billingPeriod} onChange={(e) => setBilling(e.target.value as "weekly" | "monthly")}>
+          <select id="plan-billing" className="h-11 w-full rounded-md border bg-card px-3 text-sm" value={billingPeriod} onChange={(e) => setBilling(e.target.value as "weekly" | "monthly")}>
             <option value="weekly">{W.weekly}</option>
             <option value="monthly">{W.monthly}</option>
           </select>
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="plan-term">{W.term}</Label>
-          <select id="plan-term" className="h-11 w-full rounded-md border bg-background px-3 text-sm" value={termMonths} onChange={(e) => setTerm(Number(e.target.value))}>
+          <select id="plan-term" className="h-11 w-full rounded-md border bg-card px-3 text-sm" value={termMonths} onChange={(e) => setTerm(Number(e.target.value))}>
             {[1, 2, 3, 4].map((n) => <option key={n} value={n}>{n}</option>)}
           </select>
         </div>

@@ -3,7 +3,8 @@ import { PageHeader } from "@/components/shell/page-header";
 import { EmptyState } from "@/components/shell/empty-state";
 import { Stat } from "@/components/shell/stat";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TONE_PANEL } from "@/components/shell/status-badge";
+import { ResponsiveTable } from "@/components/shell/responsive-table";
 import { ConflictList, OrderStatusBadge, ToneBadge } from "@/components/ops/badges";
 import { DELIVERY_LABEL } from "@/components/ops/labels";
 import { LockNowButton } from "@/components/ops/lock-now-button";
@@ -41,7 +42,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
         {week !== upcoming ? <Button asChild variant="ghost" className="col-span-2 h-11 sm:order-4"><Link href="/staff/orders">{S.thisWeek}</Link></Button> : null}
       </nav>
 
-      <div className={`mb-4 rounded-xl border p-4 ${r.locked ? "border-success/30 bg-success-soft" : "border-warning/30 bg-warning-soft"}`}>
+      <div className={`mb-4 rounded-xl border p-4 ${r.locked ? TONE_PANEL.good : TONE_PANEL.warn}`}>
         <p className="font-semibold">{r.locked ? S.lockedTitle : S.previewTitle}</p>
         <p className="text-sm">{r.locked ? S.lockedBody(lockedAt ? formatAddisDateTime(lockedAt) : "") : S.previewBody(formatAddisDateTime(r.cutoff))}</p>
         {!r.locked && r.cutoffPassed ? <p className="mt-1 text-sm font-medium text-danger">{S.cutoffPassedNotLocked}</p> : null}
@@ -56,46 +57,23 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
       </div>
 
       {r.rows.length === 0 ? <EmptyState title={S.emptyTitle} action={<Button asChild className="h-11"><Link href="/staff/clients">Open clients</Link></Button>}>{S.emptyBody}</EmptyState> : (
-        <>
-        <ul className="space-y-2 md:hidden">
-          {r.rows.map((row) => (
-            <li key={row.clientId} className={`rounded-xl border p-3 ${row.conflicts.length ? "border-danger/30 bg-danger-soft/60" : ""}`}>
-              <div className="flex items-start justify-between gap-2">
-                <Link className="min-h-11 font-semibold underline-offset-2 hover:underline" href={`/staff/clients/${row.clientId}?tab=orders`}>{row.name}</Link>
-                <OrderStatusBadge status={row.status} />
-              </div>
-              <p className="text-sm text-muted-foreground">{profileLabel(row.profile as Profile)} · {DELIVERY_LABEL[row.deliveryOption]} · {row.days} days{row.isQuickStart ? " · quick start" : ""}</p>
-              {row.reason && row.status !== "locked" ? <p className="text-sm text-muted-foreground">{row.reason}</p> : null}
-              <ConflictList conflicts={row.conflicts} className="mt-1" />
-            </li>
-          ))}
-        </ul>
-        <div className="hidden overflow-x-auto rounded-xl border md:block">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{S.colClient}</TableHead><TableHead>{S.colStatus}</TableHead><TableHead>{S.colProfile}</TableHead>
-                <TableHead>{S.colDelivery}</TableHead><TableHead>{S.colDays}</TableHead><TableHead>{S.colConflicts}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {r.rows.map((row) => (
-                <TableRow key={row.clientId} className={row.conflicts.length ? "bg-danger-soft/60" : undefined}>
-                  <TableCell className="whitespace-nowrap font-medium">
-                    <Link className="underline-offset-2 hover:underline" href={`/staff/clients/${row.clientId}?tab=orders`}>{row.name}</Link>
-                    {row.isQuickStart ? <ToneBadge tone="info" className="ml-1">Quick start</ToneBadge> : null}
-                  </TableCell>
-                  <TableCell><OrderStatusBadge status={row.status} />{row.reason && row.status !== "locked" ? <p className="mt-1 text-xs text-muted-foreground">{row.reason}</p> : null}</TableCell>
-                  <TableCell>{profileLabel(row.profile as Profile)}</TableCell>
-                  <TableCell className="whitespace-nowrap">{DELIVERY_LABEL[row.deliveryOption]}</TableCell>
-                  <TableCell>{row.days}</TableCell>
-                  <TableCell className="min-w-56 whitespace-normal">{row.conflicts.length ? <ConflictList conflicts={row.conflicts} /> : <span className="text-muted-foreground">{S.none}</span>}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-        </>
+        <ResponsiveTable label={S.weekOf(formatDate(week, "long"))} rows={r.rows} rowKey={(row) => row.clientId} minWidth={760}
+          rowClassName={(row) => (row.conflicts.length ? "border-danger/30 bg-danger-soft" : undefined)}
+          columns={[
+            { key: "client", header: S.colClient, cell: (row) => (
+              <span className="flex flex-wrap items-center gap-1">
+                <Link className="inline-flex min-h-11 items-center underline-offset-2 hover:underline md:min-h-0" href={`/staff/clients/${row.clientId}?tab=orders`}>{row.name}</Link>
+                {row.isQuickStart ? <ToneBadge tone="info">Quick start</ToneBadge> : null}
+              </span>
+            ) },
+            { key: "status", header: S.colStatus, card: "badge", cell: (row) => (
+              <><OrderStatusBadge status={row.status} />{row.reason && row.status !== "locked" ? <p className="mt-1 max-w-48 text-xs text-muted-foreground">{row.reason}</p> : null}</>
+            ) },
+            { key: "profile", header: S.colProfile, card: "key", cell: (row) => profileLabel(row.profile as Profile) },
+            { key: "delivery", header: S.colDelivery, card: "key", className: "whitespace-nowrap", cell: (row) => DELIVERY_LABEL[row.deliveryOption] },
+            { key: "days", header: S.colDays, card: "key", cell: (row) => row.days },
+            { key: "conflicts", header: S.colConflicts, card: "key", className: "min-w-56", cell: (row) => row.conflicts.length ? <ConflictList conflicts={row.conflicts} /> : <span className="text-muted-foreground">{S.none}</span> },
+          ]} />
       )}
     </div>
   );

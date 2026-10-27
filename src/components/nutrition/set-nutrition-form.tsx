@@ -44,13 +44,13 @@ export function SetNutritionForm({ clientId, defaults, suggestion, presets, help
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <Label htmlFor="nf-size">Size</Label>
-          <select id="nf-size" className="h-11 w-full rounded-md border bg-background px-3" {...register("size", { onChange: (e) => fill(e.target.value, getValues("goal")) })}>
+          <select id="nf-size" className="h-11 w-full rounded-md border bg-card px-3" {...register("size", { onChange: (e) => fill(e.target.value, getValues("goal")) })}>
             <option value="S">S (Small)</option><option value="M">M (Medium)</option><option value="L">L (Large)</option>
           </select>
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="nf-goal">Goal</Label>
-          <select id="nf-goal" className="h-11 w-full rounded-md border bg-background px-3" {...register("goal", { onChange: (e) => fill(getValues("size"), e.target.value) })}>
+          <select id="nf-goal" className="h-11 w-full rounded-md border bg-card px-3" {...register("goal", { onChange: (e) => fill(getValues("size"), e.target.value) })}>
             <option value="lean">Lean</option><option value="build">Build</option>
           </select>
         </div>

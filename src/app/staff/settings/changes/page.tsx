@@ -45,7 +45,7 @@ export default async function ChangeLogPage({ searchParams }: { searchParams: Pr
           {rows.map(({ a, actorName }) => {
             const changes = diff(a.before, a.after);
             return (
-              <li key={a.id} className="rounded-xl border p-3">
+              <li key={a.id} className="rounded-xl border p-3 bg-card">
                 <p className="text-sm"><span className="font-semibold">{a.action}</span> · {a.entity} <span className="text-muted-foreground">{a.entityId}</span></p>
                 <p className="text-xs text-muted-foreground">{formatAddisDateTime(a.createdAt)} · {actorName ?? "Automatic"}{a.reason ? ` · “${a.reason}”` : ""}</p>
                 {changes.length ? (

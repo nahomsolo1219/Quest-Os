@@ -91,7 +91,7 @@ export function SettingsForm({ settingsKey, value, groups, save, extraCheck, can
     <form className="space-y-6" onSubmit={handleSubmit((v) => run(() => save(fromForm(v, value, groups), String(v.reason ?? "")), () => form.reset(v)))}>
       <fieldset disabled={!canEdit} className="space-y-6">
         {groups.map((g) => (
-          <section key={g.title} className="space-y-3 rounded-xl border p-4">
+          <section key={g.title} className="space-y-3 rounded-xl border p-4 bg-card">
             <div>
               <h2 className="font-semibold">{g.title}</h2>
               {g.help ? <p className="text-sm text-muted-foreground">{g.help}</p> : null}
@@ -122,7 +122,7 @@ export function SettingsForm({ settingsKey, value, groups, save, extraCheck, can
                       <>
                         <label htmlFor={id} className="block text-sm font-medium leading-tight">{f.label}{f.unit ? <span className="font-normal text-muted-foreground"> ({f.unit})</span> : null}</label>
                         {f.kind === "select" ? (
-                          <select id={id} className="h-11 w-full rounded-md border bg-background px-3" {...register(fk(f.path))}>
+                          <select id={id} className="h-11 w-full rounded-md border bg-card px-3" {...register(fk(f.path))}>
                             {f.options!.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                           </select>
                         ) : (
@@ -143,7 +143,7 @@ export function SettingsForm({ settingsKey, value, groups, save, extraCheck, can
           <div className="space-y-3">
             <div className="space-y-1.5">
               <Label htmlFor="sf-reason">Reason for the change (shown in the change log)</Label>
-              <Textarea id="sf-reason" rows={2} {...register("reason")} />
+              <Textarea id="sf-reason" rows={2} className="bg-card" {...register("reason")} />
               {errors.reason ? <p className="text-sm text-danger">{String(errors.reason.message)}</p> : null}
             </div>
             <Button type="submit" className="h-11" disabled={pending || !isDirty}>{pending ? "Saving…" : "Save changes"}</Button>

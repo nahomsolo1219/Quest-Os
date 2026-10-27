@@ -1,7 +1,7 @@
 // Operations screens: today's queues, weekly order review (preview before the lock, rows after), quick-start
 // queue, "lock now", onboarding quotes and cash at the counter. Reuses the lead's loaders and the domain lock.
-import { and, asc, desc, eq, gte, inArray, lte } from "drizzle-orm";
-import { clients, invoices, jobRuns, nutritionProfiles, orderDays, packages, pauses, payments, subscriptions, weeklyOrders } from "@db/schema";
+import { and, asc, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
+import { clientSwaps, clients, deliveryDrops, invoices, jobRuns, nutritionProfiles, orderDays, packages, pauses, payments, subscriptions, weeklyOrders } from "@db/schema";
 import type { Db } from "@db/client";
 import { assertCan, can } from "@/server/authz";
 import { lockWeek } from "@/domain/orders";
@@ -14,6 +14,7 @@ import { confirmPayment, submitPayment } from "./billing";
 import { loadClientPlanInputs, withDelivery } from "./client-plan";
 import { ServiceError, type Ctx } from "./context";
 import { loadMenuData } from "./menu-data";
+import { checkinList } from "./nutrition";
 import { paidInvoicesBy, quickStartsTakenByDate, weekOrderRows } from "./orders";
 import { quotePrice } from "./pricing";
 import { loadSettings } from "./settings";
@@ -83,6 +84,56 @@ export async function todaySummary(ctx: Ctx) {
     attention,
     canMoney,
   };
+}
+
+/** Staff Today to-do rows. Each row is returned only when the actor holds the permission to act on it. */
+export type TodayTaskKey = "receipts" | "quickStarts" | "swaps" | "sizes" | "checkins" | "drops" | "leads" | "overdue" | "unpaidNext";
+export type TodayTask = { key: TodayTaskKey; count: number; href: string };
+
+/**
+ * Read-only counts for the staff Today to-do list (UI refresh item 10). Authorizes like todaySummary, then counts
+ * only what this actor can act on: receipts (payments.confirm), quick starts not yet added to production
+ * (subscriptions.write), swap requests (swaps.approve), provisional sizes (nutrition.write), check-ins due
+ * (checkins.write; same 14-day rule as checkinList), today's drops still pending (delivery.manage), leads
+ * (clients.write), overdue invoices and unpaid next week (payments.confirm). Writes nothing.
+ */
+export async function todayTasks(ctx: Ctx): Promise<TodayTask[]> {
+  assertCan(ctx.actor, "clients.read");
+  const a = ctx.actor;
+  const settings = await loadSettings(ctx.db);
+  const today = addisDate(ctx.now);
+  const nextWeek = nextLockableWeek(ctx.now, settings.schedule);
+  const n = (rows: { n: number }[]) => rows[0]?.n ?? 0;
+  const count = sql<number>`count(*)::int`;
+  const none = Promise.resolve(null);
+
+  const [receipts, quickStarts, swaps, sizes, checkins, drops, leads, overdue, unpaidNext] = await Promise.all([
+    can(a, "payments.confirm") ? ctx.db.select({ n: count }).from(payments).where(eq(payments.status, "submitted")).then(n) : none,
+    can(a, "subscriptions.write") ? quickStartQueue(ctx).then((q) => q.items.filter((i) => i.stage !== "added").length) : none,
+    can(a, "swaps.approve") ? ctx.db.select({ n: count }).from(clientSwaps).where(eq(clientSwaps.status, "requested")).then(n) : none,
+    can(a, "nutrition.write") ? ctx.db.select({ n: count }).from(nutritionProfiles)
+      .where(and(eq(nutritionProfiles.isCurrent, true), eq(nutritionProfiles.provisional, true))).then(n) : none,
+    can(a, "checkins.write") ? checkinList(ctx).then((c) => c.overdue.length) : none,
+    can(a, "delivery.manage") ? ctx.db.select({ n: count }).from(deliveryDrops)
+      .where(and(eq(deliveryDrops.dropDate, today), eq(deliveryDrops.status, "pending"))).then(n) : none,
+    can(a, "clients.write") ? ctx.db.select({ n: count }).from(clients).where(eq(clients.status, "lead")).then(n) : none,
+    can(a, "payments.confirm") ? ctx.db.select({ n: count }).from(invoices)
+      .where(and(eq(invoices.status, "issued"), lte(invoices.dueAt, ctx.now))).then(n) : none,
+    can(a, "payments.confirm") ? ctx.db.select({ n: count }).from(invoices)
+      .where(and(eq(invoices.status, "issued"), lte(invoices.periodStart, addDays(nextWeek, 6)), gte(invoices.periodEnd, nextWeek))).then(n) : none,
+  ]);
+  const rows: [TodayTaskKey, number | null, string][] = [
+    ["receipts", receipts, "/staff/payments"],
+    ["swaps", swaps, "/staff/nutrition/swaps"],
+    ["sizes", sizes, "/staff/nutrition"],
+    ["quickStarts", quickStarts, "/staff/quick-starts"],
+    ["checkins", checkins, "/staff/nutrition/checkins"],
+    ["drops", drops, `/staff/delivery?date=${today}`],
+    ["overdue", overdue, "/staff/clients"],
+    ["unpaidNext", unpaidNext, `/staff/orders?week=${nextWeek}`],
+    ["leads", leads, "/staff/clients"],
+  ];
+  return rows.flatMap(([key, c, href]) => (c === null ? [] : [{ key, count: c, href }]));
 }
 
 // ---------------------------------------------------------------------------------------------

@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { UnderlineTabsList, UnderlineTabsTrigger } from "@/components/shell/underline-tabs";
 import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { PinButton } from "@/components/community/coach-buttons";
@@ -34,16 +35,16 @@ export default async function StaffCommunityPage() {
     <div>
       <PageHeader title={T.title} description={T.intro} actions={<Button asChild variant="outline" className="h-11"><Link href="/app/community">{T.openFeed}</Link></Button>} />
       <Tabs defaultValue={first}>
-        <TabsList className="h-auto w-full flex-wrap justify-start sm:w-auto">
+        <UnderlineTabsList>
           {powers.moderate ? (
             <>
-              <TabsTrigger value="reports" className="min-h-10">{T.tabs.reports}{reports.length ? ` (${reports.length})` : ""}</TabsTrigger>
-              <TabsTrigger value="hidden" className="min-h-10">{T.tabs.hidden}</TabsTrigger>
-              <TabsTrigger value="members" className="min-h-10">{T.tabs.members}</TabsTrigger>
+              <UnderlineTabsTrigger value="reports">{T.tabs.reports}{reports.length ? ` (${reports.length})` : ""}</UnderlineTabsTrigger>
+              <UnderlineTabsTrigger value="hidden">{T.tabs.hidden}</UnderlineTabsTrigger>
+              <UnderlineTabsTrigger value="members">{T.tabs.members}</UnderlineTabsTrigger>
             </>
           ) : null}
-          {powers.pin ? <TabsTrigger value="coach" className="min-h-10">{T.tabs.coach}</TabsTrigger> : null}
-        </TabsList>
+          {powers.pin ? <UnderlineTabsTrigger value="coach">{T.tabs.coach}</UnderlineTabsTrigger> : null}
+        </UnderlineTabsList>
 
         {powers.moderate ? (
           <>
@@ -51,7 +52,7 @@ export default async function StaffCommunityPage() {
               {reports.length === 0 ? <EmptyState title={T.reportsEmpty}>{T.reportsEmptyBody}</EmptyState> : (
                 <ul className="space-y-3">
                   {reports.map((r) => (
-                    <li key={r.id} className="rounded-xl border p-4">
+                    <li key={r.id} className="rounded-xl border bg-card p-4">
                       <div className="flex flex-wrap items-baseline justify-between gap-2">
                         <p className="font-semibold">“{r.reason}”</p>
                         <p className="text-xs text-muted-foreground">{T.reportedBy(r.reporter)} · {formatAddisDateTime(new Date(r.createdAt))}</p>
@@ -76,7 +77,7 @@ export default async function StaffCommunityPage() {
               {hidden.length === 0 ? <EmptyState title={T.hiddenEmpty}>{T.hiddenEmptyBody}</EmptyState> : (
                 <ul className="space-y-3">
                   {hidden.map((h) => (
-                    <li key={`${h.targetType}-${h.id}`} className="rounded-xl border border-dashed p-4">
+                    <li key={`${h.targetType}-${h.id}`} className="rounded-xl border border-dashed bg-card p-4">
                       <p className="text-xs text-muted-foreground">{T.hiddenMeta(h.targetType, h.author, h.hiddenBy, formatAddisDateTime(new Date(h.hiddenAt)))}</p>
                       {h.reason ? <p className="mt-1 text-sm font-medium">Reason: {h.reason}</p> : null}
                       <p className="mt-2 whitespace-pre-wrap break-words text-sm">{h.preview}</p>

@@ -43,7 +43,7 @@ export function PurchaseForm({ ingredients, today }: {
     })}>
       <div className="space-y-1.5 sm:col-span-2">
         <Label htmlFor="p-ingredient">Ingredient</Label>
-        <select id="p-ingredient" className="h-11 w-full rounded-md border bg-background px-3" {...form.register("ingredientId")}>
+        <select id="p-ingredient" className="h-11 w-full rounded-md border bg-card px-3" {...form.register("ingredientId")}>
           <option value="">Pick an ingredient</option>
           {ingredients.map((i) => <option key={i.id} value={i.id}>{i.name} ({i.unit}){i.costPerUnitBirr == null ? " · price missing" : ""}</option>)}
         </select>

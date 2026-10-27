@@ -37,7 +37,7 @@ export default async function NutritionQueuePage() {
           <ul className="grid gap-2 md:grid-cols-2">
             {q.provisional.map((p) => (
               <li key={p.clientId}>
-                <Link href={`/staff/nutrition/clients/${p.clientId}`} className="flex min-h-11 items-center justify-between gap-3 rounded-xl border p-3 hover:bg-muted">
+                <Link href={`/staff/nutrition/clients/${p.clientId}`} className="flex min-h-11 items-center justify-between gap-3 rounded-xl border p-3 hover:bg-muted bg-card">
                   <div className="min-w-0">
                     <p className="font-semibold">{displayName(p.firstName, p.lastName)}</p>
                     <p className="text-sm text-muted-foreground">{p.size} {goalLabel(p.goal)} · {p.kcalTarget} kcal · signed up {formatAddisDateTime(p.setAt)}</p>
@@ -56,10 +56,10 @@ export default async function NutritionQueuePage() {
           <ul className="grid gap-2 md:grid-cols-2">
             {q.noProfile.map((c) => (
               <li key={c.id}>
-                <Link href={`/staff/nutrition/clients/${c.id}`} className="flex min-h-11 items-center justify-between gap-3 rounded-xl border p-3 hover:bg-muted">
+                <Link href={`/staff/nutrition/clients/${c.id}`} className="flex min-h-11 items-center justify-between gap-3 rounded-xl border p-3 hover:bg-muted bg-card">
                   <span className="font-semibold">{displayName(c.firstName, c.lastName)}</span>
                   <span className="flex gap-1">
-                    <Badge variant="outline">{c.status}</Badge>
+                    <StatusBadge status={c.status} />
                     {c.statsComplete ? null : <StatusBadge tone="warn">{S.statsMissing}</StatusBadge>}
                   </span>
                 </Link>
