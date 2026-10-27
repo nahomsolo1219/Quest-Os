@@ -150,8 +150,12 @@ export function TourHost({ tours, progress, ctx }: { tours: TourId[]; progress: 
       const sameSearch = !want.search || want.search === (search.toString() ? `?${search.toString()}` : "");
       if (!samePath || !sameSearch) {
         setPhase("navigating");
-        if (here !== run.href) router.push(run.href);
-        return;
+        const href = run.href;
+        if (here !== href) router.push(href);
+        // a navigation lost during a reload: try again, then load the page directly
+        const retry = window.setTimeout(() => { if (!cancelled) router.push(href); }, 8000);
+        const hard = window.setTimeout(() => { if (!cancelled) window.location.assign(href); }, 20000);
+        return () => { cancelled = true; window.clearTimeout(retry); window.clearTimeout(hard); };
       }
     }
     const phone = isPhone();
@@ -191,7 +195,8 @@ export function TourHost({ tours, progress, ctx }: { tours: TourId[]; progress: 
     if (phase !== "show" || !step?.target) return;
     let raf = 0;
     const tick = () => {
-      const el = targetRef.current;
+      let el = targetRef.current;
+      if ((!el || !el.isConnected) && step.target) { el = findTarget(step.target); targetRef.current = el; }
       if (el && el.isConnected) {
         const r = el.getBoundingClientRect();
         setRect((old) => (old && Math.abs(old.top - r.top) < 0.5 && Math.abs(old.left - r.left) < 0.5 && Math.abs(old.width - r.width) < 0.5 && Math.abs(old.height - r.height) < 0.5 ? old : r));
@@ -219,9 +224,14 @@ export function TourHost({ tours, progress, ctx }: { tours: TourId[]; progress: 
     let top: number, left: number;
     if (rect.bottom + gap + h <= vh - 8) { top = rect.bottom + gap; left = rect.left; }
     else if (rect.top - gap - h >= 8) { top = rect.top - gap - h; left = rect.left; }
-    else if (rect.right + gap + width <= vw - 8) { top = rect.top; left = rect.right + gap; }
-    else if (rect.left - gap - width >= 8) { top = rect.top; left = rect.left - gap - width; }
-    else { top = vh - h - 16; left = vw - width - 16; }
+    else if (rect.right + gap + width <= vw - 8) { top = Math.max(rect.top, 8); left = rect.right + gap; }
+    else if (rect.left - gap - width >= 8) { top = Math.max(rect.top, 8); left = rect.left - gap - width; }
+    else {
+      // the target fills the screen: sit at the edge with more room so most of it stays visible
+      const roomRight = vw - rect.right, roomLeft = rect.left;
+      left = roomRight >= roomLeft ? vw - width - 16 : 16;
+      top = vh - h - 16;
+    }
     left = Math.min(Math.max(8, left), vw - width - 8);
     top = Math.min(Math.max(8, top), vh - h - 8);
     setCardPos({ top, left, width });
@@ -261,7 +271,7 @@ export function TourHost({ tours, progress, ctx }: { tours: TourId[]; progress: 
       <div className="fixed inset-0 z-[69]" aria-hidden onClick={(e) => e.preventDefault()} />
       {spot ? (
         <div aria-hidden className="pointer-events-none fixed z-[70] rounded-xl ring-2 ring-lime transition-all duration-200"
-          style={{ ...spot, boxShadow: "0 0 0 9999px rgb(12 31 17 / 0.62)" }} />
+          style={{ ...spot, boxShadow: "0 0 0 4px rgb(255 255 255 / 0.85), 0 0 0 9999px rgb(12 31 17 / 0.62)" }} />
       ) : (
         <div aria-hidden className="pointer-events-none fixed inset-0 z-[70] bg-[rgb(12_31_17/0.62)]" />
       )}
