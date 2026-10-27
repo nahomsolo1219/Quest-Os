@@ -44,3 +44,12 @@ describe("tour progress", () => {
     });
   });
 });
+
+describe("demo accounts", () => {
+  it("the login page's one-tap list matches the seeded demo accounts", async () => {
+    const { DEMO_ACCOUNTS } = await import("../../src/lib/demo");
+    const { DEMO_TRY_ROLES } = await import("../seed");
+    const norm = (v: string) => v.replace(/^0/, "+251");
+    expect(DEMO_ACCOUNTS.map((a) => norm(a.login)).sort()).toEqual(DEMO_TRY_ROLES.map((r: { login: string }) => norm(r.login)).sort());
+  });
+});

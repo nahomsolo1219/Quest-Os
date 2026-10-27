@@ -1,6 +1,5 @@
 // Demo copy of the app (Railway service `demo`, DEMO_MODE=true). Production never sets DEMO_MODE,
 // so every demo-only path checks isDemoMode() and is a no-op or 404 without it.
-import "server-only";
 
 export function isDemoMode(): boolean {
   return process.env.DEMO_MODE === "true";
