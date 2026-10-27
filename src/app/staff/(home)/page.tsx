@@ -9,7 +9,7 @@ import { ToneBadge } from "@/components/ops/badges";
 import { requirePageActor, serviceCtx } from "@/server/session";
 import { todaySummary, todayTasks } from "@/server/services/ops";
 import { formatAddisDateTime, formatDate } from "@/domain/time";
-import { S } from "./strings";
+import { S } from "../strings";
 
 export const dynamic = "force-dynamic";
 

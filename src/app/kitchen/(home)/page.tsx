@@ -5,7 +5,7 @@ import { addDays, formatDate } from "@/domain/time";
 import { requirePageActor, serviceCtx } from "@/server/session";
 import { cookDays } from "@/server/services/kitchen";
 import { cn } from "@/lib/utils";
-import { S } from "./strings";
+import { S } from "../strings";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Kitchen" };

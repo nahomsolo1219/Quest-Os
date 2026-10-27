@@ -6,7 +6,7 @@ import { toCard } from "@/components/delivery/types";
 import { addisDate, formatDate } from "@/domain/time";
 import { requirePageActor, serviceCtx } from "@/server/session";
 import { dropsForDate } from "@/server/services/delivery";
-import { S } from "./strings";
+import { S } from "../strings";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "My drops" };

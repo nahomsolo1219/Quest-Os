@@ -13,7 +13,7 @@ import { todayForClient, todayHero } from "@/server/services/client-app";
 import { myRatings } from "@/server/services/ratings";
 import { formatBirr } from "@/domain/money";
 import { formatDate } from "@/domain/time";
-import { T } from "./strings";
+import { T } from "../strings";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Today" };

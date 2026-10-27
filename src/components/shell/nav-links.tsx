@@ -18,9 +18,12 @@ export const NAV_ICONS: Record<NavIcon, LucideIcon> = {
 
 /** Client pages that live under the Plan tab. */
 const PLAN_PAGES = ["/app/swaps", "/app/pause", "/app/payments", "/app/profile"];
+/** Kitchen sheets opened from Cook days. */
+const KITCHEN_SHEETS = ["/kitchen/production", "/kitchen/recipes", "/kitchen/packing", "/kitchen/labels"];
 
 export function isActive(pathname: string, href: string) {
   if (href === "/app/plan" && PLAN_PAGES.some((p) => pathname.startsWith(p))) return true;
+  if (href === "/kitchen" && KITCHEN_SHEETS.some((p) => pathname.startsWith(p))) return true;
   return href === "/staff" || href === "/kitchen" || href === "/app" || href === "/delivery" ? pathname === href : pathname.startsWith(href);
 }
 
