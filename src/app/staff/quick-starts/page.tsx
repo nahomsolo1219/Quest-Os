@@ -23,7 +23,7 @@ export default async function QuickStartsPage() {
   return (
     <div className="mx-auto max-w-5xl space-y-4">
       <PageHeader title={S.title} description={S.description(q.cutoffTime)} />
-      <Card>
+      <Card data-tour="quickstarts-capacity">
         <CardHeader><CardTitle>{S.capacityTitle}</CardTitle></CardHeader>
         <CardContent>
           {q.capacity.length === 0 ? <p className="text-sm text-muted-foreground">{S.capacityEmpty} Daily maximum: {q.dailyCapacity}.</p> : (
@@ -39,12 +39,13 @@ export default async function QuickStartsPage() {
           )}
         </CardContent>
       </Card>
+      <div data-tour={q.items.length === 0 ? "quickstarts-list" : undefined}>
       {q.items.length === 0 ? (
         <EmptyState title={S.emptyTitle} action={<Button asChild className="h-11"><Link href="/staff/clients">Open clients</Link></Button>}>{S.emptyBody}</EmptyState>
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
-          {q.items.map((i) => (
-            <Card key={i.subscriptionId}>
+          {q.items.map((i, n) => (
+            <Card key={i.subscriptionId} data-tour={n === 0 ? "quickstarts-list" : undefined}>
               <CardContent className="space-y-2 pt-6">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
@@ -65,6 +66,7 @@ export default async function QuickStartsPage() {
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 }

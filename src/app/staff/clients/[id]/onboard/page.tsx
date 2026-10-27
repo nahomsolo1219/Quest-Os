@@ -131,7 +131,7 @@ export default async function OnboardPage({ params, searchParams }: { params: Pr
   return (
     <div className="mx-auto max-w-3xl">
       <PageHeader title={`${W.title}: ${c.firstName} ${c.lastName}`} actions={<Button asChild variant="ghost" className="h-11"><Link href={`/staff/clients/${c.id}`}>Client page</Link></Button>} />
-      <ol className="mb-4 grid grid-cols-5 gap-1" aria-label="Steps">
+      <ol className="mb-4 grid grid-cols-5 gap-1" aria-label="Steps" data-tour="onboard-steps">
         {STEPS.map((s, i) => (
           <li key={s}>
             <Link href={href(s)} aria-current={s === step ? "step" : undefined}

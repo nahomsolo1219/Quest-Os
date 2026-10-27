@@ -18,6 +18,7 @@ export default async function NotificationsPage() {
   return (
     <div className="mx-auto max-w-3xl">
       <PageHeader title={S.title} description={S.description(unread)} actions={unread ? <MarkAllReadButton /> : null} />
+      <div data-tour="notifications-list">
       {items.length === 0 ? <EmptyState title={S.emptyTitle}>{S.emptyBody}</EmptyState> : (
         <ul className="divide-y rounded-xl border bg-card">
           {items.map((n) => (
@@ -36,6 +37,7 @@ export default async function NotificationsPage() {
           ))}
         </ul>
       )}
+      </div>
     </div>
   );
 }

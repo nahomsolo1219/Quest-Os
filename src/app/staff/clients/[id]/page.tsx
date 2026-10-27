@@ -74,7 +74,7 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
           <a href={`tel:${c.phone}`} className="underline-offset-2 hover:underline">{formatEthiopianPhone(c.phone)}</a>
           {c.leadSource ? <span>· {SOURCE_LABEL[c.leadSource]}</span> : null}
         </span>}
-        actions={canWrite && (!sub || c.status === "lead") ? <Button asChild className="h-11"><Link href={`/staff/clients/${c.id}/onboard`}>{S.onboard}</Link></Button> : null}
+        actions={canWrite && (!sub || c.status === "lead") ? <Button asChild className="h-11"><Link href={`/staff/clients/${c.id}/onboard`} data-tour="client-onboard">{S.onboard}</Link></Button> : null}
       />
 
       {d.conflicts.length ? (
@@ -92,8 +92,8 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
       ) : null}
 
       <Tabs defaultValue={defaultTab}>
-        <UnderlineTabsList>
-          {visibleTabs.map((k) => <UnderlineTabsTrigger key={k} value={k}>{S.tabs[k]}</UnderlineTabsTrigger>)}
+        <UnderlineTabsList data-tour="client-tabs">
+          {visibleTabs.map((k) => <UnderlineTabsTrigger key={k} value={k} data-tour={k === "plan" ? "client-plan" : k === "notes" ? "client-notes" : undefined}>{S.tabs[k]}</UnderlineTabsTrigger>)}
         </UnderlineTabsList>
 
         <TabsContent value="profile" className="mt-2">

@@ -9,7 +9,7 @@ export default async function NewLeadPage() {
   return (
     <div className="mx-auto max-w-2xl">
       <PageHeader title={S.newTitle} description={S.newDescription} />
-      <Card><CardContent className="pt-6"><LeadForm /></CardContent></Card>
+      <Card data-tour="newclient-form"><CardContent className="pt-6"><LeadForm /></CardContent></Card>
     </div>
   );
 }

@@ -29,7 +29,7 @@ export default async function TodayPage() {
         </div>
       ) : null}
 
-      <section aria-labelledby="todo-h" className="rounded-xl border bg-card shadow-sm">
+      <section aria-labelledby="todo-h" className="rounded-xl border bg-card shadow-sm" data-tour="today-todo">
         <div className="border-b px-4 py-3">
           <h2 id="todo-h" className="text-lg font-semibold">{S.todoTitle}</h2>
           {open.length ? <p className="text-sm text-muted-foreground">{S.todoHint}</p> : null}
@@ -59,7 +59,7 @@ export default async function TodayPage() {
         )}
       </section>
 
-      <Card>
+      <Card data-tour="today-cutoff">
         <CardHeader><CardTitle>{S.cutoffTitle(formatDate(t.nextWeek, "long"))}</CardTitle></CardHeader>
         <CardContent className="space-y-3">
           <Deadline cutoff={t.cutoff} now={ctx.now} verb={S.cutoffVerb} passedLabel={S.passed} className="text-base" />
@@ -69,14 +69,14 @@ export default async function TodayPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card data-tour="today-attention">
         <CardHeader><CardTitle>{S.attentionTitle}</CardTitle></CardHeader>
         <CardContent>
           {t.attention.length === 0 ? <EmptyState title={S.attentionEmpty} /> : (
             <ul className="divide-y">
               {t.attention.map((a, i) => (
                 <li key={`${a.clientId}-${i}`}>
-                  <Link href={`/staff/clients/${a.clientId}`} className="flex min-h-11 flex-wrap items-center justify-between gap-2 py-2 hover:bg-muted/50">
+                  <Link href={`/staff/clients/${a.clientId}`} data-tour={i === t.attention.findIndex((x) => x.reason.startsWith("Lead")) ? "today-lead" : undefined} className="flex min-h-11 flex-wrap items-center justify-between gap-2 py-2 hover:bg-muted/50">
                     <span className="font-medium">{a.name}</span>
                     <ToneBadge tone={a.tone}>{a.reason}</ToneBadge>
                   </Link>
