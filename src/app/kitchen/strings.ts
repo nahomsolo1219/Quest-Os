@@ -27,6 +27,7 @@ export const S = {
   stockTitle: "Stock count",
   stockDescription: "Count what is on the shelves. Enter the amount, or tap “Matches” when it equals what the app expects.",
   stockSaved: "Count saved",
+  stockReadOnly: "Kitchen or operations staff complete the count",
   wasteTitle: "Waste log",
   wasteDescription: "Log food thrown away. Waste reduces stock on hand.",
   wasteSaved: "Waste logged",

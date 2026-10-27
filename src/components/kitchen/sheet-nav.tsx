@@ -15,11 +15,11 @@ export type SheetKey = (typeof SHEETS)[number]["key"];
 export function SheetNav({ date, current }: { date: DateStr; current: SheetKey }) {
   return (
     <nav aria-label="Kitchen sheets" className="no-print mb-4 space-y-2">
-      <div className="flex flex-wrap items-center gap-2 text-sm">
-        <Link href="/kitchen" className="inline-flex min-h-11 items-center rounded-md px-2 font-medium text-primary underline-offset-4 hover:underline">← Cook days</Link>
+      <div className="flex flex-wrap items-center gap-1.5 text-sm sm:gap-2">
+        <Link href="/kitchen" className="inline-flex min-h-11 items-center rounded-md px-1 font-medium text-primary underline-offset-4 hover:underline sm:px-2">← Cook days</Link>
         <span className="flex-1" />
-        <Link href={`/kitchen/${current}/${addDays(date, -1)}`} className="inline-flex min-h-11 items-center rounded-md border px-3">← {formatDate(addDays(date, -1))}</Link>
-        <Link href={`/kitchen/${current}/${addDays(date, 1)}`} className="inline-flex min-h-11 items-center rounded-md border px-3">{formatDate(addDays(date, 1))} →</Link>
+        <Link href={`/kitchen/${current}/${addDays(date, -1)}`} className="inline-flex min-h-11 items-center rounded-md border bg-background px-2.5 hover:bg-muted sm:px-3">← {formatDate(addDays(date, -1))}</Link>
+        <Link href={`/kitchen/${current}/${addDays(date, 1)}`} className="inline-flex min-h-11 items-center rounded-md border bg-background px-2.5 hover:bg-muted sm:px-3">{formatDate(addDays(date, 1))} →</Link>
       </div>
       <div className="-mx-1 flex gap-1 overflow-x-auto px-1">
         {SHEETS.map((s) => (

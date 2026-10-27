@@ -21,8 +21,13 @@ test("production sheet for today matches the locked order meals and prints clean
   await page.goto(`/kitchen/production/${TODAY}`);
   await expect(page.getByRole("heading", { name: "Production sheet · Tuesday, 20 October 2026", level: 1 })).toBeVisible();
   await expect(page.getByText(`${n} meals for 8 clients`)).toBeVisible();
-  for (const slot of ["Breakfast", "Lunch", "Dinner", "Snack"]) await expect(page.getByRole("row").filter({ hasText: new RegExp(`^${slot}`) }).first()).toBeVisible();
-  await expect(page.getByRole("row").filter({ hasText: "Egg whites" }).first()).toContainText(/\d+ pc/);
+  // Phones get one card per part (grouped under a meal heading); md and up keep the table.
+  const phone = info.project.name === "phone";
+  for (const slot of ["Breakfast", "Lunch", "Dinner", "Snack"]) {
+    const group = phone ? page.getByRole("heading", { name: new RegExp(`^${slot}`) }) : page.getByRole("row").filter({ hasText: new RegExp(`^${slot}`) });
+    await expect(group.first()).toBeVisible();
+  }
+  await expect((phone ? page.getByRole("listitem") : page.getByRole("row")).filter({ hasText: "Egg whites" }).last()).toContainText(/\d+ pc/);
   await screenshot(page, "kitchen-production", info);
   await page.emulateMedia({ media: "print" });
   await expect(page.getByRole("button", { name: "Print" })).toBeHidden();
