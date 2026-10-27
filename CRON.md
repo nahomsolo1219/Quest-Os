@@ -62,3 +62,15 @@ From any machine with curl:
 ```
 curl -fsS -X POST -H "x-cron-secret: $CRON_SECRET" "$APP_URL/api/jobs/daily-quick-start"
 ```
+
+## Demo copy: nightly reset (`cron-demo-reset`)
+
+Only for the **demo** Railway service (`DEMO_MODE=true`, its own Postgres). The route answers **404** on any app without `DEMO_MODE=true`, so pointing it at production does nothing.
+
+`POST /api/jobs/demo-reset` (header `x-cron-secret`) wipes the demo database and reseeds it for today: demo staff and clients, a locked current week (production sheet, packing list, labels), today's drops in several states, receipts waiting, a quick start, swap requests, check-ins due, community posts and a report. Everyone's tour progress goes with it, so every guided tour starts fresh the next morning.
+
+| Service | Image | Start command | Cron (UTC) | Addis |
+| --- | --- | --- | --- | --- |
+| `cron-demo-reset` | `alpine:3.20` | `/bin/sh -c "wget -S -O- --header=\"x-cron-secret: $CRON_SECRET\" --post-data= \"$APP_URL/api/jobs/demo-reset\"; code=\$?; echo job-exit=\$code; exit \$code"` | `0 0 * * *` | Daily 03:00 |
+
+Variables on `cron-demo-reset`: `CRON_SECRET` = `${{demo.CRON_SECRET}}` and `APP_URL` = `https://${{demo.RAILWAY_PUBLIC_DOMAIN}}` (reference the **demo** app service, not `web`). Restart policy Never. A good run logs `HTTP/1.1 200 OK`, `{"ok":true,…}` and `job-exit=0`.

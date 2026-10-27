@@ -3,6 +3,8 @@ import { Inter } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { ServiceWorker } from "@/components/shell/service-worker";
 import "./globals.css";
+import { DemoBanner } from "@/components/demo/demo-banner";
+import { isDemoMode, realAppUrl } from "@/lib/demo";
 
 // Self-hosted at build time by next/font (no runtime call to Google).
 const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"], display: "swap", variable: "--font-inter" });
@@ -25,6 +27,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en" className={inter.variable}>
       <body className="min-h-dvh font-sans antialiased">
+        {isDemoMode() ? <DemoBanner realUrl={realAppUrl()} /> : null}
         {children}
         <Toaster richColors position="top-center" />
         <ServiceWorker />

@@ -7,6 +7,11 @@ export function telegramConfigured(): boolean {
 }
 
 export async function sendTelegram(chatId: string, text: string): Promise<TelegramResult> {
+  // Demo copy: nothing leaves the app; the message is logged instead (STAFF_TOUR.md Part B).
+  if (process.env.DEMO_MODE === "true") {
+    console.log(`[demo] Telegram not sent to ${chatId}: ${text.split("\n")[0].slice(0, 120)}`);
+    return "skipped";
+  }
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) return "skipped";
   try {
