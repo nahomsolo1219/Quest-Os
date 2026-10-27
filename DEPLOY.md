@@ -145,5 +145,13 @@ A second app service runs the same code for staff training, with its own Postgre
 | `APP_URL`, `BETTER_AUTH_URL` | `https://${{RAILWAY_PUBLIC_DOMAIN}}` of the demo service |
 | `DEMO_REAL_APP_URL` | optional: the real app's URL, linked from the demo banner |
 | `TELEGRAM_BOT_TOKEN` | leave empty (with `DEMO_MODE=true` nothing is sent anyway; messages are logged) |
+| `STORAGE_DRIVER` + `S3_*` | a demo bucket of its own (never production's), or `STORAGE_DRIVER=local`: the demo creates fake receipt images every night |
 
 Pre-deploy command: `npm run db:migrate && npm run db:seed` (with `DEMO_MODE=true` the seed adds the tour data for today on a fresh database). With `DEMO_MODE=true` the app shows a lime "Demo copy" banner, a "Try a role" one-tap sign-in on the login page, and logs instead of sending Telegram messages. Add the `cron-demo-reset` service from [CRON.md](CRON.md) so the data and everyone's tour progress reset every night at 03:00 Addis.
+
+**First deploy of this version on an existing demo database:** the pre-deploy seed skips data that is already there, so the tour data (locked week, receipts, quick starts, community report) and the coach account `coach@questmeals.demo` only appear after a reset. Run the reset once by hand after the deploy (or wait for 03:00 Addis):
+
+```
+curl -fsS -X POST -H "x-cron-secret: $DEMO_CRON_SECRET" "https://<demo-domain>/api/jobs/demo-reset"
+```
+
