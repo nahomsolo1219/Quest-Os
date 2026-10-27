@@ -17,6 +17,9 @@ const PLAN_TABLES = [
   "meal_ratings", "community_reports", "community_mutes",
 ];
 
+/** Added after PLAN section 3 (staff tour milestone): per-user tour progress, keyed by (user_id, tour_id). */
+const TOUR_TABLES = ["tour_progress"];
+
 const DEMO_TABLES = [
   "user", "clients", "subscriptions", "invoices", "payments", "weekly_orders", "checkins", "community_posts",
   "partner_contributions", "purchases", "stock_counts",
@@ -27,7 +30,7 @@ describe("schema", () => {
     const rows = await sql<{ table_name: string }[]>`
       select table_name from information_schema.tables where table_schema = 'public' and table_type = 'BASE TABLE'`;
     const names = rows.map((r) => r.table_name).sort();
-    expect(names).toEqual([...PLAN_TABLES].sort());
+    expect(names).toEqual([...PLAN_TABLES, ...TOUR_TABLES].sort());
   });
 
   it("uses uuid primary keys (settings keyed by text)", async () => {
@@ -37,8 +40,11 @@ describe("schema", () => {
       join information_schema.key_column_usage k on k.constraint_name = tc.constraint_name and k.table_schema = tc.table_schema
       join information_schema.columns c on c.table_schema = k.table_schema and c.table_name = k.table_name and c.column_name = k.column_name
       where tc.table_schema = 'public' and tc.constraint_type = 'PRIMARY KEY'`;
-    expect(rows).toHaveLength(PLAN_TABLES.length);
-    for (const r of rows) {
+    const tour = rows.filter((r) => r.table_name === "tour_progress").map((r) => r.column_name).sort();
+    expect(tour).toEqual(["tour_id", "user_id"]);
+    const plan = rows.filter((r) => r.table_name !== "tour_progress");
+    expect(plan).toHaveLength(PLAN_TABLES.length);
+    for (const r of plan) {
       if (r.table_name === "settings") {
         expect(r).toMatchObject({ column_name: "key", data_type: "text" });
         continue;
