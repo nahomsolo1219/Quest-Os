@@ -1,6 +1,6 @@
 // Check-ins, partner contributions, notifications, job runs, Telegram links (PLAN.md section 3).
 import { sql } from "drizzle-orm";
-import { check, date, index, integer, jsonb, numeric, pgTable, text, unique, uuid } from "drizzle-orm/pg-core";
+import { check, date, index, integer, jsonb, numeric, pgTable, primaryKey, text, unique, uuid } from "drizzle-orm/pg-core";
 import { createdAt, id, isDemo, timestamps, tstz } from "./_common";
 import { user } from "./auth";
 import { clients } from "./core";
@@ -88,3 +88,22 @@ export const telegramLinks = pgTable("telegram_links", {
   linkedAt: tstz("linked_at"),
   ...timestamps(),
 });
+
+/** Guided tour progress per staff user and tour (staff-tour milestone): resume on any device. */
+export const tourProgress = pgTable(
+  "tour_progress",
+  {
+    userId: uuid("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+    /** tour id, e.g. "owner", "kitchen" */
+    tourId: text("tour_id").notNull(),
+    /** index of the step reached (0-based) */
+    step: integer("step").notNull().default(0),
+    status: text("status").notNull().default("started"),
+    updatedAt: tstz("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.tourId] }),
+    check("tour_progress_status_chk", sql`${t.status} in ('started', 'completed', 'skipped')`),
+    check("tour_progress_step_chk", sql`${t.step} >= 0`),
+  ],
+);

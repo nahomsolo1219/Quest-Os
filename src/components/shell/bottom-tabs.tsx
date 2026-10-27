@@ -15,7 +15,7 @@ export function BottomTabs({ items }: { items: NavItem[] }) {
           const active = isActive(pathname, i.href);
           const Icon = i.icon ? NAV_ICONS[i.icon] : null;
           return (
-            <Link key={i.href} href={i.href} aria-current={active ? "page" : undefined}
+            <Link key={i.href} href={i.href} aria-current={active ? "page" : undefined} data-tour={i.icon ? `tab-${i.icon}` : undefined}
               className={cn("relative flex min-h-14 flex-col items-center justify-center gap-0.5 text-[11px] font-semibold",
                 active ? "text-primary" : "text-muted-foreground hover:text-foreground")}>
               {active ? <span aria-hidden className="absolute inset-x-5 top-0 h-0.5 rounded-full bg-lime" /> : null}

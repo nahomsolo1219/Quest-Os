@@ -50,6 +50,7 @@ export function NavLinks({ items, unread, onNavigate, tone = "light" }: {
                 key={i.href}
                 href={i.href}
                 onClick={onNavigate}
+                data-tour={i.icon ? `nav-${i.icon}` : undefined}
                 aria-current={on ? "page" : undefined}
                 className={cn(
                   "relative flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors",
