@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { timeLeftText as left } from "./time-left";
+import { timeLeftText as left } from "@/components/shell/time-left";
 
 /** Time left until an instant; updates every 30 s. Initial text comes from the server so it renders without JS. */
 export function Countdown({ to, initial, passedLabel }: { to: string; initial: string; passedLabel: string }) {

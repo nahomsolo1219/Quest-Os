@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ToneBadge } from "@/components/ops/badges";
 import { Countdown } from "@/components/ops/countdown";
-import { timeLeftText } from "@/components/ops/time-left";
+import { timeLeftText } from "@/components/shell/time-left";
 import { cn } from "@/lib/utils";
 import { requirePageActor, serviceCtx } from "@/server/session";
 import { todaySummary } from "@/server/services/ops";
