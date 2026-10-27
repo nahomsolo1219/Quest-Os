@@ -39,6 +39,27 @@ describe("job route", () => {
   });
 });
 
+describe("demo reset route", () => {
+  it("is 404 unless DEMO_MODE=true, then needs the cron secret (the reset itself: tour-data.test.ts)", async () => {
+    process.env.CRON_SECRET = "test-cron-secret";
+    const { POST } = await import("../../src/app/api/jobs/demo-reset/route");
+    const { NextRequest } = await import("next/server");
+    const req = (secret?: string) => new NextRequest("http://localhost/api/jobs/demo-reset", { method: "POST", headers: secret ? { "x-cron-secret": secret } : {} });
+    const before = process.env.DEMO_MODE;
+    try {
+      delete process.env.DEMO_MODE;
+      expect((await POST(req("test-cron-secret"))).status).toBe(404);
+      process.env.DEMO_MODE = "false";
+      expect((await POST(req("test-cron-secret"))).status).toBe(404);
+      process.env.DEMO_MODE = "true";
+      expect((await POST(req())).status).toBe(401);
+      expect((await POST(req("wrong"))).status).toBe(401);
+    } finally {
+      if (before === undefined) delete process.env.DEMO_MODE; else process.env.DEMO_MODE = before;
+    }
+  });
+});
+
 describe("jobs health", () => {
   it("reports the last run per job and flags jobs overdue by their schedule (JOB-FIX)", async () => {
     await inRollback(db, async (tx) => {
