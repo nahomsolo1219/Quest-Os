@@ -57,7 +57,7 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
           <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">{GROUP_LABEL[g] ?? g}</h2>
           {canWrite ? (
             <ul>
-              {sheet.lines.filter((l) => l.foodGroup === g).map((l) => <StockLine key={`${l.ingredientId}:${date}`} line={l} date={date} tour={l === sheet.lines[0] ? "stock-first-line" : undefined} />)}
+              {sheet.lines.filter((l) => l.foodGroup === g).map((l) => <StockLine key={`${l.ingredientId}:${date}`} line={l} date={date} />)}
             </ul>
           ) : (
             <ul>

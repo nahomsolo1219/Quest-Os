@@ -10,9 +10,9 @@ export const deliveryTour: TourDef = {
     {
       id: "my-drops",
       path: "/delivery",
-      target: "drops-list",
+      target: "drops-header",
       title: "My drops",
-      body: "Today's drops in route order: start at 1 and work down. The line at the top counts delivered, failed and still to go. The route is ready at 06:00.",
+      body: "Today's drops are listed below in route order: start at 1 and work down. This line counts delivered, failed and still to go. The route is ready at 06:00.",
     },
     {
       id: "drop",

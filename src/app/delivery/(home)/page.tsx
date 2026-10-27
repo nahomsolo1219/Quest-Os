@@ -17,14 +17,18 @@ export default async function RiderPage() {
   const today = addisDate(ctx.now);
   const { groups, counts } = await dropsForDate(ctx, today);
   const drops = groups.flatMap((g) => g.drops);
+  // Guided tour: the Delivered / Failed targets sit on the first drop still to do (or the first drop).
+  const tourDrop = Math.max(0, drops.findIndex((d) => d.status === "pending"));
   return (
     <div className="mx-auto max-w-xl">
-      <PageHeader title={S.riderTitle} description={<>{formatDate(today, "long")} · {counts.delivered} delivered · {counts.failed} failed · {counts.pending} to go</>}
-        actions={<Link href="/delivery/pickup" data-tour="drops-pickup-link" className="inline-flex h-11 items-center rounded-md border px-4 text-sm font-medium hover:bg-muted">Pick-up list</Link>} />
+      <div data-tour="drops-header">
+        <PageHeader title={S.riderTitle} description={<>{formatDate(today, "long")} · {counts.delivered} delivered · {counts.failed} failed · {counts.pending} to go</>}
+          actions={<Link href="/delivery/pickup" data-tour="drops-pickup-link" className="inline-flex h-11 items-center rounded-md border px-4 text-sm font-medium hover:bg-muted">Pick-up list</Link>} />
+      </div>
       <div data-tour="drops-list">
         {drops.length === 0 ? <EmptyState title={S.riderEmpty}>{S.riderEmptyBody}</EmptyState> : (
           <ol className="space-y-3">
-            {drops.map((d, i) => <RiderDropCard key={d.id} drop={toCard(d)} position={i + 1} />)}
+            {drops.map((d, i) => <RiderDropCard key={d.id} drop={toCard(d)} position={i + 1} tourButtons={i === tourDrop} />)}
           </ol>
         )}
       </div>

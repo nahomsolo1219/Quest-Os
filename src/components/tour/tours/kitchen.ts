@@ -20,7 +20,7 @@ export const kitchenTour: TourDef = {
       path: { hrefOf: "sheet-tab-production" },
       target: "production-first-meal",
       title: "Production sheet: what to cook",
-      body: "Every part of every meal, with the total to cook and the amount for each profile. Tick Done as each part is ready (the tick stays on this device only). Print puts the full table on paper.",
+      body: "Every part of every meal, with the total to cook and the amount for each profile (on a phone, open Per profile). Tick Done as each part is ready (the tick stays on this device only). Print puts the full table on paper.",
     },
     {
       id: "ingredients",
@@ -52,9 +52,9 @@ export const kitchenTour: TourDef = {
     {
       id: "stock",
       path: "/kitchen/stock",
-      target: "stock-first-line",
+      target: "stock-progress",
       title: "Stock count",
-      body: "Count what is on the shelves. Type the amount and Save, or tap Matches when it equals what the app expects. A reminder comes every Sunday at 17:00.",
+      body: "Count what is on the shelves, line by line below. Type the amount and Save, or tap Matches when it equals what the app expects. This bar shows how many are counted; a reminder comes every Sunday at 17:00.",
     },
     {
       id: "waste",

@@ -15,7 +15,7 @@ import { SLOT_TEXT, type DropCardData } from "./types";
 const REASONS = ["Not home", "Wrong address", "Refused", "Other"] as const;
 
 /** Rider view of one drop: tap to call, one tap delivered, failed with a reason picker. */
-export function RiderDropCard({ drop, position }: { drop: DropCardData; position: number }) {
+export function RiderDropCard({ drop, position, tourButtons = false }: { drop: DropCardData; position: number; tourButtons?: boolean }) {
   const [failing, setFailing] = useState(false);
   const [reason, setReason] = useState<string>("");
   const [other, setOther] = useState("");
@@ -54,10 +54,10 @@ export function RiderDropCard({ drop, position }: { drop: DropCardData; position
             <Phone aria-hidden className="size-5" /> Call {formatEthiopianPhone(drop.phone)}
           </a>
         ) : null}
-        <Button type="button" data-tour={position === 1 ? "drop-delivered" : undefined} className="h-12 bg-success text-base hover:bg-success/90 disabled:border disabled:border-success/30 disabled:bg-success-soft disabled:text-success disabled:opacity-100" disabled={pending || drop.status === "delivered"} onClick={delivered}>
+        <Button type="button" data-tour={tourButtons ? "drop-delivered" : undefined} className="h-12 bg-success text-base hover:bg-success/90 disabled:border disabled:border-success/30 disabled:bg-success-soft disabled:text-success disabled:opacity-100" disabled={pending || drop.status === "delivered"} onClick={delivered}>
           {drop.status === "delivered" ? "Delivered" : "Delivered ✓"}
         </Button>
-        <Button type="button" data-tour={position === 1 ? "drop-failed" : undefined} variant="outline" className="h-12 border-danger/30 text-base text-danger" disabled={pending} aria-expanded={failing}
+        <Button type="button" data-tour={tourButtons ? "drop-failed" : undefined} variant="outline" className="h-12 border-danger/30 text-base text-danger" disabled={pending} aria-expanded={failing}
           onClick={() => setFailing((f) => !f)}>Failed…</Button>
       </div>
       {failing ? (
