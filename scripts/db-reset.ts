@@ -1,4 +1,5 @@
-// npm run db:reset [-- --test] [--no-demo] [--today=YYYY-MM-DD]
+// npm run db:reset [-- --test] [--no-demo] [--today=YYYY-MM-DD] [--tour-data]
+// Tour data (demo copy) is added when DEMO_MODE=true or --tour-data is given.
 // Drops and recreates the public and drizzle schemas, applies migrations, seeds reference data (+ demo).
 import "./env";
 import { createDb } from "../db/client";
@@ -15,9 +16,11 @@ async function main() {
   await runMigrations(url);
   const { db, sql } = createDb(url, { max: 1 });
   try {
-    const result = await seedAll(db, { demo: !args.includes("--no-demo"), today });
+    const tourData = process.env.DEMO_MODE === "true" || args.includes("--tour-data");
+    const result = await seedAll(db, { demo: !args.includes("--no-demo"), today, tourData });
     console.log(`Reset ${new URL(url).pathname.slice(1)}: migrated, reference seeded, portions ${result.portions.inserted}` +
-      (result.demo ? `, demo ${JSON.stringify(result.demo)}` : ", no demo"));
+      (result.demo ? `, demo ${JSON.stringify(result.demo)}` : ", no demo") +
+      (result.tour ? `, tour ${JSON.stringify(result.tour)}` : ""));
   } finally {
     await sql.end({ timeout: 5 });
   }

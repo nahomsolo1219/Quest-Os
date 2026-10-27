@@ -36,7 +36,7 @@ export default async function RecipesPage({ params }: { params: Promise<{ date: 
           {cards.map((c, i) => (
             <KitchenSheet key={c.mealId} className={cn("print:rounded-xl print:border print:p-4", i > 0 && "print-break")}>
               <article aria-label={c.mealName}>
-                <header className="mb-4 print:mb-3">
+                <header className="mb-4 print:mb-3" data-tour={i === 0 ? "recipes-first-card" : undefined}>
                   <p className="text-sm font-semibold uppercase tracking-wide text-primary print:text-xs">{SLOT_LABEL[c.slot]}</p>
                   <h2 className="text-2xl font-bold print:text-xl">{c.mealName}</h2>
                   <p className="text-base text-muted-foreground print:text-sm">{c.description}</p>

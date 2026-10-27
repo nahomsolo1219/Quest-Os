@@ -32,7 +32,7 @@ export function LeadForm() {
     <form className="space-y-4" onSubmit={form.handleSubmit((v) => run(() => createLeadAction(v), {
       refresh: false, onDone: (d) => router.push(`/staff/clients/${d.id}`),
     }))}>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2" data-tour="newclient-form">
         <div className="space-y-1.5">
           <Label htmlFor="firstName">{S.firstName}</Label>
           <Input id="firstName" autoComplete="off" className="h-11" {...form.register("firstName")} />

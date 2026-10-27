@@ -16,7 +16,7 @@ export default async function ScheduleSettingsPage() {
   return (
     <div>
       <PageHeader title={S.tabs.schedule} description={S.scheduleIntro} />
-      <SettingsForm settingsKey="schedule" value={s.schedule} groups={SCHEDULE_FIELDS} save={saveScheduleAction} />
+      <SettingsForm settingsKey="schedule" value={s.schedule} groups={SCHEDULE_FIELDS} save={saveScheduleAction} tour="settings-schedule" />
     </div>
   );
 }

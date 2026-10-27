@@ -36,6 +36,13 @@
       "when": 1792417749376,
       "tag": "0004_invoice_period_uq_live",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793104084345,
+      "tag": "0005_tour_progress",
+      "breakpoints": true
     }
   ]
 }

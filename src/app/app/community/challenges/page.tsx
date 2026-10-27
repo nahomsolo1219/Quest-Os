@@ -35,10 +35,10 @@ export default async function ChallengesPage() {
       {data.challenges.length === 0 ? (
         <EmptyState title={S.emptyChallenges}>{v.coach ? "Create one from Staff → Community → Coach tools." : S.emptyChallengesBody}</EmptyState>
       ) : (
-        <ul className="space-y-3">
+        <ul className="space-y-3" data-tour="challenges-list">
           {data.challenges.map((c) => (
             <li key={c.id}>
-              <Link href={`/app/community/challenges/${c.id}`}
+              <Link href={`/app/community/challenges/${c.id}`} data-tour="challenge-open"
                 className={cn("flex min-h-11 items-center gap-3 rounded-2xl border bg-card p-4 hover:bg-accent", c.state === "active" && "border-l-4 border-l-lime", c.state === "ended" && "opacity-70")}>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">

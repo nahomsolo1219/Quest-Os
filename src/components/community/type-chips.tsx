@@ -12,7 +12,7 @@ const CHIPS = [
 /** Feed filter chips: All, Questions, Progress, Announcements (links, no client JS). */
 export function TypeChips({ active }: { active: string | null }) {
   return (
-    <nav aria-label="Filter posts" className="-mx-4 mb-4 flex gap-2 overflow-x-auto px-4 pb-1 [mask-image:linear-gradient(to_right,#000_calc(100%-2rem),transparent)] sm:[mask-image:none]">
+    <nav aria-label="Filter posts" data-tour="community-filters" className="-mx-4 mb-4 flex gap-2 overflow-x-auto px-4 pb-1 [mask-image:linear-gradient(to_right,#000_calc(100%-2rem),transparent)] sm:[mask-image:none]">
       {CHIPS.map((c) => {
         const on = (c.key ?? null) === active;
         return (

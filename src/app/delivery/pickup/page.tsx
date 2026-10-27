@@ -18,9 +18,11 @@ export default async function PickupPage() {
   return (
     <div className="mx-auto max-w-xl">
       <PageHeader title={S.pickupTitle} description={<>{formatDate(today, "long")} · {counts.delivered} of {counts.total} handed over. {S.pickupDescription}</>} />
-      {drops.length === 0 ? <EmptyState title={S.pickupEmpty}>{S.pickupEmptyBody}</EmptyState> : (
-        <ul className="divide-y rounded-xl border bg-card">{drops.map((d) => <PickupRow key={d.id} drop={toCard(d)} />)}</ul>
-      )}
+      <div data-tour="pickup-list">
+        {drops.length === 0 ? <EmptyState title={S.pickupEmpty}>{S.pickupEmptyBody}</EmptyState> : (
+          <ul className="divide-y rounded-xl border bg-card">{drops.map((d, i) => <PickupRow key={d.id} drop={toCard(d)} first={i === 0} />)}</ul>
+        )}
+      </div>
     </div>
   );
 }

@@ -28,7 +28,7 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6">
       <PageHeader title={S.title} description={S.intro(`${MONTHS[Number(m) - 1]} ${y}`)} />
-      <section aria-label={S.clients} className="space-y-2">
+      <section aria-label={S.clients} className="space-y-2" data-tour="dashboard-kpis">
         <h2 className="text-lg font-semibold">{S.clients}</h2>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <Stat label={S.active} value={k.activeClients} />
@@ -37,7 +37,7 @@ export default async function DashboardPage() {
           <Stat label={S.mrr} value={formatBirr(k.mrr)} />
         </div>
       </section>
-      <section aria-label={S.money} className="space-y-2">
+      <section aria-label={S.money} className="space-y-2" data-tour="dashboard-money">
         <h2 className="text-lg font-semibold">{S.money}</h2>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <div>
@@ -67,7 +67,7 @@ export default async function DashboardPage() {
       </section>
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <CardHeader><CardTitle>{S.attention} ({d.attention.length})</CardTitle></CardHeader>
+          <CardHeader data-tour="dashboard-attention"><CardTitle>{S.attention} ({d.attention.length})</CardTitle></CardHeader>
           <CardContent>
             {d.attention.length === 0 ? <EmptyState title={S.attentionEmpty} /> : (
               <ul className="divide-y">

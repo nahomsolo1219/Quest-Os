@@ -35,23 +35,23 @@ export default async function ProductionPage({ params }: { params: Promise<{ dat
       <KitchenSheet>
         <PageHeader title={`${S.production} · ${formatDate(date, "long")}`}
           description={sheet.mealsCount ? <span className="text-base print:text-sm">{sheet.mealsCount} meals for {sheet.clientsCount} clients{sheet.quickStartMeals ? <> · includes {sheet.quickStartMeals} quick-start meals ({sheet.quickStartClients} clients)</> : null}</span> : undefined}
-          actions={sheet.mealsCount ? <PrintButton /> : null} />
+          actions={sheet.mealsCount ? <PrintButton tour="production-print" /> : null} />
         {sheet.mealsCount === 0 ? (
           <EmptyState title={S.emptyDay}>{S.emptyDayBody}</EmptyState>
         ) : (
           <>
             {/* Phones: one card per part, grouped by meal. */}
             <PhoneCards label={S.production}>
-              {meals.map((m) => (
+              {meals.map((m, mi) => (
                 <li key={m.mealId}>
                   <h2 className="mb-2 text-lg font-bold leading-snug">
                     <span className="mr-1 text-sm font-semibold uppercase tracking-wide text-primary">{SLOT_LABEL[m.slot]}</span>{" "}{m.mealName}
                   </h2>
                   <ul className="divide-y rounded-xl border">
-                    {sheet.rows.filter((r) => r.mealId === m.mealId).map((r) => {
+                    {sheet.rows.filter((r) => r.mealId === m.mealId).map((r, ri) => {
                       const portions = r.perProfile.reduce((n, c) => n + c.count, 0);
                       return (
-                        <li key={`${r.partName}|${r.unit}`} className="flex items-start gap-2 p-3 has-[input:checked]:bg-success-soft">
+                        <li key={`${r.partName}|${r.unit}`} data-tour={mi === 0 && ri === 0 ? "production-first-meal" : undefined} className="flex items-start gap-2 p-3 has-[input:checked]:bg-success-soft">
                           <TickBox id={tickId(r)} label={`Done: ${r.partName}`} className="-ml-2 -mt-1" />
                           <div className="min-w-0 flex-1">
                             <div className="flex items-start justify-between gap-2">
@@ -90,7 +90,7 @@ export default async function ProductionPage({ params }: { params: Promise<{ dat
                     <th scope="col" className={cn(CELL, "text-right")}>Total</th>
                   </tr>
                 </thead>
-                {meals.map((m) => {
+                {meals.map((m, mi) => {
                   const rows = sheet.rows.filter((r) => r.mealId === m.mealId);
                   return (
                     <tbody key={m.mealId} className="print-avoid-break border-t">
@@ -102,8 +102,8 @@ export default async function ProductionPage({ params }: { params: Promise<{ dat
                           </span>
                         </th>
                       </tr>
-                      {rows.map((r) => (
-                        <tr key={`${r.partName}|${r.unit}`} className="border-t align-top has-[input:checked]:bg-success-soft">
+                      {rows.map((r, ri) => (
+                        <tr key={`${r.partName}|${r.unit}`} data-tour={mi === 0 && ri === 0 ? "production-first-meal" : undefined} className="border-t align-top has-[input:checked]:bg-success-soft">
                           <td className={cn("py-1 pr-3 pl-1 print:p-2", STICKY, "has-[input:checked]:bg-success-soft")}>
                             <div className="flex items-center gap-1 print:gap-1.5">
                               <TickBox id={tickId(r)} label={`Done: ${r.partName}`} />
@@ -131,7 +131,7 @@ export default async function ProductionPage({ params }: { params: Promise<{ dat
             </WideTable>
 
             <section className="mt-8 print-break print:mt-6">
-              <h2 className="text-xl font-bold print:text-lg">{S.ingredientTotals}</h2>
+              <h2 className="text-xl font-bold print:text-lg" data-tour="production-ingredients">{S.ingredientTotals}</h2>
               <p className="mb-3 text-base text-muted-foreground print:mb-2 print:text-sm">{S.ingredientTotalsBody}</p>
               <ul aria-label={S.ingredientTotals} className="divide-y rounded-xl border md:hidden print:hidden">
                 {sheet.ingredients.map((i) => (

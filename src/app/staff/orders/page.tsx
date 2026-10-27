@@ -35,14 +35,14 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   return (
     <div className="mx-auto max-w-6xl">
       <PageHeader title={S.title} description={S.description} />
-      <nav className="mb-4 grid grid-cols-2 items-center gap-2 sm:flex sm:flex-wrap" aria-label="Week">
+      <nav className="mb-4 grid grid-cols-2 items-center gap-2 sm:flex sm:flex-wrap" aria-label="Week" data-tour="orders-week">
         <p className="col-span-2 text-center font-semibold sm:order-2 sm:min-w-40 sm:flex-1">{S.weekOf(formatDate(week, "long"))}</p>
         <Button asChild variant="outline" className="h-11 sm:order-1"><Link href={`/staff/orders?week=${addDays(week, -7)}`}>← {S.prev}</Link></Button>
         <Button asChild variant="outline" className="h-11 sm:order-3"><Link href={`/staff/orders?week=${addDays(week, 7)}`}>{S.next} →</Link></Button>
         {week !== upcoming ? <Button asChild variant="ghost" className="col-span-2 h-11 sm:order-4"><Link href="/staff/orders">{S.thisWeek}</Link></Button> : null}
       </nav>
 
-      <div className={`mb-4 rounded-xl border p-4 ${r.locked ? TONE_PANEL.good : TONE_PANEL.warn}`}>
+      <div className={`mb-4 rounded-xl border p-4 ${r.locked ? TONE_PANEL.good : TONE_PANEL.warn}`} data-tour="orders-lock-now">
         <p className="font-semibold">{r.locked ? S.lockedTitle : S.previewTitle}</p>
         <p className="text-sm">{r.locked ? S.lockedBody(lockedAt ? formatAddisDateTime(lockedAt) : "") : S.previewBody(formatAddisDateTime(r.cutoff))}</p>
         {!r.locked && r.cutoffPassed ? <p className="mt-1 text-sm font-medium text-danger">{S.cutoffPassedNotLocked}</p> : null}
@@ -56,6 +56,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
         <Stat label={S.colConflicts} value={conflictRows} tone={conflictRows ? "bad" : "default"} />
       </div>
 
+      <div data-tour="orders-list">
       {r.rows.length === 0 ? <EmptyState title={S.emptyTitle} action={<Button asChild className="h-11"><Link href="/staff/clients">Open clients</Link></Button>}>{S.emptyBody}</EmptyState> : (
         <ResponsiveTable label={S.weekOf(formatDate(week, "long"))} rows={r.rows} rowKey={(row) => row.clientId} minWidth={760}
           rowClassName={(row) => (row.conflicts.length ? "border-danger/30 bg-danger-soft" : undefined)}
@@ -75,6 +76,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
             { key: "conflicts", header: S.colConflicts, card: "key", className: "min-w-56", cell: (row) => row.conflicts.length ? <ConflictList conflicts={row.conflicts} /> : <span className="text-muted-foreground">{S.none}</span> },
           ]} />
       )}
+      </div>
     </div>
   );
 }

@@ -31,9 +31,11 @@ export default async function PaymentsPage() {
   return (
     <div className="mx-auto max-w-3xl">
       <PageHeader title={S.title} description={S.description} />
-      {cards.length === 0 ? <EmptyState title={S.emptyTitle}>{S.emptyBody}</EmptyState> : (
-        <div className="space-y-3">{cards.map((c) => <PaymentCard key={c.paymentId} p={c} />)}</div>
-      )}
+      <div data-tour="payments-queue">
+        {cards.length === 0 ? <EmptyState title={S.emptyTitle}>{S.emptyBody}</EmptyState> : (
+          <div className="space-y-3">{cards.map((c) => <PaymentCard key={c.paymentId} p={c} />)}</div>
+        )}
+      </div>
     </div>
   );
 }

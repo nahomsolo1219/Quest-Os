@@ -40,7 +40,7 @@ export default async function StaffDeliveryPage({ searchParams }: { searchParams
       <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
         <Stat label="Drops" value={counts.total} />
         <Stat label="Delivered" value={counts.delivered} tone="good" />
-        <Stat label="Failed" value={counts.failed} tone={counts.failed ? "bad" : "default"} />
+        <div data-tour="route-failed"><Stat label="Failed" value={counts.failed} tone={counts.failed ? "bad" : "default"} className="h-full" /></div>
         <Stat label="Pending" value={counts.pending} />
       </div>
       {pickups.drops.length ? (
@@ -48,10 +48,12 @@ export default async function StaffDeliveryPage({ searchParams }: { searchParams
           Pick-ups at the cafe: {pickups.counts.delivered} of {pickups.counts.total} handed over · <Link href="/delivery/pickup" className="text-primary underline">Pick-up list</Link>
         </p>
       ) : null}
-      {counts.total === 0 ? <EmptyState title={S.empty}>{S.emptyBody}</EmptyState> : (
-        <RouteBoard key={date} date={date} canManage={canManage} riders={riderList}
-          groups={groups.map((g) => ({ areaId: g.areaId, areaName: g.areaName, drops: g.drops.map(toCard) }))} />
-      )}
+      <div data-tour="route-board">
+        {counts.total === 0 ? <EmptyState title={S.empty}>{S.emptyBody}</EmptyState> : (
+          <RouteBoard key={date} date={date} canManage={canManage} riders={riderList}
+            groups={groups.map((g) => ({ areaId: g.areaId, areaName: g.areaName, drops: g.drops.map(toCard) }))} />
+        )}
+      </div>
     </div>
   );
 }

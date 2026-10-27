@@ -17,7 +17,7 @@ export default async function SwapTablePage() {
     <div className="space-y-4">
       <PageHeader title={S.tabs.swaps} description={S.swapsIntro} />
       {t.rules.length === 0 ? <EmptyState title="The swap table is empty.">Add the first rule below.</EmptyState> : (
-        <div className="space-y-3">{t.rules.map((r) => <SwapRuleRow key={r.id} rule={r} canEdit={t.canEdit} />)}</div>
+        <div className="space-y-3">{t.rules.map((r, i) => <div key={r.id} data-tour={i === 0 ? "settings-swaps" : undefined}><SwapRuleRow rule={r} canEdit={t.canEdit} /></div>)}</div>
       )}
       {t.canEdit ? (
         <Card>

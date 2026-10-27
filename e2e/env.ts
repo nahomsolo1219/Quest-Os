@@ -2,6 +2,9 @@
 import path from "node:path";
 
 export const E2E_DB_URL = process.env.DATABASE_URL_E2E ?? "postgres://postgres:postgres@localhost:54329/questmeals_e2e";
+/** Second e2e server: same build and database, DEMO_MODE=true (e2e/demo.spec.ts only). */
+export const DEMO_PORT = Number(process.env.E2E_DEMO_PORT ?? 3101);
+export const DEMO_URL = `http://localhost:${DEMO_PORT}`;
 export const AUTH_DIR = path.resolve(__dirname, ".auth");
 export const STAFF_PASSWORD = "QuestDemo2026!";
 export const CLIENT_PASSWORD = "Client2026!";
@@ -14,6 +17,8 @@ export const LOGINS = {
   nutritionist: { who: "nutritionist@questmeals.demo", password: STAFF_PASSWORD },
   kitchen: { who: "kitchen@questmeals.demo", password: STAFF_PASSWORD },
   rider: { who: "rider@questmeals.demo", password: STAFF_PASSWORD },
+  /** coach only (Selam, D608): created by e2e global setup, not by the base demo seed */
+  coach: { who: "coach@questmeals.demo", password: STAFF_PASSWORD },
   client: { who: "0911000001", password: CLIENT_PASSWORD },
   client2: { who: "0911000002", password: CLIENT_PASSWORD },
   client5: { who: "0911000005", password: CLIENT_PASSWORD },

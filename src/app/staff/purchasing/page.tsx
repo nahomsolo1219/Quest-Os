@@ -40,8 +40,8 @@ export default async function PurchasingPage({ searchParams }: { searchParams: P
   return (
     <div className="mx-auto max-w-5xl">
       <PageHeader title={S.title} description={S.description} />
-      <UnderlineTabNav label="Purchasing sections"
-        items={(Object.keys(S.tabs) as Tab[]).map((t) => ({ key: t, href: href(t), label: S.tabs[t], active: t === tab }))} />
+      <div data-tour="purchasing-tabs"><UnderlineTabNav label="Purchasing sections"
+        items={(Object.keys(S.tabs) as Tab[]).map((t) => ({ key: t, href: href(t), label: S.tabs[t], active: t === tab }))} /></div>
       {tab === "shopping" ? <Shopping ctx={ctx} week={week} /> : null}
       {tab === "topup" ? <TopUp ctx={ctx} date={topup} /> : null}
       {tab === "log" ? <PurchaseLog ctx={ctx} today={today} canWrite={canWrite} /> : null}
@@ -81,7 +81,7 @@ async function Shopping({ ctx, week }: { ctx: Ctx; week: string }) {
   const toBuy = list.lines.filter((l) => l.buyQty > 0).length;
   return (
     <section aria-labelledby="shopping-h">
-      <div className="mb-3 flex flex-wrap items-center gap-2">
+      <div className="mb-3 flex flex-wrap items-center gap-2" data-tour="purchasing-shopping">
         <h2 id="shopping-h" className="mr-auto text-lg font-bold">Week of {formatDate(list.weekStart, "long")}</h2>
         <Link href={`/staff/purchasing?tab=shopping&week=${addDays(list.weekStart, -7)}`} className="no-print inline-flex h-11 items-center rounded-md border px-3 text-sm">← Previous week</Link>
         <Link href={`/staff/purchasing?tab=shopping&week=${addDays(list.weekStart, 7)}`} className="no-print inline-flex h-11 items-center rounded-md border px-3 text-sm">Next week →</Link>
@@ -124,7 +124,7 @@ async function PurchaseLog({ ctx, today, canWrite }: { ctx: Ctx; today: string; 
   const [ingredients, log] = await Promise.all([stockIngredients(ctx), purchaseLog(ctx)]);
   return (
     <section aria-labelledby="log-h" className="space-y-4">
-      {canWrite ? <PurchaseForm ingredients={ingredients} today={today} /> : <p className="text-sm text-muted-foreground">Only operations log purchases.</p>}
+      {canWrite ? <div data-tour="purchasing-record"><PurchaseForm ingredients={ingredients} today={today} /></div> : <p className="text-sm text-muted-foreground">Only operations log purchases.</p>}
       <h2 id="log-h" className="text-lg font-bold">Purchase log</h2>
       {log.length === 0 ? <EmptyState title={S.logEmpty}>{S.logEmptyBody}</EmptyState> : (
         <ResponsiveTable label="Purchase log" rows={log} rowKey={(p) => p.id} minWidth={680} columns={[

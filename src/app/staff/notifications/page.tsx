@@ -18,10 +18,11 @@ export default async function NotificationsPage() {
   return (
     <div className="mx-auto max-w-3xl">
       <PageHeader title={S.title} description={S.description(unread)} actions={unread ? <MarkAllReadButton /> : null} />
-      {items.length === 0 ? <EmptyState title={S.emptyTitle}>{S.emptyBody}</EmptyState> : (
+      <div>
+      {items.length === 0 ? <div data-tour="notifications-list"><EmptyState title={S.emptyTitle}>{S.emptyBody}</EmptyState></div> : (
         <ul className="divide-y rounded-xl border bg-card">
-          {items.map((n) => (
-            <li key={n.id} className={cn("flex flex-wrap items-start gap-3 p-3", !n.readAt && "bg-primary/5")}>
+          {items.map((n, i) => (
+            <li key={n.id} data-tour={i === 0 ? "notifications-list" : undefined} className={cn("flex flex-wrap items-start gap-3 p-3", !n.readAt && "bg-primary/5")}>
               <span aria-hidden className={cn("mt-2 size-2 shrink-0 rounded-full", n.readAt ? "bg-transparent" : "bg-primary")} />
               <div className="min-w-0 flex-1">
                 <p className="font-medium">{!n.readAt ? <span className="sr-only">{S.unread}: </span> : null}{n.title}</p>
@@ -36,6 +37,7 @@ export default async function NotificationsPage() {
           ))}
         </ul>
       )}
+      </div>
     </div>
   );
 }

@@ -12,7 +12,11 @@ import { S } from "@/app/staff/clients/strings";
 
 const columns: ColumnDef<ClientListRow, unknown>[] = [
   // the name column also carries both phone spellings so the search box finds 0911… and +251911…
-  { id: "name", accessorFn: (r) => `${r.name} 0${r.phone.slice(4)} ${r.phone}`, header: S.colName, cell: ({ row }) => <span className="font-medium">{row.original.name}</span> },
+  { id: "name", accessorFn: (r) => `${r.name} 0${r.phone.slice(4)} ${r.phone}`, header: S.colName, cell: ({ row }) => (
+    // a real link too, so the guided tour can follow "open a client" (first active client)
+    <Link href={`/staff/clients/${row.original.id}`} onClick={(e) => e.stopPropagation()} data-tour={row.original.status === "active" ? "clients-first-row" : undefined}
+      className="inline-flex min-h-11 items-center font-medium underline-offset-2 hover:underline">{row.original.name}</Link>
+  ) },
   { accessorKey: "status", header: S.colStatus, cell: ({ row }) => <ClientStatusBadge status={row.original.status} />, filterFn: equalsFilter },
   { accessorKey: "payment", header: S.colPayment, cell: ({ row }) => <PaymentBadge state={row.original.payment} />, filterFn: equalsFilter },
   { id: "plan", accessorFn: (r) => r.packageName ?? "—", header: S.colPlan, filterFn: equalsFilter,
@@ -32,6 +36,7 @@ export function ClientsTable({ rows, areas, plans }: { rows: ClientListRow[]; ar
       data={rows}
       columns={columns}
       searchPlaceholder={S.search}
+      searchTour="clients-search"
       onRowHref={(r) => `/staff/clients/${r.id}`}
       filters={[
         { columnId: "status", label: S.filterStatus, options: [["lead", "Lead"], ["active", "Active"], ["paused", "Paused"], ["ended", "Ended"]].map(([value, label]) => ({ value, label })) },

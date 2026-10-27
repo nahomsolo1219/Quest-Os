@@ -17,7 +17,7 @@ function AreaRow({ area, first, last }: { area: { id: string; name: string; acti
   const { pending, run } = useAction();
   const id = `area-${area.id}`;
   return (
-    <li className="flex flex-wrap items-center gap-2 py-2">
+    <li className="flex flex-wrap items-center gap-2 py-2" data-tour={first ? "settings-areas" : undefined}>
       <div className="flex gap-1">
         <Button type="button" variant="outline" size="icon" className="size-11" aria-label={`Move ${area.name} up`} disabled={first || pending}
           onClick={() => run(() => moveAreaAction({ id: area.id, direction: "up" }))}>↑</Button>

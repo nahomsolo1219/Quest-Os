@@ -17,7 +17,7 @@ import { T } from "./strings";
 
 export const dynamic = "force-dynamic";
 
-export default async function StaffCommunityPage() {
+export default async function StaffCommunityPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const actor = await requirePageActor("owner", "operations", "coach");
   const ctx = await serviceCtx(actor);
   const powers = communityPowers(actor.roles);
@@ -29,13 +29,16 @@ export default async function StaffCommunityPage() {
   ]);
   const today = addisDate(ctx.now);
   const weekEnd = addDays(weekStartOf(today), 6);
-  const first = powers.moderate ? "reports" : "coach";
+  // ?tab=coach|reports|hidden|members opens that tab (links from the guided tour); otherwise the first one this person has
+  const { tab } = await searchParams;
+  const allowed = [...(powers.moderate ? ["reports", "hidden", "members"] : []), ...(powers.pin ? ["coach"] : [])];
+  const first = tab && allowed.includes(tab) ? tab : powers.moderate ? "reports" : "coach";
 
   return (
     <div>
       <PageHeader title={T.title} description={T.intro} actions={<Button asChild variant="outline" className="h-11"><Link href="/app/community">{T.openFeed}</Link></Button>} />
-      <Tabs defaultValue={first}>
-        <UnderlineTabsList>
+      <Tabs key={first} defaultValue={first}>
+        <UnderlineTabsList data-tour="community-tabs">
           {powers.moderate ? (
             <>
               <UnderlineTabsTrigger value="reports">{T.tabs.reports}{reports.length ? ` (${reports.length})` : ""}</UnderlineTabsTrigger>
@@ -48,7 +51,7 @@ export default async function StaffCommunityPage() {
 
         {powers.moderate ? (
           <>
-            <TabsContent value="reports" className="mt-4">
+            <TabsContent value="reports" className="mt-4" data-tour="community-reports">
               {reports.length === 0 ? <EmptyState title={T.reportsEmpty}>{T.reportsEmptyBody}</EmptyState> : (
                 <ul className="space-y-3">
                   {reports.map((r) => (
@@ -102,22 +105,22 @@ export default async function StaffCommunityPage() {
 
         {powers.pin ? (
           <TabsContent value="coach" className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <Card className="min-w-0">
+            <Card className="min-w-0" data-tour="community-challenge">
               <CardHeader><CardTitle>{T.challengeTitle}</CardTitle></CardHeader>
               <CardContent><ChallengeForm today={today} weekEnd={weekEnd < today ? today : weekEnd} /></CardContent>
             </Card>
-            <Card className="min-w-0">
+            <Card className="min-w-0" data-tour="community-announce">
               <CardHeader><CardTitle>{T.announceTitle}</CardTitle></CardHeader>
               <CardContent><AnnouncementForm /></CardContent>
             </Card>
-            <Card className="min-w-0 lg:col-span-2">
+            <Card className="min-w-0 lg:col-span-2" data-tour="community-pin">
               <CardHeader><CardTitle>{T.pinTitle}</CardTitle></CardHeader>
               <CardContent>
                 {recent.length === 0 ? <EmptyState title={T.pinEmpty}>{T.pinEmptyBody}</EmptyState> : (
                   <ul className="divide-y">
                     {recent.map((p) => (
                       <li key={p.id} className="flex items-center justify-between gap-2 py-2">
-                        <Link href={`/app/community/${p.id}`} className="min-w-0 flex-1 hover:underline">
+                        <Link href={`/app/community/${p.id}`} data-tour="community-pin-post" className="min-w-0 flex-1 hover:underline">
                           <p className="text-xs text-muted-foreground">{p.author.name} · {p.when}{p.pinned ? " · Pinned" : ""}</p>
                           <p className="truncate text-sm">{p.body}</p>
                         </Link>

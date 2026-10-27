@@ -1524,5 +1524,145 @@
     "description": "Railway crons run on alpine:3.20 with a working wget start command (CRON.md/DEPLOY.md); GET /api/jobs/health shows the last run per job and overdue jobs; owner Dashboard Scheduled jobs card",
     "test": "db/tests/jobs.test.ts, e2e/ui-refresh.spec.ts",
     "status": "passing"
+  },
+  {
+    "id": "TOUR-01",
+    "module": "tour",
+    "description": "On a staff member's first sign-in the tour for their role starts by itself; someone with several roles gets the first (owner before coach) and the menu lists every tour they can take",
+    "test": "e2e/tour.spec.ts",
+    "status": "passing"
+  },
+  {
+    "id": "TOUR-02",
+    "module": "tour",
+    "description": "Take the tour in the staff user menu (sidebar footer at 1280, menu sheet on phones) restarts a tour at any time; a chip shows n of m while it runs",
+    "test": "e2e/tour.spec.ts",
+    "status": "passing"
+  },
+  {
+    "id": "TOUR-03",
+    "module": "tour",
+    "description": "Each step spotlights a real element with a title, 1-3 sentences and Back / Next / Skip tour; steps move between pages, wait for their target and are skipped when it is missing",
+    "test": "e2e/tour.spec.ts",
+    "status": "passing"
+  },
+  {
+    "id": "TOUR-04",
+    "module": "tour",
+    "description": "Works at 390 and 1280: bottom/top sheet on phones that never covers the target; the menu sheet opens for steps that point into it",
+    "test": "e2e/tour.spec.ts",
+    "status": "passing"
+  },
+  {
+    "id": "TOUR-05",
+    "module": "tour",
+    "description": "Keyboard: Esc closes, arrows move, focus stays in the step card; screen readers get the step text (aria-live)",
+    "test": "e2e/tour.spec.ts",
+    "status": "passing"
+  },
+  {
+    "id": "TOUR-06",
+    "module": "tour",
+    "description": "Progress is saved per user and tour (tour_progress) so a tour resumes on another device; only the person's own rows for their own tours",
+    "test": "db/tests/tour.test.ts",
+    "status": "passing"
+  },
+  {
+    "id": "TOUR-07",
+    "module": "tour",
+    "description": "Every tour starts with a welcome and How a Quest week works, and ends with Your week (what the role does each day/week, with links, and how to replay)",
+    "test": "e2e/tour.spec.ts",
+    "status": "passing"
+  },
+  {
+    "id": "TOUR-08",
+    "module": "tour",
+    "description": "Owner tour: Dashboard KPIs and Scheduled jobs, Today, clients, payments, weekly orders, settings, partners, community moderation, change log",
+    "test": "e2e/tour.spec.ts",
+    "status": "passing"
+  },
+  {
+    "id": "TOUR-09",
+    "module": "tour",
+    "description": "Operations tour: Today, new lead, onboarding, payments queue, quick starts, weekly orders, purchasing, delivery board, pick-up list, notifications",
+    "test": "e2e/tour.spec.ts",
+    "status": "passing"
+  },
+  {
+    "id": "TOUR-10",
+    "module": "tour",
+    "description": "Nutritionist tour: intake, a client's targets and consultations, profile table, check-ins due, swap approvals, Settings > Nutrition",
+    "test": "e2e/tour.spec.ts",
+    "status": "passing"
+  },
+  {
+    "id": "TOUR-11",
+    "module": "tour",
+    "description": "Kitchen tour: cook days, production sheet, recipes, packing list, labels, stock count, waste log",
+    "test": "e2e/tour.spec.ts",
+    "status": "passing"
+  },
+  {
+    "id": "TOUR-12",
+    "module": "tour",
+    "description": "Rider tour: my drops, a drop, Delivered / Failed and Undo, hand over, pick-up list (no data changes)",
+    "test": "e2e/tour.spec.ts",
+    "status": "passing"
+  },
+  {
+    "id": "TOUR-13",
+    "module": "tour",
+    "description": "Coach tour: feed, coach posts, challenges, pin, reports (moderation only for those who can), progress, leaderboard",
+    "test": "e2e/tour.spec.ts",
+    "status": "passing"
+  },
+  {
+    "id": "TOUR-14",
+    "module": "tour",
+    "description": "Screenshots of every step for every role at 390 and 1280 in docs/screenshots/tour/<role>/",
+    "test": "docs/screenshots/tour",
+    "status": "passing"
+  },
+  {
+    "id": "DEMO-01",
+    "module": "demo",
+    "description": "DEMO_MODE=true shows a Fresh-Lime 'Demo copy' banner on every page; nothing without it",
+    "test": "e2e/demo.spec.ts",
+    "status": "passing"
+  },
+  {
+    "id": "DEMO-02",
+    "module": "demo",
+    "description": "Try a role on the login page signs in as any demo account with one tap (DEMO_MODE=true only)",
+    "test": "e2e/demo.spec.ts",
+    "status": "passing"
+  },
+  {
+    "id": "DEMO-03",
+    "module": "demo",
+    "description": "With DEMO_MODE=true Telegram and other outbound sends are logged, not sent",
+    "test": "src/server/telegram.ts",
+    "status": "passing"
+  },
+  {
+    "id": "DEMO-04",
+    "module": "demo",
+    "description": "POST /api/jobs/demo-reset (x-cron-secret) wipes and reseeds the demo database for today; 404 unless DEMO_MODE=true; documented as cron-demo-reset",
+    "test": "db/tests/jobs.test.ts, db/tests/tour-data.test.ts, e2e/demo.spec.ts",
+    "status": "passing"
+  },
+  {
+    "id": "DEMO-05",
+    "module": "demo",
+    "description": "The nightly reset also resets everyone's tour progress so tours start fresh",
+    "test": "db/tests/tour-data.test.ts",
+    "status": "passing"
+  },
+  {
+    "id": "DEMO-06",
+    "module": "demo",
+    "description": "The demo seed (tour data) gives every tour step something real today: locked week with sheets, drops in several states, receipts, quick starts, swaps, check-ins due, community posts and a report, a coach account",
+    "test": "db/tests/tour-data.test.ts",
+    "status": "passing"
   }
 ]

@@ -38,8 +38,8 @@ export default async function CommunityPage({ searchParams }: { searchParams: Pr
     <div>
       <PageHeader title={S.title} description={S.intro} actions={
         <>
-          <Button asChild variant="outline" className="h-11"><Link href="/app/community/challenges"><Trophy className="size-4" aria-hidden />{S.challenges}</Link></Button>
-          {v.canPost ? <Button asChild className="h-11"><Link href="/app/community/new"><Plus className="size-4" aria-hidden />{S.newPost}</Link></Button> : null}
+          <Button asChild variant="outline" className="h-11"><Link href="/app/community/challenges" data-tour="community-challenges"><Trophy className="size-4" aria-hidden />{S.challenges}</Link></Button>
+          {v.canPost ? <Button asChild className="h-11"><Link href="/app/community/new" data-tour="community-new-post"><Plus className="size-4" aria-hidden />{S.newPost}</Link></Button> : null}
         </>
       } />
       <AccessBanner viewer={v} mutedLabel={v.mutedUntil ? formatAddisDateTime(new Date(v.mutedUntil)) : null} />

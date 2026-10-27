@@ -2,8 +2,12 @@ import Link from "next/link";
 import { Logo } from "@/components/shell/logo";
 import { LoginForm } from "./login-form";
 import { S } from "./strings";
+import { TryARole } from "@/components/demo/try-a-role";
+import { DEMO_ACCOUNTS, isDemoMode } from "@/lib/demo";
 
 export const metadata = { title: "Sign in" };
+// DEMO_MODE is read per request (the demo copy shares the production build).
+export const dynamic = "force-dynamic";
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
   const { next } = await searchParams;
@@ -15,6 +19,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         <h1 className="mt-4 text-2xl font-bold tracking-tight text-primary">{S.title}</h1>
         <p className="mt-1 text-sm text-muted-foreground">{S.intro}</p>
       </div>
+      {isDemoMode() ? <TryARole accounts={DEMO_ACCOUNTS} /> : null}
       <div className="rounded-2xl border bg-card p-4 shadow-sm sm:p-6">
         <LoginForm next={safeNext} />
       </div>
