@@ -238,8 +238,10 @@ export function TourHost({ tours, progress, ctx }: { tours: TourId[]; progress: 
   }, [phase, rect, run?.step]);
 
   // Focus the card on each step; keyboard: Esc closes, arrows move, Tab stays inside the card.
+  // Wait until the card is placed: before that it is `invisible` and cannot take focus.
+  const placed = cardPos !== null;
   useEffect(() => {
-    if (phase !== "show" || !run) return;
+    if (phase !== "show" || !run || !placed) return;
     const card = cardRef.current;
     card?.querySelector<HTMLElement>("[data-tour-primary]")?.focus({ preventScroll: true });
     const onKey = (e: KeyboardEvent) => {
@@ -256,7 +258,7 @@ export function TourHost({ tours, progress, ctx }: { tours: TourId[]; progress: 
     };
     document.addEventListener("keydown", onKey, true);
     return () => document.removeEventListener("keydown", onKey, true);
-  }, [phase, run, total, goTo, close]);
+  }, [phase, run, total, goTo, close, placed]);
 
   if (!run || !step || !def) return null;
   const last = run.step === total - 1;
