@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { setIngredientNutritionAction, setPriceAction } from "@/app/staff/settings/actions";
 import { useAction } from "./use-action";
+import { StatusBadge } from "@/components/shell/status-badge";
 
 const priceSchema = z.object({
   costPerUnitBirr: z.number().int("Price: whole birr only.").positive("Price must be above 0.").nullable(),
@@ -48,7 +49,7 @@ export function IngredientRow({ ing, canPrice, canSupplier, canNutrition }: { in
       <div className="flex flex-wrap items-center gap-2">
         <h3 className="font-semibold">{ing.name}</h3>
         <Badge variant="outline" className="capitalize">{ing.foodGroup}</Badge>
-        {ing.needsPrice && ing.costPerUnitBirr === null ? <Badge className="bg-amber-100 text-amber-900" variant="secondary">Price missing</Badge> : null}
+        {ing.needsPrice && ing.costPerUnitBirr === null ? <StatusBadge tone="warn">Price missing</StatusBadge> : null}
         {!ing.needsPrice ? <Badge variant="secondary">Costed as eggs</Badge> : null}
       </div>
       <div className="grid gap-3 lg:grid-cols-2">
@@ -76,7 +77,7 @@ export function IngredientRow({ ing, canPrice, canSupplier, canNutrition }: { in
           {canNutrition ? <Button type="button" variant="outline" className="h-11" disabled={pending} onClick={saveNut}>Save {basis}</Button> : <span className="pb-3 text-xs text-muted-foreground">{basis}</span>}
         </div>
       </div>
-      {error ? <p role="alert" className="text-sm text-red-700">{error}</p> : null}
+      {error ? <p role="alert" className="text-sm text-danger">{error}</p> : null}
       {ing.history.length ? (
         <p className="text-xs text-muted-foreground">Price history: {ing.history.map((h) => `${h.cost} ETB (${h.source}, ${h.at}${h.by ? `, ${h.by}` : ""})`).join(" · ")}</p>
       ) : null}

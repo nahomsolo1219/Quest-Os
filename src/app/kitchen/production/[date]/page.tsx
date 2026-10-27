@@ -52,7 +52,7 @@ export default async function ProductionPage({ params }: { params: Promise<{ dat
                     {rows.map((r) => (
                       <tr key={`${r.partName}|${r.unit}`} className="border-t align-top">
                         <td className="p-2">
-                          <span className={r.partName.includes("→") || r.partName.startsWith("Extra") ? "font-semibold text-amber-800" : ""}>{r.partName}</span>
+                          <span className={r.partName.includes("→") || r.partName.startsWith("Extra") ? "font-semibold text-warning" : ""}>{r.partName}</span>
                           {r.quickStartCount > 0 ? <Badge variant="secondary" className="ml-2">QS {r.quickStartCount}</Badge> : null}
                         </td>
                         {sheet.profiles.map((p) => {

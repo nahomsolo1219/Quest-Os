@@ -7,7 +7,30 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  /* Inter SemiBold for headings: bold and heavier map to the brand weights */
+  --font-weight-bold: 600;
+  --font-weight-extrabold: 700;
+  --font-weight-black: 700;
+  --color-forest: var(--forest);
+  --color-lime: var(--lime);
+  --color-mist: var(--mist);
+  --color-oat: var(--oat);
+  --color-charcoal: var(--charcoal);
+  --color-sage: var(--sage);
+  --color-sage-ink: var(--sage-ink);
+  --color-tangerine: var(--tangerine);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-paused: var(--paused);
+  --color-paused-soft: var(--paused-soft);
+  --color-promo: var(--promo);
+  --color-promo-foreground: var(--promo-foreground);
+  --color-sidebar-muted: var(--sidebar-muted);
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -44,84 +67,117 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
+/* Quest brand (docs/brand guideline): Deep Forest #11301A, Fresh Lime #8BC53F, Morning Mist #F3F9EB,
+   Oat #E4DFD0, Charcoal #2E3830, Sage #7F9473, Tangerine #F28C28 (promotions only).
+   Text pairs are AA-checked in src/lib/brand.test.ts; tints are adjusted, never the brand hexes. */
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: #c2410c;
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: #525252;
-  --accent: #fff7ed;
-  --accent-foreground: #9a3412;
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: #ea580c;
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --forest: #11301A;
+  --lime: #8BC53F;
+  --mist: #F3F9EB;
+  --oat: #E4DFD0;
+  --charcoal: #2E3830;
+  --sage: #7F9473;
+  --sage-ink: #56664D; /* Sage darkened for text (Sage itself is 3.1:1 on Mist) */
+  --tangerine: #F28C28;
+
+  --background: var(--mist);
+  --foreground: var(--charcoal);
+  --card: #FFFFFF;
+  --card-foreground: var(--charcoal);
+  --popover: #FFFFFF;
+  --popover-foreground: var(--charcoal);
+  --primary: var(--forest);
+  --primary-foreground: #FFFFFF;
+  --secondary: var(--oat);
+  --secondary-foreground: var(--charcoal);
+  --muted: #EBF2E1;
+  --muted-foreground: var(--sage-ink);
+  --accent: #E4F1D2;
+  --accent-foreground: var(--forest);
+  --destructive: #B42318;
+  --border: #D8E1CC;
+  --input: #C3CFB5;
+  --ring: var(--lime);
+  --chart-1: var(--forest);
+  --chart-2: var(--lime);
+  --chart-3: var(--sage);
+  --chart-4: #B8AE93;
+  --chart-5: var(--tangerine);
+  --sidebar: var(--forest);
+  --sidebar-foreground: var(--mist);
+  --sidebar-muted: #B7C9AC;
+  --sidebar-primary: var(--lime);
+  --sidebar-primary-foreground: var(--forest);
+  --sidebar-accent: #1D4527;
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: rgb(255 255 255 / 0.12);
+  --sidebar-ring: var(--lime);
+
+  /* Status (StatusBadge): word + colour, never colour alone */
+  --success: #1E6B30;
+  --success-soft: #E3F2D9;
+  --warning: #8A4A00;
+  --warning-soft: #FDF0D4;
+  --danger: #A3201B;
+  --danger-soft: #FCE5E3;
+  --paused: #4F5F46;
+  --paused-soft: var(--oat);
+  --promo: var(--tangerine);
+  --promo-foreground: var(--forest);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: #0C1F11;
+  --foreground: var(--mist);
+  --card: #15291A;
+  --card-foreground: var(--mist);
+  --popover: #15291A;
+  --popover-foreground: var(--mist);
+  --primary: var(--lime);
+  --primary-foreground: var(--forest);
+  --secondary: #24382A;
+  --secondary-foreground: var(--mist);
+  --muted: #1C3022;
+  --muted-foreground: #A9B89F;
+  --accent: #1E3A24;
+  --accent-foreground: var(--mist);
+  --destructive: #F0705F;
+  --border: rgb(255 255 255 / 0.12);
+  --input: rgb(255 255 255 / 0.18);
+  --ring: var(--lime);
+  --chart-1: var(--lime);
+  --chart-2: #C7E39F;
+  --chart-3: var(--sage);
+  --chart-4: var(--oat);
+  --chart-5: var(--tangerine);
+  --sidebar: #0A1A0E;
+  --sidebar-foreground: var(--mist);
+  --sidebar-muted: #A9B89F;
+  --sidebar-primary: var(--lime);
+  --sidebar-primary-foreground: var(--forest);
+  --sidebar-accent: #1E3A24;
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: rgb(255 255 255 / 0.1);
+  --sidebar-ring: var(--lime);
+  --success: #9FD98A;
+  --success-soft: #163A20;
+  --warning: #F5C26B;
+  --warning-soft: #3A2C10;
+  --danger: #F59A90;
+  --danger-soft: #3D1714;
+  --paused: #C9C3B2;
+  --paused-soft: #2C3329;
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
-    @apply border-border outline-ring/50;
   }
   body {
     @apply bg-background text-foreground;
-    @apply bg-background text-foreground;
   }
+  h1, h2, h3, h4 { font-weight: 600; }
 }
 /* Quest Meals additions */
 @layer base {
@@ -130,7 +186,9 @@
 }
 
 /* Large numbers for macros and money */
-.stat-number { font-variant-numeric: tabular-nums; font-weight: 800; letter-spacing: -0.02em; }
+.stat-number { font-variant-numeric: tabular-nums; font-weight: 600; letter-spacing: -0.02em; }
+/* Macros, money and counts line up in tables and lists */
+.tabular, table, [data-slot="status-badge"] { font-variant-numeric: tabular-nums; }
 
 /* Print: A4 sheets and label sheets. Anything with .no-print disappears. */
 @page { size: A4; margin: 12mm; }

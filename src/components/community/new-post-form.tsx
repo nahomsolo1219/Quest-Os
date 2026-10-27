@@ -98,7 +98,7 @@ export function NewPostForm({ coach, progressText, maxPhotos, maxEdge, initialTy
         <Label htmlFor="body">{S.bodyLabel}</Label>
         <Textarea id="body" rows={6} maxLength={2000} placeholder={S.bodyPlaceholder} {...form.register("body")} />
         <div className="flex justify-between text-xs text-muted-foreground">
-          <span className="text-red-700">{form.formState.errors.body?.message}</span>
+          <span className="text-danger">{form.formState.errors.body?.message}</span>
           <span>{S.chars(len, 2000)}</span>
         </div>
       </div>

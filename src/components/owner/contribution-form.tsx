@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
+import { ConfirmButton } from "@/components/shell/confirm-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -30,7 +31,7 @@ export function ContributionForm({ partners, today }: { partners: { id: string; 
   const form = useForm<In, unknown, Out>({ resolver: zodResolver(schema), defaultValues: empty });
   const { register, handleSubmit, watch, formState: { errors } } = form;
   const type = watch("type");
-  const err = (m?: string) => (m ? <p className="text-sm text-red-700">{m}</p> : null);
+  const err = (m?: string) => (m ? <p className="text-sm text-danger">{m}</p> : null);
   return (
     <form className="space-y-3" onSubmit={handleSubmit((v) => run(() => addContributionAction({ ...v, amountBirr: v.amountBirr as number | null, hours: v.hours as number | null }),
       () => form.reset({ ...empty, partnerUserId: v.partnerUserId })))}>
@@ -81,7 +82,13 @@ export function ContributionForm({ partners, today }: { partners: { id: string; 
 export function DeleteContribution({ id }: { id: string }) {
   const { pending, run } = useAction();
   return (
-    <Button type="button" variant="ghost" size="sm" className="h-11 text-red-700" disabled={pending}
-      onClick={() => { if (window.confirm("Remove this entry from the log?")) run(() => deleteContributionAction({ id })); }}>Remove</Button>
+    <ConfirmButton
+      trigger={<Button type="button" variant="ghost" size="sm" className="h-11 text-danger" disabled={pending}>Remove</Button>}
+      title="Remove this entry from the log?"
+      description="The contribution disappears from the partner totals. This cannot be undone."
+      confirmLabel="Remove"
+      destructive
+      onConfirm={() => run(() => deleteContributionAction({ id }))}
+    />
   );
 }

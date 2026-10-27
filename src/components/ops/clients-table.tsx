@@ -21,7 +21,7 @@ const columns: ColumnDef<ClientListRow, unknown>[] = [
   { accessorKey: "phone", header: S.colPhone, cell: ({ row }) => <span className="whitespace-nowrap">{formatEthiopianPhone(row.original.phone)}</span>, enableGlobalFilter: false },
   { id: "delivery", accessorFn: (r) => (r.deliveryOption ? DELIVERY_LABEL[r.deliveryOption] : "—"), header: S.colDelivery, enableGlobalFilter: false },
   { accessorKey: "profile", header: S.colProfile, enableGlobalFilter: false,
-    cell: ({ row }) => row.original.profile ? <span className="whitespace-nowrap">{row.original.profile}{row.original.provisional ? <span className="ml-1 text-xs text-amber-700">({S.provisional})</span> : null}</span> : "—" },
+    cell: ({ row }) => row.original.profile ? <span className="whitespace-nowrap">{row.original.profile}{row.original.provisional ? <span className="ml-1 text-xs text-warning">({S.provisional})</span> : null}</span> : "—" },
 ];
 
 export function ClientsTable({ rows, areas, plans }: { rows: ClientListRow[]; areas: string[]; plans: string[] }) {

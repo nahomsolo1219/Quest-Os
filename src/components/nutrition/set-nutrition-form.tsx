@@ -37,7 +37,7 @@ export function SetNutritionForm({ clientId, defaults, suggestion, presets, help
     setValue("kcalTarget", p.kcal); setValue("proteinG", p.proteinG); setValue("carbG", p.carbG); setValue("fatG", p.fatG);
   };
   const num = { valueAsNumber: true } as const;
-  const err = (m?: string) => (m ? <p className="text-sm text-red-700">{m}</p> : null);
+  const err = (m?: string) => (m ? <p className="text-sm text-danger">{m}</p> : null);
 
   return (
     <form className="space-y-4" onSubmit={handleSubmit((v) => run(() => setNutritionAction({ clientId, ...v }), () => form.reset(v)))}>

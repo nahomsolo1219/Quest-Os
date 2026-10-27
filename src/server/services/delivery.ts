@@ -185,3 +185,31 @@ export async function markFailed(ctx: Ctx, dropId: string, reason: string) {
   });
   return row;
 }
+
+/** How long after marking a drop the same status can be undone (the UI offers ~8 s; this allows for slow networks). */
+export const UNDO_WINDOW_MS = 2 * 60 * 1000;
+
+/**
+ * Undo a just-made "Delivered", "Handed over" or "Failed": the drop goes back to pending.
+ * Same access as marking it (today's drops; riders only their own or unassigned), and only
+ * within UNDO_WINDOW_MS of the last change, so it cannot rewrite older history.
+ */
+export async function undoDropStatus(ctx: Ctx, dropId: string) {
+  const drop = await loadDropForUpdate(ctx, dropId);
+  if (drop.status === "pending") return drop;
+  if (ctx.now.getTime() - drop.updatedAt.getTime() > UNDO_WINDOW_MS) {
+    throw new ServiceError("Too late to undo. Mark the drop again with the right status.");
+  }
+  const [row] = await ctx.db.update(deliveryDrops).set({ status: "pending", failedReason: null, deliveredAt: null, updatedAt: ctx.now })
+    .where(eq(deliveryDrops.id, dropId)).returning();
+  if (drop.status === "failed") {
+    const [c] = await ctx.db.select({ firstName: clients.firstName, lastName: clients.lastName }).from(clients).where(eq(clients.id, drop.clientId));
+    const ops = await userIdsWithRoles(ctx.db, ["operations"]);
+    await notify(ctx.db, {
+      userIds: ops, kind: "delivery.failed", title: `Drop no longer failed: ${c ? `${c.firstName} ${c.lastName}` : "client"}`,
+      body: `${formatDate(drop.dropDate)} · the rider undid "failed"; the drop is pending again.`, link: `/staff/delivery?date=${drop.dropDate}`,
+      dedupeKey: `drop-undo:${drop.id}:${ctx.now.getTime()}`,
+    });
+  }
+  return row;
+}

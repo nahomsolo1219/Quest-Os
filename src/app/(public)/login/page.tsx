@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Logo } from "@/components/shell/logo";
 import { LoginForm } from "./login-form";
 import { S } from "./strings";
 
@@ -10,8 +11,8 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   return (
     <main className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center gap-6 p-6">
       <div>
-        <Link href="/" className="inline-flex min-h-11 items-center text-2xl font-extrabold text-primary">Quest Meals</Link>
-        <h1 className="mt-4 text-xl font-bold">{S.title}</h1>
+        <Link href="/" aria-label="Quest Meals home" className="inline-flex"><Logo variant="full" height={72} priority /></Link>
+        <h1 className="mt-6 text-xl font-bold">{S.title}</h1>
       </div>
       <LoginForm next={safeNext} />
       <p className="text-sm text-muted-foreground">

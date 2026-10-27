@@ -18,7 +18,7 @@ const challengeSchema = z.object({
   endsOn: z.string().min(1, "Pick an end date."),
 }).refine((v) => v.endsOn >= v.startsOn, { message: "The end date must be on or after the start date.", path: ["endsOn"] });
 
-const err = (m?: string) => (m ? <p className="text-sm text-red-700">{m}</p> : null);
+const err = (m?: string) => (m ? <p className="text-sm text-danger">{m}</p> : null);
 
 export function ChallengeForm({ today, weekEnd }: { today: string; weekEnd: string }) {
   const form = useForm<z.infer<typeof challengeSchema>>({ resolver: zodResolver(challengeSchema), defaultValues: { title: "", question: "", startsOn: today, endsOn: weekEnd } });

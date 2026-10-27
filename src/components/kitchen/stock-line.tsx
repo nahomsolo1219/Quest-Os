@@ -37,10 +37,10 @@ export function StockLine({ line, date }: { line: StockLineData; date: string })
   });
 
   return (
-    <li className={cn("flex flex-wrap items-end gap-2 border-b px-1 py-3", counted && "bg-emerald-50/60")}>
+    <li className={cn("flex flex-wrap items-end gap-2 border-b px-1 py-3", counted && "bg-success-soft/60")}>
       <div className="min-w-0 basis-full sm:basis-auto sm:flex-1">
         <Label htmlFor={id} className="text-base font-semibold">
-          {counted ? <Check aria-label="Counted" className="size-4 text-emerald-700" /> : null}{line.name}
+          {counted ? <Check aria-label="Counted" className="size-4 text-success" /> : null}{line.name}
         </Label>
         <p className="text-sm text-muted-foreground">Expected {units(line.expectedUnits, line.unit)}</p>
       </div>

@@ -18,7 +18,7 @@ function CountTile({ label, value, href, tone }: { label: string; value: number;
   return (
     <Link href={href} className="rounded-xl border bg-card p-3 transition-colors hover:bg-muted">
       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className={cn("stat-number mt-1 text-3xl", value > 0 && tone === "bad" && "text-red-700", value > 0 && tone === "warn" && "text-amber-700")}>{value}</p>
+      <p className={cn("stat-number mt-1 text-3xl", value > 0 && tone === "bad" && "text-danger", value > 0 && tone === "warn" && "text-warning")}>{value}</p>
     </Link>
   );
 }
@@ -32,8 +32,8 @@ export default async function TodayPage() {
       <PageHeader title={S.title} description={formatDate(t.today, "long")} />
 
       {t.lockDue ? (
-        <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-xl border-2 border-red-300 bg-red-50 p-4">
-          <p className="font-semibold text-red-800">{S.lockMissing(formatDate(t.lockedWeek, "long"))}</p>
+        <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-xl border-2 border-danger/30 bg-danger-soft p-4">
+          <p className="font-semibold text-danger">{S.lockMissing(formatDate(t.lockedWeek, "long"))}</p>
           <Button asChild className="h-11"><Link href={`/staff/orders?week=${t.lockedWeek}`}>{S.openOrders}</Link></Button>
         </div>
       ) : null}

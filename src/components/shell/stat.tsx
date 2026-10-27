@@ -8,7 +8,7 @@ export function Stat({ label, value, unit, tone, className }: {
     <div className={cn("rounded-xl border bg-card p-3", className)}>
       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
       <p className={cn("stat-number mt-1 text-2xl",
-        tone === "good" && "text-emerald-700", tone === "warn" && "text-amber-700", tone === "bad" && "text-red-700")}>
+        tone === "good" && "text-success", tone === "warn" && "text-warning", tone === "bad" && "text-danger")}>
         {value}
         {unit ? <span className="ml-1 text-sm font-semibold text-muted-foreground">{unit}</span> : null}
       </p>

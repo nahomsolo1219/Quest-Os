@@ -1,4 +1,3 @@
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { AddonButton, AddSwapButton, CustomSwapForm, EndSwapButton } from "@/components/client/swap-controls";
@@ -7,6 +6,7 @@ import { mySwaps } from "@/server/services/client-app";
 import { formatBirr } from "@/domain/money";
 import { formatAddisDateTime, formatDate } from "@/domain/time";
 import { SLOT_LABELS, T } from "../strings";
+import { StatusBadge } from "@/components/shell/status-badge";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Swaps" };
@@ -38,7 +38,7 @@ export default async function SwapsPage() {
                 <div className="min-w-0">
                   <p className="font-semibold">{c.label}</p>
                   <p className="text-xs text-muted-foreground">
-                    <Badge variant={c.status === "approved" ? "default" : "secondary"} className="mr-1">{T.swaps.status[c.status]}</Badge>
+                    <StatusBadge status={c.status} className="mr-1">{T.swaps.status[c.status]}</StatusBadge>
                     {T.swaps.from(formatDate(c.effectiveWeekStart))}{c.endedWeekStart ? ` · ${T.swaps.until(formatDate(c.endedWeekStart))}` : ""}
                   </p>
                 </div>
@@ -64,11 +64,11 @@ export default async function SwapsPage() {
                 <p className="font-medium">{r.label}</p>
                 <p className="text-xs text-muted-foreground">{r.extraCost ? T.swaps.extraCost : T.swaps.free}</p>
               </div>
-              {r.standing ? <span className="text-xs font-semibold text-emerald-700">{T.swaps.standing}</span> : <AddSwapButton ruleId={r.id} disabled={full} />}
+              {r.standing ? <span className="text-xs font-semibold text-success">{T.swaps.standing}</span> : <AddSwapButton ruleId={r.id} disabled={full} />}
             </li>
           ))}
         </ul>
-        {full ? <p className="text-sm text-amber-800">Your {s.packageName} plan allows {s.swapLimit} standing swaps. End one to add another.</p> : null}
+        {full ? <p className="text-sm text-warning">Your {s.packageName} plan allows {s.swapLimit} standing swaps. End one to add another.</p> : null}
       </section>
 
       <section className="space-y-2 rounded-2xl border bg-card p-4">

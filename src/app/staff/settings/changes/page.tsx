@@ -51,7 +51,7 @@ export default async function ChangeLogPage({ searchParams }: { searchParams: Pr
                 {changes.length ? (
                   <ul className="mt-2 space-y-0.5 text-xs">
                     {changes.slice(0, 12).map((c) => (
-                      <li key={c.key} className="break-all"><span className="font-medium">{c.key}</span>: <span className="text-red-700 line-through">{c.from}</span> → <span className="text-emerald-800">{c.to}</span></li>
+                      <li key={c.key} className="break-all"><span className="font-medium">{c.key}</span>: <span className="text-danger line-through">{c.from}</span> → <span className="text-success">{c.to}</span></li>
                     ))}
                     {changes.length > 12 ? <li className="text-muted-foreground">and {changes.length - 12} more</li> : null}
                   </ul>

@@ -14,6 +14,7 @@ import { clientNutrition } from "@/server/services/nutrition";
 import { displayName } from "@/domain/format";
 import { addisDate, addisTime, formatAddisDateTime, formatDate } from "@/domain/time";
 import { S } from "../../strings";
+import { StatusBadge } from "@/components/shell/status-badge";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Client nutrition" };
@@ -55,7 +56,7 @@ export default async function ClientNutritionPage({ params }: { params: Promise<
       <PageHeader title={displayName(c.firstName, c.lastName)}
         description={<>
           {d.subscription ? `${d.subscription.pkg} · ` : ""}{c.status}
-          {cur?.provisional ? <Badge className="ml-2 bg-amber-100 text-amber-900" variant="secondary">{S.provisional}</Badge> : null}
+          {cur?.provisional ? <StatusBadge tone="warn" className="ml-2">{S.provisional}</StatusBadge> : null}
           {cur?.isOverride ? <Badge className="ml-2" variant="outline">{S.override}</Badge> : null}
         </>}
         actions={<Link href={`/staff/clients/${c.id}`} className="inline-flex min-h-11 items-center rounded-md border px-3 text-sm font-medium hover:bg-muted">Full client record</Link>} />
@@ -67,7 +68,7 @@ export default async function ClientNutritionPage({ params }: { params: Promise<
             <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
               {statRows.map(([k, v]) => (<div key={k}><dt className="text-muted-foreground">{k}</dt><dd className="font-medium">{v}</dd></div>))}
             </dl>
-            {sug ? <p className="mt-3 text-sm text-muted-foreground">BMR {sug.bmr} · TDEE {sug.tdee} · goal-adjusted {sug.targetKcal} kcal → nearest size {sug.size} ({sug.sizeKcal} kcal)</p> : <p className="mt-3 text-sm text-amber-800">{S.noStats}</p>}
+            {sug ? <p className="mt-3 text-sm text-muted-foreground">BMR {sug.bmr} · TDEE {sug.tdee} · goal-adjusted {sug.targetKcal} kcal → nearest size {sug.size} ({sug.sizeKcal} kcal)</p> : <p className="mt-3 text-sm text-warning">{S.noStats}</p>}
           </CardContent>
         </Card>
         <Card>
@@ -80,7 +81,7 @@ export default async function ClientNutritionPage({ params }: { params: Promise<
                   <TableRow key={r.label}>
                     <TableCell className="font-medium">{r.label}</TableCell>
                     <TableCell className="tabular-nums">{r.s}</TableCell>
-                    <TableCell className={`tabular-nums font-semibold ${cur && r.s !== r.v ? "text-amber-800" : ""}`}>{r.v}</TableCell>
+                    <TableCell className={`tabular-nums font-semibold ${cur && r.s !== r.v ? "text-warning" : ""}`}>{r.v}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -94,7 +95,7 @@ export default async function ClientNutritionPage({ params }: { params: Promise<
         <CardHeader><CardTitle>{S.setForm}</CardTitle></CardHeader>
         <CardContent>
           {!d.canWrite ? <p className="text-sm text-muted-foreground">{S.readOnly}</p>
-            : !defaults ? <p className="text-sm text-amber-800">{S.noStats}</p>
+            : !defaults ? <p className="text-sm text-warning">{S.noStats}</p>
             : <SetNutritionForm clientId={c.id} defaults={defaults} presets={d.presets} help={S.setFormHelp(formatDate(d.effectiveWeek, "long"))}
                 suggestion={sug && c.goal ? { size: sug.size, goal: c.goal, kcal: sug.sizeKcal, proteinG: sug.proteinG, carbG: sug.carbG, fatG: sug.fatG } : null} />}
         </CardContent>
@@ -153,7 +154,7 @@ export default async function ClientNutritionPage({ params }: { params: Promise<
                 {d.swaps.map((r) => (
                   <li key={r.s.id} className="flex items-center justify-between gap-2 py-2">
                     <span>{r.label ?? r.s.customRequest ?? "Custom request"} <span className="text-muted-foreground">· from {formatDate(r.s.effectiveWeekStart)}</span></span>
-                    <Badge variant={r.s.status === "requested" ? "secondary" : r.s.status === "approved" ? "default" : "outline"}>{r.s.status}</Badge>
+                    <StatusBadge status={r.s.status} />
                   </li>
                 ))}
               </ul>

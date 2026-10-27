@@ -5,22 +5,26 @@ import { navFor, STAFF_NAV } from "./nav-config";
 import { NavLinks } from "./nav-links";
 import { MobileNav } from "./mobile-nav";
 import { SignOutButton } from "./sign-out-button";
+import { Logo } from "./logo";
 
-/** Layout for every staff area: top bar on phones with a menu sheet, sidebar on laptops. */
+/** Layout for every staff area: top bar on phones with a menu sheet, Deep Forest sidebar on laptops. */
 export function StaffShell({ roles, name, unread, children }: { roles: Role[]; name: string; unread?: number; children: ReactNode }) {
   const items = navFor(STAFF_NAV, roles);
+  const home = items.find((i) => !i.href.endsWith("/notifications"))?.href ?? "/staff";
   return (
-    <div className="min-h-dvh md:grid md:grid-cols-[220px_1fr]">
+    <div className="min-h-dvh md:grid md:grid-cols-[232px_1fr]">
       <header className="no-print sticky top-0 z-30 flex h-14 items-center justify-between border-b bg-background/95 px-4 backdrop-blur md:hidden">
-        <Link href="/staff" className="flex min-h-11 items-center text-lg font-extrabold text-primary">Quest Meals</Link>
+        <Link href={home} aria-label="Quest Meals home" className="flex min-h-11 items-center"><Logo variant="horizontal" height={24} priority /></Link>
         <MobileNav items={items} name={name} unread={unread} />
       </header>
-      <aside className="no-print sticky top-0 hidden h-dvh flex-col border-r bg-muted/40 p-4 md:flex">
-        <Link href="/staff" className="mb-6 flex min-h-11 items-center text-xl font-extrabold text-primary">Quest Meals</Link>
-        <NavLinks items={items} unread={unread} />
-        <div className="mt-auto space-y-2 border-t pt-4 text-sm">
+      <aside className="no-print sticky top-0 hidden h-dvh flex-col bg-sidebar text-sidebar-foreground md:flex">
+        <Link href={home} aria-label="Quest Meals home" className="flex min-h-11 items-center px-5 pt-5 pb-4"><Logo variant="horizontal-reversed" height={26} priority /></Link>
+        <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-3">
+          <NavLinks items={items} unread={unread} tone="dark" />
+        </div>
+        <div className="space-y-2 border-t border-sidebar-border p-4 text-sm">
           <p className="truncate font-medium">{name}</p>
-          <SignOutButton />
+          <SignOutButton className="border-sidebar-border bg-transparent text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" />
         </div>
       </aside>
       <main className="min-w-0 p-4 md:p-6">{children}</main>

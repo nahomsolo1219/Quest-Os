@@ -1,4 +1,3 @@
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { PayForm } from "@/components/client/pay-form";
@@ -8,6 +7,7 @@ import { formatBirr } from "@/domain/money";
 import { formatAddisDateTime, formatDate } from "@/domain/time";
 import { cn } from "@/lib/utils";
 import { T } from "../strings";
+import { StatusBadge } from "@/components/shell/status-badge";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Payments" };
@@ -35,11 +35,11 @@ export default async function PaymentsPage() {
                 <p className="stat-number text-3xl">{formatBirr(inv.amountBirr)}</p>
                 <p className="text-xs text-muted-foreground">{inv.serviceDays} service days{inv.creditAppliedBirr ? ` · credit ${formatBirr(inv.creditAppliedBirr)} applied` : ""}</p>
               </div>
-              <Badge variant={inv.status === "paid" ? "default" : inv.status === "issued" ? "secondary" : "outline"}>{T.payments.status[inv.status]}</Badge>
+              <StatusBadge status={inv.status}>{T.payments.status[inv.status]}</StatusBadge>
             </div>
-            {inv.status === "issued" ? <p className={cn("text-sm font-medium", overdue && "text-red-700")}>{T.payments.due(formatAddisDateTime(inv.dueAt))}</p> : null}
+            {inv.status === "issued" ? <p className={cn("text-sm font-medium", overdue && "text-danger")}>{T.payments.due(formatAddisDateTime(inv.dueAt))}</p> : null}
             {last ? (
-              <p className={cn("rounded-lg p-2 text-sm", last.status === "rejected" ? "bg-red-50 text-red-900" : last.status === "confirmed" ? "bg-emerald-50 text-emerald-900" : "bg-accent")}>
+              <p className={cn("rounded-lg p-2 text-sm", last.status === "rejected" ? "bg-danger-soft text-danger" : last.status === "confirmed" ? "bg-success-soft text-success" : "bg-accent")}>
                 {T.payments.payment[last.status]} · {T.payments.methods[last.method]}{last.reference ? ` · ${last.reference}` : ""}
                 {last.status === "rejected" && last.rejectionReason ? ` — ${last.rejectionReason}` : ""}
               </p>

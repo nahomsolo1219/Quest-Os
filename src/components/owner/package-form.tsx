@@ -27,7 +27,7 @@ export function PackageForm({ id, values, labels, enabled }: { id: string; value
   const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: values });
   const { register, handleSubmit, formState: { errors, isDirty } } = form;
   const p = (k: string) => `pk-${id}-${k}`;
-  const err = (m?: string) => (m ? <p className="text-sm text-red-700">{m}</p> : null);
+  const err = (m?: string) => (m ? <p className="text-sm text-danger">{m}</p> : null);
   const num = { valueAsNumber: true } as const;
   return (
     <form className="space-y-3" onSubmit={handleSubmit((v) => run(() => updatePackageAction({ id, ...v }), () => form.reset(v)))}>
@@ -43,15 +43,15 @@ export function PackageForm({ id, values, labels, enabled }: { id: string; value
         <div className="flex flex-wrap gap-x-4">
           {OPTIONS.map((o) => (
             <label key={o} className="flex min-h-11 items-center gap-2 text-sm">
-              <input type="checkbox" value={o} className="size-5 accent-[#c2410c]" disabled={!enabled.includes(o) && !values.deliveryOptions.includes(o)} {...register("deliveryOptions")} />{labels[o]}
+              <input type="checkbox" value={o} className="size-5 accent-primary" disabled={!enabled.includes(o) && !values.deliveryOptions.includes(o)} {...register("deliveryOptions")} />{labels[o]}
             </label>
           ))}
         </div>
         {err(errors.deliveryOptions?.message)}
       </fieldset>
       <div className="flex flex-wrap gap-x-6">
-        <label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" className="size-5 accent-[#c2410c]" {...register("prioritySlot")} />Priority delivery slot</label>
-        <label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" className="size-5 accent-[#c2410c]" {...register("active")} />Offered to new clients</label>
+        <label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" className="size-5 accent-primary" {...register("prioritySlot")} />Priority delivery slot</label>
+        <label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" className="size-5 accent-primary" {...register("active")} />Offered to new clients</label>
       </div>
       <Button type="submit" className="h-11" disabled={pending || !isDirty}>Save package</Button>
     </form>

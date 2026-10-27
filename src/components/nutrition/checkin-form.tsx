@@ -26,7 +26,7 @@ export function CheckinForm({ clientId, today, clients }: { clientId?: string; t
   const { pending, run } = useAction();
   const form = useForm<In, unknown, Out>({ resolver: zodResolver(schema), defaultValues: { clientId: clientId ?? "", date: today, weightKg: "", adherencePct: "", notes: "" } });
   const { register, handleSubmit, formState: { errors } } = form;
-  const err = (m?: string) => (m ? <p className="text-sm text-red-700">{m}</p> : null);
+  const err = (m?: string) => (m ? <p className="text-sm text-danger">{m}</p> : null);
   return (
     <form className="space-y-3" onSubmit={handleSubmit((v) => run(() => logCheckinAction({ ...v, weightKg: v.weightKg as number | null, adherencePct: v.adherencePct as number | null }),
       () => form.reset({ clientId: clientId ?? "", date: today, weightKg: "", adherencePct: "", notes: "" })))}>

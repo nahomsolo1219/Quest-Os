@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { markHandedOverAction } from "@/app/delivery/actions";
 import { StatusChip } from "./status-chip";
+import { toastWithUndo } from "./undo-toast";
 import type { DropCardData } from "./types";
 
 /** Cafe counter line: name, meals count, one tap "Handed over". */
@@ -19,7 +20,7 @@ export function PickupRow({ drop }: { drop: DropCardData }) {
       </div>
       <Button type="button" className="h-12 min-w-36 text-base" disabled={pending || done} onClick={() => start(async () => {
         const r = await markHandedOverAction({ dropId: drop.id });
-        if (r.ok) toast.success(`${drop.name}: handed over`); else toast.error(r.error);
+        if (r.ok) toastWithUndo(`${drop.name}: handed over`, drop.id); else toast.error(r.error);
       })}>{done ? "Handed over" : "Hand over"}</Button>
     </li>
   );

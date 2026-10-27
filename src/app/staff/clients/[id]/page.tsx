@@ -77,12 +77,12 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
       />
 
       {d.conflicts.length ? (
-        <div role="alert" className="mb-4 rounded-xl border-2 border-red-300 bg-red-50 p-4">
-          <p className="font-semibold text-red-800">{S.conflictsTitle}</p>
-          <p className="mb-2 text-sm text-red-800">{S.conflictsBody}</p>
+        <div role="alert" className="mb-4 rounded-xl border-2 border-danger/30 bg-danger-soft p-4">
+          <p className="font-semibold text-danger">{S.conflictsTitle}</p>
+          <p className="mb-2 text-sm text-danger">{S.conflictsBody}</p>
           <ul className="space-y-1">
             {d.conflicts.map((m) => (
-              <li key={m.mealName} className="text-sm text-red-700">
+              <li key={m.mealName} className="text-sm text-danger">
                 <span className="font-semibold">Menu {m.menu} {SLOT_LABEL[m.slot]} · {m.mealName}:</span> {m.conflicts.join("; ")}
               </li>
             ))}
@@ -256,7 +256,7 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
                             {receipts.get(p.id) ? <a className="font-medium text-primary underline" href={receipts.get(p.id)} target="_blank" rel="noreferrer">{S.receipt}</a> : null}
                             <PaymentRowBadge status={p.status} />
                           </span>
-                          {p.rejectionReason ? <p className="w-full text-red-700">{p.rejectionReason}</p> : null}
+                          {p.rejectionReason ? <p className="w-full text-danger">{p.rejectionReason}</p> : null}
                         </li>
                       ))}
                     </ul>

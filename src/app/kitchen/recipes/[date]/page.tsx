@@ -64,7 +64,7 @@ export default async function RecipesPage({ params }: { params: Promise<{ date: 
                 <div><dt className="font-semibold">{S.pantry}</dt><dd>{c.pantry.length ? `${c.pantry.join(", ")} (pantry)` : "None"}</dd></div>
               </dl>
               {c.swaps.length ? (
-                <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm">
+                <div className="mt-3 rounded-lg border border-warning/30 bg-warning-soft p-3 text-sm">
                   <p className="font-semibold">{S.swapsToday}</p>
                   <ul className="mt-1 list-disc pl-5">
                     {c.swaps.map((s) => <li key={`${s.partName}|${s.qty}|${s.profile}`}>{s.partName}: {qty(s.qty, s.unit)} × {s.count} ({profileLabel(s.profile)})</li>)}

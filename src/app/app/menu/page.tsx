@@ -30,7 +30,7 @@ export default async function MenuPage({ searchParams }: { searchParams: Promise
             className={cn("flex min-h-11 items-center justify-center rounded-lg text-sm font-semibold", next === isNext ? "bg-background shadow-sm" : "text-muted-foreground")}>{label}</Link>
         ))}
       </div>
-      <p className={cn("rounded-xl p-3 text-sm font-medium", m.state === "locked" ? "bg-emerald-50 text-emerald-900" : m.state === "open" ? "bg-accent" : "bg-amber-50 text-amber-950")}>{note}</p>
+      <p className={cn("rounded-xl p-3 text-sm font-medium", m.state === "locked" ? "bg-success-soft text-success" : m.state === "open" ? "bg-accent" : "bg-warning-soft text-warning")}>{note}</p>
       {m.days.length === 0 ? (
         <EmptyState title="Nothing to show for this week.">Choose a plan and pay before Thursday&apos;s cutoff to get this week cooked.</EmptyState>
       ) : m.days.map((d) => (

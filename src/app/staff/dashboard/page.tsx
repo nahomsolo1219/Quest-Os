@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
@@ -9,6 +8,7 @@ import { ATTENTION_LABELS, ownerDashboard } from "@/server/services/dashboard";
 import { displayName } from "@/domain/format";
 import { formatBirr } from "@/domain/money";
 import { S } from "./strings";
+import { StatusBadge } from "@/components/shell/status-badge";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Dashboard" };
@@ -74,7 +74,7 @@ export default async function DashboardPage() {
                       <span className="font-medium">{displayName(a.firstName, a.lastName)}</span>
                       <span className="flex flex-wrap gap-1">
                         {a.reasons.map((r) => (
-                          <Badge key={r} variant="secondary" className={r === "allergy_conflict" || r === "unpaid" ? "bg-red-100 text-red-800" : "bg-amber-100 text-amber-900"}>{ATTENTION_LABELS[r]}</Badge>
+                          <StatusBadge key={r} tone={r === "allergy_conflict" || r === "unpaid" ? "bad" : "warn"}>{ATTENTION_LABELS[r]}</StatusBadge>
                         ))}
                       </span>
                     </Link>

@@ -286,14 +286,14 @@ export function SignupForm({ options, nutrition, prefill, source }: { options: O
             <section aria-live="polite" className="rounded-xl border bg-card p-4">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{S.quote}</p>
               {quote === "loading" || quote === null ? <p className="text-sm text-muted-foreground">{S.quoteLoading}</p>
-                : !quote.ok ? <p className="mt-1 text-sm font-medium text-amber-800">{S.priceMissing}</p>
+                : !quote.ok ? <p className="mt-1 text-sm font-medium text-warning">{S.priceMissing}</p>
                   : (
                     <div className="space-y-1">
                       <p className="stat-number text-3xl">{formatBirr(quote.planPrice)} <span className="text-sm font-semibold text-muted-foreground">{S.planMonth}</span></p>
                       {v.start === "quick_start" && quote.quickStart ? (
                         <>
                           <p className="text-sm">{S.firstPayment(formatBirr(quote.quickStart.amount), quote.quickStart.serviceDays, formatDate(quote.quickStart.startDate, "long"))}</p>
-                          {quote.quickStart.capacityShifted ? <p className="text-sm font-medium text-amber-800">{S.capacity(formatDate(quote.quickStart.startDate, "long"))}</p> : null}
+                          {quote.quickStart.capacityShifted ? <p className="text-sm font-medium text-warning">{S.capacity(formatDate(quote.quickStart.startDate, "long"))}</p> : null}
                         </>
                       ) : <p className="text-sm text-muted-foreground">{S.mondayNote}</p>}
                     </div>

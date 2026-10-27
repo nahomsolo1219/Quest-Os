@@ -30,7 +30,7 @@ export default async function CheckinsPage() {
                   <li key={c.id}>
                     <Link href={`/staff/nutrition/clients/${c.id}`} className="flex min-h-11 items-center justify-between py-2 hover:text-primary">
                       <span className="font-medium">{displayName(c.firstName, c.lastName)}</span>
-                      <span className="text-sm text-amber-800">{c.last ? `Last ${formatDate(c.last)} (${daysBetween(c.last, d.today)} days)` : "Never checked in"}</span>
+                      <span className="text-sm text-warning">{c.last ? `Last ${formatDate(c.last)} (${daysBetween(c.last, d.today)} days)` : "Never checked in"}</span>
                     </Link>
                   </li>
                 ))}

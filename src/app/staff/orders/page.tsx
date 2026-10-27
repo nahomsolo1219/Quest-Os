@@ -41,10 +41,10 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
         {week !== upcoming ? <Button asChild variant="ghost" className="col-span-2 h-11 sm:order-4"><Link href="/staff/orders">{S.thisWeek}</Link></Button> : null}
       </nav>
 
-      <div className={`mb-4 rounded-xl border p-4 ${r.locked ? "border-emerald-200 bg-emerald-50" : "border-amber-200 bg-amber-50"}`}>
+      <div className={`mb-4 rounded-xl border p-4 ${r.locked ? "border-success/30 bg-success-soft" : "border-warning/30 bg-warning-soft"}`}>
         <p className="font-semibold">{r.locked ? S.lockedTitle : S.previewTitle}</p>
         <p className="text-sm">{r.locked ? S.lockedBody(lockedAt ? formatAddisDateTime(lockedAt) : "") : S.previewBody(formatAddisDateTime(r.cutoff))}</p>
-        {!r.locked && r.cutoffPassed ? <p className="mt-1 text-sm font-medium text-red-700">{S.cutoffPassedNotLocked}</p> : null}
+        {!r.locked && r.cutoffPassed ? <p className="mt-1 text-sm font-medium text-danger">{S.cutoffPassedNotLocked}</p> : null}
         {r.canLock ? <div className="mt-3"><LockNowButton weekStart={week} /></div> : null}
       </div>
 
@@ -59,7 +59,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
         <>
         <ul className="space-y-2 md:hidden">
           {r.rows.map((row) => (
-            <li key={row.clientId} className={`rounded-xl border p-3 ${row.conflicts.length ? "border-red-200 bg-red-50/60" : ""}`}>
+            <li key={row.clientId} className={`rounded-xl border p-3 ${row.conflicts.length ? "border-danger/30 bg-danger-soft/60" : ""}`}>
               <div className="flex items-start justify-between gap-2">
                 <Link className="min-h-11 font-semibold underline-offset-2 hover:underline" href={`/staff/clients/${row.clientId}?tab=orders`}>{row.name}</Link>
                 <OrderStatusBadge status={row.status} />
@@ -80,7 +80,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
             </TableHeader>
             <TableBody>
               {r.rows.map((row) => (
-                <TableRow key={row.clientId} className={row.conflicts.length ? "bg-red-50/60" : undefined}>
+                <TableRow key={row.clientId} className={row.conflicts.length ? "bg-danger-soft/60" : undefined}>
                   <TableCell className="whitespace-nowrap font-medium">
                     <Link className="underline-offset-2 hover:underline" href={`/staff/clients/${row.clientId}?tab=orders`}>{row.name}</Link>
                     {row.isQuickStart ? <ToneBadge tone="info" className="ml-1">Quick start</ToneBadge> : null}

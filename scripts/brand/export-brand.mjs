@@ -1,14 +1,16 @@
-const { chromium } = require('playwright');
-const fs = require('fs');
-const [S, OUT, ICONS, APP] = process.argv.slice(2);
-(async () => {
-  const b = await chromium.launch();
+// Exports the logos and app icons from cleaned SVG crops of the brand guideline PDF.
+// Usage: node scripts/brand/export-brand.mjs <dir with *-c.svg crops> public/brand public/icons
+// Crops: pdftocairo -svg -f <page> -x -y -W -H on the guideline, then scripts/brand/clean-svg.py (drops tile backgrounds).
+import { chromium } from "@playwright/test";
+import fs from "node:fs";
+const [S, OUT, ICONS] = process.argv.slice(2);
+{
+  const b = await chromium.launch({ executablePath: process.env.PW_CHROMIUM_PATH || undefined });
   const p = await b.newPage();
   const tight = async (file) => {
     const svg = fs.readFileSync(file, 'utf8');
     await p.setContent(svg);
     const bb = await p.evaluate(() => { const r = document.querySelector('svg').getBBox(); return [r.x, r.y, r.width, r.height]; });
-    const pad = 0;
     const vb = bb.map((v) => +v.toFixed(3));
     const inner = svg.replace(/<svg[^>]*>/, '').replace('</svg>', '').trim();
     return { vb, inner };
@@ -49,4 +51,4 @@ const [S, OUT, ICONS, APP] = process.argv.slice(2);
   await shot(iconSvg(180, 0.7, '#F3F9EB', false), 180, `${ICONS}/apple-touch-icon.png`);
   for (const s of [16, 32, 48]) await shot(iconSvg(s, 0.86, '#F3F9EB', true), s, `${S}/fav-${s}.png`);
   await b.close();
-})();
+}

@@ -40,13 +40,13 @@ export default async function ProfilesPage({ searchParams }: { searchParams: Pro
           <h2 className="text-lg font-semibold">Menu {menu}: day totals per profile</h2>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
             {t.days.map((d) => (
-              <div key={d.profile} className={cn("rounded-xl border p-3", d.result?.flagged && "border-amber-400 bg-amber-50")}>
+              <div key={d.profile} className={cn("rounded-xl border p-3", d.result?.flagged && "border-warning/60 bg-warning-soft")}>
                 <p className="text-sm font-semibold">{profileLabel(d.profile)}</p>
                 {d.result ? (
                   <>
                     <p className="stat-number text-xl">{d.result.kcal} <span className="text-xs font-semibold text-muted-foreground">kcal</span></p>
                     <p className="text-xs tabular-nums text-muted-foreground">P {d.result.proteinG} · C {d.result.carbG} · F {d.result.fatG} g</p>
-                    {d.result.flagged ? <p className="mt-1 text-xs font-medium text-amber-900">{d.result.flagReason ?? "Outside target"}</p> : <p className="mt-1 text-xs text-emerald-700">On target</p>}
+                    {d.result.flagged ? <p className="mt-1 text-xs font-medium text-warning">{d.result.flagReason ?? "Outside target"}</p> : <p className="mt-1 text-xs text-success">On target</p>}
                   </>
                 ) : <p className="text-sm text-muted-foreground">Not computed. Press Recompute.</p>}
               </div>

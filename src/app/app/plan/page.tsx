@@ -11,6 +11,7 @@ import { myPlan } from "@/server/services/client-app";
 import { formatBirr } from "@/domain/money";
 import { formatDate } from "@/domain/time";
 import { T } from "../strings";
+import { StatusBadge } from "@/components/shell/status-badge";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "My plan" };
@@ -44,7 +45,7 @@ export default async function PlanPage() {
         <section className="rounded-2xl border bg-card p-4">
           <div className="mb-1 flex items-center justify-between">
             <h2 className="text-lg font-bold">{p.package.name}</h2>
-            <Badge>{T.plan.status[sub.status] ?? sub.status}</Badge>
+            <StatusBadge status={sub.status}>{T.plan.status[sub.status] ?? sub.status}</StatusBadge>
           </div>
           <Row label={T.plan.price}>{formatBirr(sub.planPriceBirr - sub.discountMonthBirr)} / month</Row>
           <Row label="">{T.plan.priceLock(formatDate(sub.priceLockedUntil, "long"))}</Row>

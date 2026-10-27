@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { markDeliveredAction, markFailedAction } from "@/app/delivery/actions";
 import { formatEthiopianPhone } from "@/domain/phone";
 import { StatusChip } from "./status-chip";
+import { toastWithUndo } from "./undo-toast";
 import { SLOT_TEXT, type DropCardData } from "./types";
 
 const REASONS = ["Not home", "Wrong address", "Refused", "Other"] as const;
@@ -29,7 +30,7 @@ export function RiderDropCard({ drop, position }: { drop: DropCardData; position
     if (!text) { toast.error(reason === "Other" ? "Write what happened." : "Pick a reason."); return; }
     start(async () => {
       const r = await markFailedAction({ dropId: drop.id, reason: reason === "Other" ? `Other: ${text}` : text });
-      if (r.ok) { toast.success(r.message ?? "Marked failed"); setFailing(false); } else toast.error(r.error);
+      if (r.ok) { toastWithUndo(r.message ?? "Marked failed", drop.id); setFailing(false); setReason(""); setOther(""); } else toast.error(r.error);
     });
   };
 
@@ -44,7 +45,7 @@ export function RiderDropCard({ drop, position }: { drop: DropCardData; position
           </div>
           <p className="text-sm text-muted-foreground">{drop.areaName ?? "No area"} · {drop.mealsCount} meals{drop.slot ? ` · ${SLOT_TEXT[drop.slot] ?? drop.slot}` : ""}</p>
           <p className="mt-1 flex gap-1 text-sm"><MapPin aria-hidden className="mt-0.5 size-4 shrink-0" />{drop.address ?? "No address on file. Call the client."}</p>
-          {drop.status === "failed" && drop.failedReason ? <p className="mt-1 text-sm font-semibold text-red-700">Failed: {drop.failedReason}</p> : null}
+          {drop.status === "failed" && drop.failedReason ? <p className="mt-1 text-sm font-semibold text-danger">Failed: {drop.failedReason}</p> : null}
         </div>
       </div>
       <div className="mt-3 grid grid-cols-2 gap-2">
@@ -53,18 +54,18 @@ export function RiderDropCard({ drop, position }: { drop: DropCardData; position
             <Phone aria-hidden className="size-5" /> Call {formatEthiopianPhone(drop.phone)}
           </a>
         ) : null}
-        <Button type="button" className="h-12 bg-emerald-700 text-base hover:bg-emerald-800" disabled={pending || drop.status === "delivered"} onClick={delivered}>
+        <Button type="button" className="h-12 bg-success text-base hover:bg-success/90" disabled={pending || drop.status === "delivered"} onClick={delivered}>
           {drop.status === "delivered" ? "Delivered" : "Delivered ✓"}
         </Button>
-        <Button type="button" variant="outline" className="h-12 border-red-300 text-base text-red-800" disabled={pending} aria-expanded={failing}
+        <Button type="button" variant="outline" className="h-12 border-danger/30 text-base text-danger" disabled={pending} aria-expanded={failing}
           onClick={() => setFailing((f) => !f)}>Failed…</Button>
       </div>
       {failing ? (
-        <fieldset className="mt-3 space-y-2 rounded-lg border border-red-200 bg-red-50/50 p-3">
+        <fieldset className="mt-3 space-y-2 rounded-lg border border-danger/30 bg-danger-soft/50 p-3">
           <legend className="px-1 text-sm font-semibold">Why did it fail?</legend>
           <div className="grid grid-cols-2 gap-2">
             {REASONS.map((r) => (
-              <label key={r} className="flex min-h-11 cursor-pointer items-center gap-2 rounded-md border bg-background px-3 text-sm has-[:checked]:border-red-600 has-[:checked]:font-semibold">
+              <label key={r} className="flex min-h-11 cursor-pointer items-center gap-2 rounded-md border bg-background px-3 text-sm has-[:checked]:border-danger has-[:checked]:font-semibold">
                 <input type="radio" name={`reason-${drop.id}`} value={r} checked={reason === r} onChange={() => setReason(r)} className="size-4" />{r}
               </label>
             ))}

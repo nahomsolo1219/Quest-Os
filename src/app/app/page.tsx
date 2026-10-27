@@ -26,7 +26,7 @@ export default async function TodayPage() {
     <div className="space-y-4">
       <PageHeader title={T.today.title} description={formatDate(t.today, "long")} />
       {t.dueInvoice ? (
-        <div className="flex items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 p-3 text-amber-950">
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-warning/30 bg-warning-soft p-3 text-warning">
           <p className="text-sm font-medium">{T.today.payDue(formatBirr(t.dueInvoice.amountBirr), formatAddisDateTime(t.dueInvoice.dueAt))}</p>
           <Button asChild className="h-11 shrink-0"><Link href="/app/payments">{T.today.payNow}</Link></Button>
         </div>

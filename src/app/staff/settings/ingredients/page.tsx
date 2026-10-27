@@ -20,7 +20,7 @@ export default async function IngredientsPage({ searchParams }: { searchParams: 
   return (
     <div>
       <PageHeader title={S.tabs.ingredients} description={S.ingredientsIntro} />
-      <div className={cn("mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4", d.missingCount ? "border-amber-300 bg-amber-50" : "border-emerald-300 bg-emerald-50")}>
+      <div className={cn("mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4", d.missingCount ? "border-warning/30 bg-warning-soft" : "border-success/30 bg-success-soft")}>
         <p className="stat-number text-xl">{S.missing(d.missingCount)}</p>
         <nav aria-label="Filter" className="flex gap-2">
           <Link href="/staff/settings/ingredients" className={cn("inline-flex min-h-11 items-center rounded-full border bg-background px-4 text-sm", show !== "missing" && "border-primary font-semibold")}>All ({d.ingredients.length})</Link>

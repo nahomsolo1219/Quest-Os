@@ -44,7 +44,7 @@ export function AreasEditor({ areas }: { areas: { id: string; name: string; acti
         <div className="min-w-0 flex-1 space-y-1.5">
           <Label htmlFor="new-area">New area</Label>
           <Input id="new-area" className="h-11" placeholder="e.g. Summit" {...form.register("name")} />
-          {form.formState.errors.name ? <p className="text-sm text-red-700">{form.formState.errors.name.message}</p> : null}
+          {form.formState.errors.name ? <p className="text-sm text-danger">{form.formState.errors.name.message}</p> : null}
         </div>
         <Button type="submit" className="h-11" disabled={pending}>Add area</Button>
       </form>

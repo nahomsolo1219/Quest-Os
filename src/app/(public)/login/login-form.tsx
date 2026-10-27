@@ -41,14 +41,14 @@ export function LoginForm({ next }: { next?: string }) {
           <div className="space-y-1.5">
             <Label htmlFor="phone">{S.phone}</Label>
             <Input id="phone" type="tel" inputMode="tel" autoComplete="tel" className="h-11" placeholder={S.phoneHint} {...clientForm.register("phone")} />
-            {clientForm.formState.errors.phone ? <p className="text-sm text-red-700">{clientForm.formState.errors.phone.message}</p> : null}
+            {clientForm.formState.errors.phone ? <p className="text-sm text-danger">{clientForm.formState.errors.phone.message}</p> : null}
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="client-password">{S.password}</Label>
             <Input id="client-password" type="password" autoComplete="current-password" className="h-11" {...clientForm.register("password")} />
-            {clientForm.formState.errors.password ? <p className="text-sm text-red-700">{clientForm.formState.errors.password.message}</p> : null}
+            {clientForm.formState.errors.password ? <p className="text-sm text-danger">{clientForm.formState.errors.password.message}</p> : null}
           </div>
-          {error ? <p role="alert" className="text-sm text-red-700">{error}</p> : null}
+          {error ? <p role="alert" className="text-sm text-danger">{error}</p> : null}
           <Button type="submit" className="h-11 w-full" disabled={clientForm.formState.isSubmitting}>{S.submit}</Button>
         </form>
       </TabsContent>
@@ -61,13 +61,13 @@ export function LoginForm({ next }: { next?: string }) {
           <div className="space-y-1.5">
             <Label htmlFor="email">{S.email}</Label>
             <Input id="email" type="email" autoComplete="email" className="h-11" {...staffForm.register("email")} />
-            {staffForm.formState.errors.email ? <p className="text-sm text-red-700">{staffForm.formState.errors.email.message}</p> : null}
+            {staffForm.formState.errors.email ? <p className="text-sm text-danger">{staffForm.formState.errors.email.message}</p> : null}
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="staff-password">{S.password}</Label>
             <Input id="staff-password" type="password" autoComplete="current-password" className="h-11" {...staffForm.register("password")} />
           </div>
-          {error ? <p role="alert" className="text-sm text-red-700">{error}</p> : null}
+          {error ? <p role="alert" className="text-sm text-danger">{error}</p> : null}
           <Button type="submit" className="h-11 w-full" disabled={staffForm.formState.isSubmitting}>{S.submit}</Button>
         </form>
       </TabsContent>

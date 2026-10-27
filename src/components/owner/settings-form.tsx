@@ -105,7 +105,7 @@ export function SettingsForm({ settingsKey, value, groups, save, extraCheck, can
                   <div key={f.path} className={wide ? "col-span-2 space-y-1.5 md:col-span-3 xl:col-span-4" : "flex flex-col justify-end gap-1.5"}>
                     {f.kind === "bool" ? (
                       <label htmlFor={id} className="flex min-h-11 items-center gap-3 text-sm font-medium">
-                        <input id={id} type="checkbox" className="size-5 accent-[#c2410c]" {...register(fk(f.path))} />{f.label}
+                        <input id={id} type="checkbox" className="size-5 accent-primary" {...register(fk(f.path))} />{f.label}
                       </label>
                     ) : f.kind === "checks" ? (
                       <fieldset>
@@ -113,7 +113,7 @@ export function SettingsForm({ settingsKey, value, groups, save, extraCheck, can
                         <div className="mt-1 flex flex-wrap gap-x-4">
                           {f.options!.map((o) => (
                             <label key={o.value} className="flex min-h-11 items-center gap-2 text-sm">
-                              <input type="checkbox" value={o.value} disabled={o.disabled} className="size-5 accent-[#c2410c]" {...register(fk(f.path))} />{o.label}
+                              <input type="checkbox" value={o.value} disabled={o.disabled} className="size-5 accent-primary" {...register(fk(f.path))} />{o.label}
                             </label>
                           ))}
                         </div>
@@ -132,7 +132,7 @@ export function SettingsForm({ settingsKey, value, groups, save, extraCheck, can
                       </>
                     )}
                     {f.help ? <p className="text-xs text-muted-foreground">{f.help}</p> : null}
-                    {e ? <p className="text-sm text-red-700">{e}</p> : null}
+                    {e ? <p className="text-sm text-danger">{e}</p> : null}
                   </div>
                 );
               })}
@@ -144,7 +144,7 @@ export function SettingsForm({ settingsKey, value, groups, save, extraCheck, can
             <div className="space-y-1.5">
               <Label htmlFor="sf-reason">Reason for the change (shown in the change log)</Label>
               <Textarea id="sf-reason" rows={2} {...register("reason")} />
-              {errors.reason ? <p className="text-sm text-red-700">{String(errors.reason.message)}</p> : null}
+              {errors.reason ? <p className="text-sm text-danger">{String(errors.reason.message)}</p> : null}
             </div>
             <Button type="submit" className="h-11" disabled={pending || !isDirty}>{pending ? "Saving…" : "Save changes"}</Button>
           </div>

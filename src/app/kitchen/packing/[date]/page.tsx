@@ -11,6 +11,7 @@ import { requirePageActor, serviceCtx } from "@/server/session";
 import { packingForDate } from "@/server/services/kitchen";
 import { cookDateParam } from "../../params";
 import { S } from "../../strings";
+import { StatusBadge } from "@/components/shell/status-badge";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Packing list" };
@@ -25,13 +26,13 @@ export default async function PackingPage({ params }: { params: Promise<{ date: 
     <div className="mx-auto max-w-5xl">
       <SheetNav date={date} current="packing" />
       <PageHeader title={`${S.packing} · ${formatDate(date, "long")}`}
-        description={list.length ? <>{list.length} clients{withConflicts ? <> · <span className="font-semibold text-red-700">{withConflicts} with allergy or dislike conflicts</span></> : null}</> : undefined}
+        description={list.length ? <>{list.length} clients{withConflicts ? <> · <span className="font-semibold text-danger">{withConflicts} with allergy or dislike conflicts</span></> : null}</> : undefined}
         actions={list.length ? <PrintButton /> : null} />
       {list.length === 0 ? <EmptyState title={S.emptyDay}>{S.emptyDayBody}</EmptyState> : (
         <div className="grid gap-4 lg:grid-cols-2 print:block">
           {list.map((c) => (
             <section key={c.clientId} aria-label={c.name}
-              className={cn("print-avoid-break rounded-xl border bg-card p-4 print:mb-3", c.hasConflicts && "border-2 border-red-600")}>
+              className={cn("print-avoid-break rounded-xl border bg-card p-4 print:mb-3", c.hasConflicts && "border-2 border-danger/60")}>
               <header className="flex flex-wrap items-start justify-between gap-2">
                 <div>
                   <h2 className="text-lg font-bold">{c.name}</h2>
@@ -41,12 +42,12 @@ export default async function PackingPage({ params }: { params: Promise<{ date: 
                 </div>
                 <div className="flex flex-wrap gap-1">
                   {c.isQuickStart ? <Badge variant="secondary">{S.quickStart}</Badge> : null}
-                  {c.injeraSeparate ? <Badge variant="outline" className="border-amber-500 text-amber-800">{S.injera}</Badge> : null}
+                  {c.injeraSeparate ? <StatusBadge tone="warn">{S.injera}</StatusBadge> : null}
                 </div>
               </header>
-              {c.allergies.length ? <p className="mt-1 text-sm font-semibold text-red-700">Allergies: {c.allergies.join(", ")}</p> : null}
+              {c.allergies.length ? <p className="mt-1 text-sm font-semibold text-danger">Allergies: {c.allergies.join(", ")}</p> : null}
               {c.hasConflicts ? (
-                <div role="alert" className="mt-2 rounded-md bg-red-50 p-2 text-sm text-red-800">
+                <div role="alert" className="mt-2 rounded-md bg-danger-soft p-2 text-sm text-danger">
                   <p className="font-bold">{S.conflict}</p>
                   <ul className="list-disc pl-5">{c.conflicts.map((x) => <li key={x}>{x}</li>)}</ul>
                 </div>
@@ -60,13 +61,13 @@ export default async function PackingPage({ params }: { params: Promise<{ date: 
                     </p>
                     <ul className="mt-1 text-sm">
                       {m.items.map((it) => (
-                        <li key={it.partName} className={cn("flex justify-between gap-2", it.swapped && "font-semibold text-amber-800")}>
+                        <li key={it.partName} className={cn("flex justify-between gap-2", it.swapped && "font-semibold text-warning")}>
                           <span>{it.partName}{it.swapped && !it.partName.includes("→") ? " (swap)" : ""}</span>
                           <span className="tabular-nums">{qty(it.qty, it.unit)}</span>
                         </li>
                       ))}
                     </ul>
-                    {m.conflicts.length ? <p className="mt-1 text-sm font-semibold text-red-700">{m.conflicts.join("; ")}</p> : null}
+                    {m.conflicts.length ? <p className="mt-1 text-sm font-semibold text-danger">{m.conflicts.join("; ")}</p> : null}
                   </li>
                 ))}
               </ul>

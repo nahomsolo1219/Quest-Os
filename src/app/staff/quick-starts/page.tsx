@@ -31,7 +31,7 @@ export default async function QuickStartsPage() {
               {q.capacity.map((c) => (
                 <li key={c.date} className="space-y-1">
                   <div className="flex justify-between text-sm"><span className="font-medium">{formatDate(c.date, "long")}</span>
-                    <span className={c.taken >= c.capacity ? "font-semibold text-red-700" : ""}>{c.taken} / {c.capacity}{c.taken >= c.capacity ? ` · ${S.full}` : ""}</span></div>
+                    <span className={c.taken >= c.capacity ? "font-semibold text-danger" : ""}>{c.taken} / {c.capacity}{c.taken >= c.capacity ? ` · ${S.full}` : ""}</span></div>
                   <Progress value={Math.min(100, (100 * c.taken) / Math.max(1, c.capacity))} aria-label={`${c.taken} of ${c.capacity}`} />
                 </li>
               ))}

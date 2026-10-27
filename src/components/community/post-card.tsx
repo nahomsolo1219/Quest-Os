@@ -49,7 +49,7 @@ export function PostCard({ post, canReact, full = false }: { post: FeedPost; can
         <div className="flex items-center gap-3 text-sm text-muted-foreground">
           {post.type === "question" ? (
             post.answered
-              ? <span className="inline-flex items-center gap-1 font-medium text-green-700"><CheckCircle2 className="size-4" aria-hidden />{S.answered}</span>
+              ? <span className="inline-flex items-center gap-1 font-medium text-success"><CheckCircle2 className="size-4" aria-hidden />{S.answered}</span>
               : <span>{S.unanswered}</span>
           ) : null}
           {full ? <span className="inline-flex items-center gap-1"><MessageCircle className="size-4" aria-hidden />{S.comments(post.commentCount)}</span> : (

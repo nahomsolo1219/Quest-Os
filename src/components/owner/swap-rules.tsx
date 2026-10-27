@@ -21,7 +21,7 @@ const newSchema = z.object({ label: z.string().trim().min(1, "Give the swap a la
   .refine(needsQty, { message: "Enter the quantity for this mode.", path: ["qtyValue"] });
 
 const sel = "h-11 w-full rounded-md border bg-background px-3 text-sm";
-const err = (m?: unknown) => (m ? <p className="text-sm text-red-700">{String(m)}</p> : null);
+const err = (m?: unknown) => (m ? <p className="text-sm text-danger">{String(m)}</p> : null);
 
 export function SwapRuleRow({ rule, canEdit }: {
   rule: { id: string; label: string; active: boolean; qtyMode: string; qtyValue: number | null; costMode: string; fromKind: string; fromText: string; toText: string };
@@ -46,7 +46,7 @@ export function SwapRuleRow({ rule, canEdit }: {
       </fieldset>
       {canEdit ? (
         <div className="flex flex-wrap items-center gap-4">
-          <label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" className="size-5 accent-[#c2410c]" {...register("active")} />Active (clients can pick it)</label>
+          <label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" className="size-5 accent-primary" {...register("active")} />Active (clients can pick it)</label>
           <Button type="submit" className="h-11" disabled={pending || !isDirty}>Save</Button>
         </div>
       ) : null}

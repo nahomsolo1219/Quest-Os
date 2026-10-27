@@ -80,7 +80,7 @@ export function RouteBoard({ date, groups: initial, riders, canManage }: {
                 <div className="min-w-0 flex-1">
                   <p className="font-semibold">{d.name} <StatusChip status={d.status} /></p>
                   <p className="truncate text-sm text-muted-foreground">{d.address ?? "No address"}{d.slot ? ` · ${SLOT_TEXT[d.slot] ?? d.slot}` : ""} · {d.mealsCount} meals</p>
-                  {d.status === "failed" && d.failedReason ? <p className="text-sm font-semibold text-red-700">Failed: {d.failedReason}</p> : null}
+                  {d.status === "failed" && d.failedReason ? <p className="text-sm font-semibold text-danger">Failed: {d.failedReason}</p> : null}
                 </div>
                 {canManage ? (
                   <div className="flex w-full items-center gap-2 sm:w-auto">

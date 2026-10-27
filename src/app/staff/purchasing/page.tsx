@@ -73,7 +73,7 @@ function BuyTable({ lines, totalBirr, showOnHand }: {
             <tr key={l.ingredientId} className={cn("border-t", l.buyQty === 0 && "text-muted-foreground")}>
               <td className="p-2">{l.name}{l.supplier ? <span className="block text-xs text-muted-foreground">{l.supplier}</span> : null}</td>
               <td className="whitespace-nowrap p-2 text-right font-bold tabular-nums">{l.buyQty === 0 ? "Covered" : units(l.buyUnits, l.unit)}</td>
-              <td className={cn("whitespace-nowrap p-2 text-right tabular-nums", l.costBirr == null && "font-semibold text-amber-700")}>
+              <td className={cn("whitespace-nowrap p-2 text-right tabular-nums", l.costBirr == null && "font-semibold text-warning")}>
                 {l.costBirr == null ? S.priceMissing : formatBirr(l.costBirr)}
               </td>
               <td className="whitespace-nowrap p-2 text-right tabular-nums">{units(l.needUnits, l.unit)}</td>
@@ -109,8 +109,8 @@ async function Shopping({ ctx, week }: { ctx: Ctx; week: string }) {
           <p className="mb-2 text-sm text-muted-foreground">
             {list.mealsCount} meals · stock on hand as of the end of {formatDate(list.stockAsOf)} (last count, plus purchases, minus waste and cooking) · {toBuy} items to buy
           </p>
-          {list.missingPrices.length ? <p role="alert" className="mb-2 rounded-md border border-amber-300 bg-amber-50 p-2 text-sm text-amber-900">{S.missingAlert} ({list.missingPrices.length} items)</p> : null}
-          {toBuy === 0 ? <p className="mb-2 font-semibold text-emerald-700">{S.allCovered}</p> : null}
+          {list.missingPrices.length ? <p role="alert" className="mb-2 rounded-md border border-warning/30 bg-warning-soft p-2 text-sm text-warning">{S.missingAlert} ({list.missingPrices.length} items)</p> : null}
+          {toBuy === 0 ? <p className="mb-2 font-semibold text-success">{S.allCovered}</p> : null}
           <BuyTable lines={list.lines} totalBirr={list.totalBirr} showOnHand />
         </>
       )}

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Logo } from "@/components/shell/logo";
 import { Button } from "@/components/ui/button";
 
 const PACKAGES = [
@@ -11,7 +12,7 @@ export default function Home() {
   return (
     <main className="mx-auto max-w-3xl px-4 pb-16">
       <header className="flex h-16 items-center justify-between">
-        <span className="flex min-h-11 items-center text-xl font-extrabold text-primary">Quest Meals</span>
+        <Link href="/" aria-label="Quest Meals home" className="flex min-h-11 items-center"><Logo variant="horizontal" height={28} priority /></Link>
         <Link href="/login" className="flex min-h-11 items-center rounded-lg px-3 text-sm font-semibold hover:bg-accent">Sign in</Link>
       </header>
       <section className="py-10">

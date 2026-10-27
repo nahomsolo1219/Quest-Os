@@ -11,6 +11,7 @@ import { listChallenges } from "@/server/services/community";
 import { requirePageActor, serviceCtx } from "@/server/session";
 import { formatAddisDateTime, formatDate } from "@/domain/time";
 import { S } from "../strings";
+import { StatusBadge } from "@/components/shell/status-badge";
 
 export const dynamic = "force-dynamic";
 
@@ -43,7 +44,7 @@ export default async function ChallengesPage() {
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-semibold">{c.title}</span>
                     <Badge variant={c.state === "active" ? "default" : "secondary"}>{S.state[c.state]}</Badge>
-                    {c.checkedInToday ? <Badge variant="outline" className="border-green-600 text-green-700">{S.doneToday}</Badge> : null}
+                    {c.checkedInToday ? <StatusBadge tone="good">{S.doneToday}</StatusBadge> : null}
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">{c.question}</p>
                   <p className="mt-1 text-xs text-muted-foreground">

@@ -53,7 +53,7 @@ export function PlanStep({ clientId, packages }: { clientId: string; packages: P
         <div className="grid gap-2 sm:grid-cols-3">
           {packages.map((p) => (
             <label key={p.id} htmlFor={`pkg-${p.id}`} className={radio}>
-              <input id={`pkg-${p.id}`} type="radio" name="package" className="accent-[#c2410c]" checked={packageId === p.id}
+              <input id={`pkg-${p.id}`} type="radio" name="package" className="accent-primary" checked={packageId === p.id}
                 onChange={() => { setPackageId(p.id); setDelivery(p.deliveryOptions.includes(deliveryOption) ? deliveryOption : (p.deliveryOptions[0] ?? "")); reset(); }} />
               <span><span className="font-semibold">{p.name}</span><br /><span className="text-xs text-muted-foreground">{p.swapLimit} swaps · {p.coaching}</span></span>
             </label>
@@ -86,7 +86,7 @@ export function PlanStep({ clientId, packages }: { clientId: string; packages: P
         <div className="grid gap-2 sm:grid-cols-2">
           {([["quick_start", W.startQuick], ["next_week", W.startNext]] as const).map(([v, l]) => (
             <label key={v} htmlFor={`start-${v}`} className={radio}>
-              <input id={`start-${v}`} type="radio" name="start" className="accent-[#c2410c]" checked={start === v} onChange={() => { setStart(v); reset(); }} />
+              <input id={`start-${v}`} type="radio" name="start" className="accent-primary" checked={start === v} onChange={() => { setStart(v); reset(); }} />
               {l}
             </label>
           ))}
@@ -94,7 +94,7 @@ export function PlanStep({ clientId, packages }: { clientId: string; packages: P
       </fieldset>
 
       {quote && !quote.ok ? (
-        <p role="alert" className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm font-medium text-red-800">{W.priceMissing(quote.missing.join(", "))}</p>
+        <p role="alert" className="rounded-lg border border-danger/30 bg-danger-soft p-3 text-sm font-medium text-danger">{W.priceMissing(quote.missing.join(", "))}</p>
       ) : null}
       {quote && quote.ok ? (
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
