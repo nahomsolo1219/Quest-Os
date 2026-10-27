@@ -28,9 +28,9 @@ export function PauseForm({ weeks, endDate }: { weeks: string[]; endDate: string
           {[1, 2, 3, 4, 5, 6, 7, 8].map((k) => <option key={k} value={k}>{k} week{k > 1 ? "s" : ""}</option>)}
         </NativeSelect>
       </div>
-      <div className="rounded-xl border bg-card p-3">
+      <div className="rounded-xl bg-accent p-3">
         <p className="text-sm text-muted-foreground">{T.pause.currentEnd(formatDate(endDate, "long"))}</p>
-        <p className="text-lg font-bold">{T.pause.newEnd(formatDate(newEnd, "long"))}</p>
+        <p className="text-lg font-semibold">{T.pause.newEnd(formatDate(newEnd, "long"))}</p>
       </div>
       <Button type="submit" className="h-12 w-full text-base" disabled={pending}>{T.pause.confirm}</Button>
     </form>

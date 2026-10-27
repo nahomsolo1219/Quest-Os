@@ -22,10 +22,10 @@ export default async function NotificationsPage() {
       {items.length === 0 ? <EmptyState title={T.notifications.none}>{T.notifications.noneHint}</EmptyState> : (
         <ul className="space-y-2">
           {items.map((n) => (
-            <li key={n.id} className={cn("rounded-xl border p-3", n.readAt ? "bg-card" : "border-primary/40 bg-primary/5")}>
+            <li key={n.id} className={cn("rounded-2xl border bg-card p-4", !n.readAt && "border-l-4 border-l-lime shadow-sm")}>
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="font-semibold">{n.title}</p>
+                  <p className="font-semibold">{!n.readAt ? <span className="sr-only">Unread: </span> : null}{n.title}</p>
                   {n.body ? <p className="text-sm text-muted-foreground">{n.body}</p> : null}
                   <p className="mt-1 text-xs text-muted-foreground">{formatAddisDateTime(n.createdAt)}</p>
                 </div>

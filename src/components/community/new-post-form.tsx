@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ImagePlus, X } from "lucide-react";
+import { Check, ImagePlus, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -84,9 +84,10 @@ export function NewPostForm({ coach, progressText, maxPhotos, maxEdge, initialTy
         <legend className="text-sm font-medium">{S.typeLabel}</legend>
         <div className="grid grid-cols-2 gap-2">
           {types.map((t) => (
-            <label key={t} className={cn("flex min-h-11 cursor-pointer items-center justify-center rounded-lg border px-3 text-center text-sm font-semibold",
-              type === t ? "border-primary bg-primary/10 text-primary" : "hover:bg-accent")}>
+            <label key={t} className={cn("flex min-h-11 cursor-pointer items-center justify-center gap-1.5 rounded-lg border px-3 text-center text-sm font-semibold has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring",
+              type === t ? "border-primary bg-primary text-primary-foreground" : "bg-card hover:bg-accent")}>
               <input type="radio" value={t} className="sr-only" {...form.register("type")} />
+              {type === t ? <Check aria-hidden className="size-4 text-lime" /> : null}
               {t === "question" ? "Question" : S.types[t]}
             </label>
           ))}

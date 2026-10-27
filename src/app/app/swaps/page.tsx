@@ -1,10 +1,12 @@
 import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
+import { Deadline } from "@/components/shell/deadline";
+import { BackToPlan } from "@/components/client/plan-links";
 import { AddonButton, AddSwapButton, CustomSwapForm, EndSwapButton } from "@/components/client/swap-controls";
 import { requirePageActor, serviceCtx } from "@/server/session";
 import { mySwaps } from "@/server/services/client-app";
 import { formatBirr } from "@/domain/money";
-import { formatAddisDateTime, formatDate } from "@/domain/time";
+import { formatDate } from "@/domain/time";
 import { SLOT_LABELS, T } from "../strings";
 import { StatusBadge } from "@/components/shell/status-badge";
 
@@ -13,9 +15,11 @@ export const metadata = { title: "Swaps" };
 
 export default async function SwapsPage() {
   const actor = await requirePageActor("client");
-  const s = await mySwaps(await serviceCtx(actor));
+  const ctx = await serviceCtx(actor);
+  const s = await mySwaps(ctx);
   if (!s.hasPlan) return (
     <div className="space-y-4">
+      <BackToPlan />
       <PageHeader title={T.swaps.title} />
       <EmptyState title={T.swaps.noPlan}>Your first invoice is on the Payments screen.</EmptyState>
     </div>
@@ -23,9 +27,13 @@ export default async function SwapsPage() {
   const full = s.used >= s.swapLimit;
   return (
     <div className="space-y-5">
-      <PageHeader title={T.swaps.title} description={T.swaps.effective(formatDate(s.week, "long"), formatAddisDateTime(s.cutoff))} />
-      <div className="rounded-2xl bg-primary p-4 text-primary-foreground">
-        <p className="stat-number text-4xl">{s.used}<span className="text-xl"> / {s.swapLimit}</span></p>
+      <div>
+        <BackToPlan />
+        <PageHeader title={T.swaps.title} description={T.swaps.effective(formatDate(s.week, "long"))} />
+        <Deadline cutoff={s.cutoff} now={ctx.now} className="-mt-2" />
+      </div>
+      <div className="flex items-center gap-4 rounded-2xl bg-primary p-4 text-primary-foreground">
+        <p className="stat-number shrink-0 text-4xl">{s.used}<span className="text-xl text-lime"> / {s.swapLimit}</span></p>
         <p className="text-sm">{T.swaps.count(s.used, s.swapLimit, s.packageName ?? "")}</p>
       </div>
 

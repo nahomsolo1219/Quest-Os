@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 export function NativeSelect({ className, ...props }: ComponentProps<"select">) {
   return (
     <select
-      className={cn("h-11 w-full rounded-md border border-input bg-background px-3 text-base shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:text-sm", className)}
+      className={cn("h-11 w-full rounded-md border border-input bg-card px-3 text-base shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:text-sm", className)}
       {...props}
     />
   );

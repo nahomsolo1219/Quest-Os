@@ -53,7 +53,7 @@ export default async function PostPage({ params }: { params: Promise<{ postId: s
         ) : (
           <ul className="space-y-3">
             {comments.map((c) => (
-              <li key={c.id} className={cn("rounded-xl border p-3", c.isAnswer && "border-success/60 bg-success-soft", c.hidden && "border-dashed opacity-60")}>
+              <li key={c.id} className={cn("rounded-2xl border bg-card p-3", c.isAnswer && "border-success/60 bg-success-soft", c.hidden && "border-dashed opacity-60")}>
                 <div className="flex items-start justify-between gap-2">
                   <PersonLine person={c.author} when={c.when} />
                   {c.isAnswer ? <span className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-success"><CheckCircle2 className="size-4" aria-hidden />{S.answer}</span> : null}

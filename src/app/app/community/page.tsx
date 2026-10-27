@@ -44,7 +44,7 @@ export default async function CommunityPage({ searchParams }: { searchParams: Pr
       } />
       <AccessBanner viewer={v} mutedLabel={v.mutedUntil ? formatAddisDateTime(new Date(v.mutedUntil)) : null} />
       {active ? (
-        <Link href={`/app/community/challenges/${active.id}`} className="mb-4 flex min-h-11 items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/5 p-3">
+        <Link href={`/app/community/challenges/${active.id}`} className="mb-4 flex min-h-11 items-center justify-between gap-3 rounded-2xl border border-l-4 border-l-lime bg-card p-3 shadow-xs">
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-wide text-primary">{S.state.active}</p>
             <p className="truncate font-semibold">{active.title}</p>

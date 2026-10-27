@@ -25,7 +25,7 @@ export function RatingForm({ mealId, serviceDate, initial }: { mealId: string; s
         {[1, 2, 3, 4, 5].map((n) => (
           <button key={n} type="button" disabled={pending} aria-label={`${n} of 5`} aria-pressed={rating === n}
             onClick={() => { setRating(n); setOpen(true); save(n, comment); }}
-            className={cn("flex size-11 items-center justify-center rounded-lg border", rating >= n ? "border-primary bg-primary/10 text-primary" : "text-muted-foreground hover:bg-accent")}>
+            className={cn("flex size-11 items-center justify-center rounded-lg border", rating >= n ? "border-primary bg-primary text-lime" : "bg-card text-muted-foreground hover:bg-accent")}>
             <Star className={cn("size-5", rating >= n && "fill-current")} />
           </button>
         ))}

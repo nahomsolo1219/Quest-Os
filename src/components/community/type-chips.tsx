@@ -12,13 +12,13 @@ const CHIPS = [
 /** Feed filter chips: All, Questions, Progress, Announcements (links, no client JS). */
 export function TypeChips({ active }: { active: string | null }) {
   return (
-    <nav aria-label="Filter posts" className="-mx-4 mb-4 flex gap-2 overflow-x-auto px-4 pb-1">
+    <nav aria-label="Filter posts" className="-mx-4 mb-4 flex gap-2 overflow-x-auto px-4 pb-1 [mask-image:linear-gradient(to_right,#000_calc(100%-2rem),transparent)] sm:[mask-image:none]">
       {CHIPS.map((c) => {
         const on = (c.key ?? null) === active;
         return (
           <Link key={c.label} href={c.key ? `/app/community?type=${c.key}` : "/app/community"} aria-current={on ? "page" : undefined}
-            className={cn("flex min-h-11 shrink-0 items-center rounded-full border px-4 text-sm font-semibold",
-              on ? "border-primary bg-primary text-primary-foreground" : "bg-background hover:bg-accent")}>
+            className={cn("flex min-h-11 shrink-0 items-center rounded-full border px-3.5 text-sm font-semibold last:mr-6",
+              on ? "border-primary bg-primary text-primary-foreground" : "bg-card hover:bg-accent")}>
             {c.label}
           </Link>
         );

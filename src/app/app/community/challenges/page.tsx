@@ -39,7 +39,7 @@ export default async function ChallengesPage() {
           {data.challenges.map((c) => (
             <li key={c.id}>
               <Link href={`/app/community/challenges/${c.id}`}
-                className={cn("flex min-h-11 items-center gap-3 rounded-xl border p-4 hover:bg-accent", c.state === "active" && "border-primary/40 bg-primary/5", c.state === "ended" && "opacity-70")}>
+                className={cn("flex min-h-11 items-center gap-3 rounded-2xl border bg-card p-4 hover:bg-accent", c.state === "active" && "border-l-4 border-l-lime", c.state === "ended" && "opacity-70")}>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-semibold">{c.title}</span>

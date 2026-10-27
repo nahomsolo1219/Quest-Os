@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { uploadReceiptAction } from "@/app/app/actions";
 import { T } from "@/app/app/strings";
+import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const METHODS = ["telebirr", "cbe", "cash"] as const;
@@ -51,9 +52,10 @@ export function PayForm({ invoiceId }: { invoiceId: string }) {
         <legend className="text-sm font-medium">{T.payments.method}</legend>
         <div className="grid grid-cols-3 gap-2">
           {METHODS.map((m) => (
-            <label key={m} className={cn("flex min-h-11 cursor-pointer items-center justify-center rounded-lg border px-2 text-center text-sm font-semibold has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring",
-              method === m ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:bg-accent")}>
+            <label key={m} className={cn("flex min-h-11 cursor-pointer items-center justify-center gap-1 rounded-lg border px-2 text-center text-sm font-semibold has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring",
+              method === m ? "border-primary bg-primary text-primary-foreground" : "bg-card hover:bg-accent")}>
               <input type="radio" name={id("method")} value={m} checked={method === m} onChange={() => setMethod(m)} className="sr-only" />
+              {method === m ? <Check aria-hidden className="size-4 shrink-0 text-lime" /> : null}
               {T.payments.methods[m]}
             </label>
           ))}

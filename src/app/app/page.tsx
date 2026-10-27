@@ -1,15 +1,18 @@
 import Link from "next/link";
+import { ChevronRight, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Deadline } from "@/components/shell/deadline";
 import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
-import { MacroRow } from "@/components/shell/stat";
 import { MealCard } from "@/components/client/meal-card";
 import { RatingForm } from "@/components/client/rating-form";
+import { TodayHero } from "@/components/client/today-hero";
+import { byEatingOrder } from "@/components/client/eating-order";
 import { requirePageActor, serviceCtx } from "@/server/session";
-import { todayForClient } from "@/server/services/client-app";
+import { todayForClient, todayHero } from "@/server/services/client-app";
 import { myRatings } from "@/server/services/ratings";
 import { formatBirr } from "@/domain/money";
-import { formatAddisDateTime, formatDate } from "@/domain/time";
+import { formatDate } from "@/domain/time";
 import { T } from "./strings";
 
 export const dynamic = "force-dynamic";
@@ -18,30 +21,35 @@ export const metadata = { title: "Today" };
 export default async function TodayPage() {
   const actor = await requirePageActor("client");
   const ctx = await serviceCtx(actor);
-  const t = await todayForClient(ctx);
+  const [t, hero] = await Promise.all([todayForClient(ctx), todayHero(ctx)]);
   const ratings = t.meals.length ? await myRatings(ctx, t.today, t.today) : [];
-  const total = t.meals.reduce((a, m) => ({ kcal: a.kcal + m.kcal, p: a.p + m.proteinG, c: a.c + m.carbG, f: a.f + m.fatG }), { kcal: 0, p: 0, c: 0, f: 0 });
+  const meals = byEatingOrder(t.meals);
+  const total = meals.reduce((a, m) => ({ kcal: a.kcal + m.kcal, p: a.p + m.proteinG, c: a.c + m.carbG, f: a.f + m.fatG }), { kcal: 0, p: 0, c: 0, f: 0 });
+  const live = t.plan && ["active", "paused", "pending_payment"].includes(t.plan.status);
 
   return (
     <div className="space-y-4">
       <PageHeader title={T.today.title} description={formatDate(t.today, "long")} />
       {t.dueInvoice ? (
-        <div className="flex items-center justify-between gap-3 rounded-xl border border-warning/30 bg-warning-soft p-3 text-warning">
-          <p className="text-sm font-medium">{T.today.payDue(formatBirr(t.dueInvoice.amountBirr), formatAddisDateTime(t.dueInvoice.dueAt))}</p>
-          <Button asChild className="h-11 shrink-0"><Link href="/app/payments">{T.today.payNow}</Link></Button>
+        <div className="space-y-2 rounded-2xl border border-warning/30 bg-warning-soft p-4">
+          <div className="flex items-center justify-between gap-3">
+            <p className="flex min-w-0 items-center gap-2 font-semibold text-warning">
+              <CreditCard aria-hidden className="size-5 shrink-0" />
+              <span>{T.today.payDue(formatBirr(t.dueInvoice.amountBirr), `${formatDate(t.dueInvoice.periodStart)} – ${formatDate(t.dueInvoice.periodEnd)}`)}</span>
+            </p>
+            <Button asChild className="h-11 shrink-0"><Link href="/app/payments">{T.today.payNow}</Link></Button>
+          </div>
+          <Deadline cutoff={t.dueInvoice.dueAt} now={ctx.now} verb={T.today.payBy} passedLabel="Overdue" />
         </div>
       ) : null}
-      {t.drops.map((d, i) => (
-        <p key={i} className="rounded-xl bg-accent p-3 text-sm font-semibold">
-          {(d.kind === "pickup" ? T.today.pickup : T.today.drop)[d.status]}{d.status === "failed" && d.failedReason ? `: ${d.failedReason}` : ""}
-        </p>
-      ))}
-      {t.meals.length ? (
-        <>
-          <section aria-label="Today's total" className="rounded-2xl bg-primary/5 p-3">
-            <MacroRow kcal={total.kcal} proteinG={total.p} carbG={total.c} fatG={total.f} />
-          </section>
-          {t.meals.map((m) => {
+      {meals.length || t.drops.length ? (
+        <TodayHero drops={t.drops} deliverBy={hero.deliverBy} mealsDropDate={hero.mealsDropDate} today={t.today}
+          total={meals.length ? total : null} kcalTarget={hero.kcalTarget} />
+      ) : null}
+      {meals.length ? (
+        <section aria-label={T.today.meals} className="space-y-3">
+          <h2 className="text-lg font-semibold">{T.today.meals}</h2>
+          {meals.map((m) => {
             const r = ratings.find((x) => x.mealId === m.mealId);
             return (
               <MealCard key={m.slot} meal={m}>
@@ -49,7 +57,7 @@ export default async function TodayPage() {
               </MealCard>
             );
           })}
-        </>
+        </section>
       ) : (
         <EmptyState title={emptyTitle(t)}
           action={!t.plan || t.dueInvoice ? <Button asChild className="h-11"><Link href="/app/payments">{T.today.payNow}</Link></Button>
@@ -57,11 +65,15 @@ export default async function TodayPage() {
           {!t.plan ? T.today.noPlanHint : t.nextMealDate || t.paused ? null : T.today.nothingHint}
         </EmptyState>
       )}
-      <nav className="grid grid-cols-2 gap-2 pt-2 text-sm font-semibold">
-        {[["/app/swaps", "Swaps"], ["/app/pause", "Pause"], ["/app/payments", "Payments"], ["/app/profile", "Profile"]].map(([href, label]) => (
-          <Link key={href} href={href} className="flex min-h-11 items-center justify-center rounded-xl border hover:bg-accent">{label}</Link>
-        ))}
-      </nav>
+      {live ? (
+        <Link href="/app/plan" className="flex min-h-11 items-center gap-3 rounded-2xl border bg-card p-4 hover:bg-accent">
+          <div className="min-w-0 flex-1 space-y-1">
+            <p className="text-sm font-medium">{T.today.changesFor(formatDate(hero.changeWeek))}</p>
+            <Deadline cutoff={hero.cutoff} now={ctx.now} />
+          </div>
+          <ChevronRight aria-hidden className="size-5 shrink-0 text-sage" />
+        </Link>
+      ) : null}
     </div>
   );
 }

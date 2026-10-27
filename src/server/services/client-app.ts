@@ -79,6 +79,34 @@ export async function todayForClient(ctx: Ctx) {
 }
 
 /**
+ * Read-only extras for the Today hero card (UI refresh, D490): the client's own calorie target, how today's meals
+ * reach them (delivery option of today's order day, else the plan's), the on-time delivery time from settings,
+ * the drop date that carries today's meals, and the next weekly cutoff with the week it decides.
+ */
+export async function todayHero(ctx: Ctx) {
+  const { clientId } = own(ctx, "orders.readOwn");
+  const today = addisDate(ctx.now);
+  const [settings, [np], sub, [day]] = await Promise.all([
+    loadSettings(ctx.db),
+    ctx.db.select({ kcal: nutritionProfiles.kcalTarget }).from(nutritionProfiles)
+      .where(and(eq(nutritionProfiles.clientId, clientId), eq(nutritionProfiles.isCurrent, true))),
+    currentSubscription(ctx.db, clientId),
+    ctx.db.select({ dropDate: orderDays.dropDate, option: orderDays.deliveryOption, weekOption: weeklyOrders.deliveryOption }).from(orderDays)
+      .innerJoin(weeklyOrders, eq(weeklyOrders.id, orderDays.weeklyOrderId))
+      .where(and(eq(orderDays.clientId, clientId), eq(orderDays.serviceDate, today), eq(weeklyOrders.status, "locked"))).limit(1),
+  ]);
+  const week = changeEffectiveWeek(ctx.now, settings.schedule);
+  return {
+    kcalTarget: np?.kcal ?? null,
+    deliveryOption: day ? day.option ?? day.weekOption : sub?.deliveryOption ?? null,
+    mealsDropDate: day?.dropDate ?? null,
+    deliverBy: settings.schedule.deliveryDeadlineTime,
+    changeWeek: week,
+    cutoff: weeklyCutoff(week, settings.schedule),
+  };
+}
+
+/**
  * The week's menu (APP-04): the locked order if the week is locked, otherwise the standard menu at the client's
  * profile with the swaps and add-ons in force that week, and the cutoff until which changes still count.
  */

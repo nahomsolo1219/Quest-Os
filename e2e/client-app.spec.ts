@@ -33,7 +33,11 @@ test.describe("as the paying client of this project", () => {
     await page.goto("/app/menu");
     await expect(page.getByRole("heading", { name: "Menu", level: 1 })).toBeVisible();
     await expect(page.getByText("Locked. This is what the kitchen cooks for you.")).toBeVisible();
+    // day strip: today (Tue 20 Oct) is shown first; other days by tapping them (?day=…)
+    await expect(page.getByRole("heading", { name: /Tuesday, 20 October 2026 · Menu B/ })).toBeVisible();
+    await page.getByRole("link", { name: /^Monday, 19 October 2026/ }).click();
     await expect(page.getByRole("heading", { name: /Monday, 19 October 2026 · Menu A/ })).toBeVisible();
+    await page.getByRole("link", { name: /^Thursday, 22 October 2026/ }).click();
     await expect(page.getByRole("heading", { name: /Thursday, 22 October 2026 · Menu D/ })).toBeVisible();
     await screenshot(page, "client-menu", info);
     await page.getByRole("tab", { name: "Next week" }).click();
