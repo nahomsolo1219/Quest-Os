@@ -65,7 +65,7 @@ export function PaymentCard({ p }: { p: PaymentCardData }) {
               </div>
             </form>
           ) : (
-            <div className="flex gap-2">
+            <div className="flex gap-2" data-tour="payment-confirm">
               <Button className="h-11 flex-1 sm:flex-none sm:px-8" disabled={pending} onClick={() => run(() => confirmPaymentAction({ paymentId: p.paymentId }))}>{S.confirm}</Button>
               <Button variant="outline" className="h-11" disabled={pending} onClick={() => setRejecting(true)}>{S.reject}</Button>
             </div>

@@ -19,7 +19,7 @@ export default async function PricingSettingsPage() {
   return (
     <div>
       <PageHeader title={S.tabs.pricing} description={S.pricingIntro} />
-      <SettingsForm settingsKey="pricing" value={s.pricing} groups={groups} save={savePricingAction} />
+      <SettingsForm settingsKey="pricing" value={s.pricing} groups={groups} save={savePricingAction} tour="settings-pricing" />
     </div>
   );
 }

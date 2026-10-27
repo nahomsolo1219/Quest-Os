@@ -61,7 +61,7 @@ export default async function ChallengePage({ params }: { params: Promise<{ id: 
           <p className="text-xs text-muted-foreground">{S.dayUnit(c.myDays)}</p>
         </div>
       </div>
-      <section aria-labelledby="board-h">
+      <section aria-labelledby="board-h" data-tour="challenge-leaderboard">
         <h2 id="board-h" className="mb-2 text-lg font-bold">{S.leaderboard}</h2>
         {c.leaderboard.length === 0 ? <EmptyState title={S.emptyBoard}>{S.emptyBoardBody}</EmptyState> : (
           <ol className="divide-y rounded-xl border">

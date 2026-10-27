@@ -25,8 +25,8 @@ export default async function PartnersPage() {
       <section className="space-y-2">
         <h2 className="text-lg font-semibold">{S.totals}</h2>
         <div className="grid gap-3 md:grid-cols-3">
-          {d.totals.map((t) => (
-            <Card key={t.partnerUserId}>
+          {d.totals.map((t, i) => (
+            <Card key={t.partnerUserId} data-tour={i === 0 ? "partners-totals" : undefined}>
               <CardHeader><CardTitle>{t.name}</CardTitle></CardHeader>
               <CardContent className="space-y-3">
                 <div className="grid grid-cols-2 gap-2">
@@ -40,7 +40,7 @@ export default async function PartnersPage() {
         </div>
       </section>
       <div className="grid gap-4 lg:grid-cols-[2fr_3fr]">
-        <Card>
+        <Card data-tour="partners-add">
           <CardHeader><CardTitle>{S.add}</CardTitle></CardHeader>
           <CardContent><ContributionForm partners={d.partners} today={addisDate(ctx.now)} /></CardContent>
         </Card>

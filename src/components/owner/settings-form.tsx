@@ -55,13 +55,15 @@ function fromForm(form: Record<string, unknown>, base: unknown, groups: FieldGro
  * Settings group editor. Validates with the domain Zod schema of `settingsKey` in the browser, then the server action
  * validates again and saves through updateSettings (audited). Percent fields are shown as % and stored as fractions.
  */
-export function SettingsForm({ settingsKey, value, groups, save, extraCheck, canEdit = true }: {
+export function SettingsForm({ settingsKey, value, groups, save, extraCheck, canEdit = true, tour }: {
   settingsKey: SettingsKey;
   value: unknown;
   groups: FieldGroup[];
   save: (value: unknown, reason: string) => Promise<ActionResult<unknown>>;
   extraCheck?: "macroSplit";
   canEdit?: boolean;
+  /** data-tour id put on the first group (guided tour target) */
+  tour?: string;
 }) {
   const { pending, run } = useAction();
   const resolver: Resolver<FieldValues> = async (values) => {
@@ -90,9 +92,9 @@ export function SettingsForm({ settingsKey, value, groups, save, extraCheck, can
   return (
     <form className="space-y-6" onSubmit={handleSubmit((v) => run(() => save(fromForm(v, value, groups), String(v.reason ?? "")), () => form.reset(v)))}>
       <fieldset disabled={!canEdit} className="space-y-6">
-        {groups.map((g) => (
+        {groups.map((g, gi) => (
           <section key={g.title} className="space-y-3 rounded-xl border p-4 bg-card">
-            <div>
+            <div data-tour={gi === 0 ? tour : undefined}>
               <h2 className="font-semibold">{g.title}</h2>
               {g.help ? <p className="text-sm text-muted-foreground">{g.help}</p> : null}
             </div>

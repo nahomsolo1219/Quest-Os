@@ -7,7 +7,7 @@ export default async function SettingsLayout({ children }: { children: React.Rea
   const actor = await requirePageActor("owner", "operations", "nutritionist");
   return (
     <div>
-      <UnderlineTabNav items={tabsFor(actor)} label={S.title} />
+      <div data-tour="settings-tabs"><UnderlineTabNav items={tabsFor(actor)} label={S.title} /></div>
       {children}
     </div>
   );

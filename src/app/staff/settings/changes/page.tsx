@@ -34,7 +34,7 @@ export default async function ChangeLogPage({ searchParams }: { searchParams: Pr
   return (
     <div>
       <PageHeader title={S.tabs.changes} description={S.changesIntro} />
-      <nav aria-label="Filter" className="mb-4 flex flex-wrap gap-2">
+      <nav aria-label="Filter" className="mb-4 flex flex-wrap gap-2" data-tour="settings-changes">
         {FILTERS.map((f) => (
           <Link key={f.value} href={f.value ? `/staff/settings/changes?entity=${f.value}` : "/staff/settings/changes"}
             className={cn("inline-flex min-h-11 items-center rounded-full border px-4 text-sm", (e ?? "") === f.value ? "border-primary bg-primary text-primary-foreground" : "hover:bg-muted")}>{f.label}</Link>

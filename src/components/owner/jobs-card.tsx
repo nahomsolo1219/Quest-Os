@@ -9,7 +9,7 @@ export function JobsCard({ jobs }: { jobs: JobHealth[] }) {
   const overdue = jobs.filter((j) => j.overdue).length;
   return (
     <Card>
-      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
+      <CardHeader data-tour="dashboard-jobs" className="flex flex-row flex-wrap items-center justify-between gap-2">
         <CardTitle>Scheduled jobs</CardTitle>
         {overdue ? <StatusBadge tone="bad">{overdue} overdue</StatusBadge> : <StatusBadge tone="good">All on time</StatusBadge>}
       </CardHeader>

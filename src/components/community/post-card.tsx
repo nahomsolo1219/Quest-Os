@@ -12,7 +12,7 @@ export function PostCard({ post, canReact, full = false }: { post: FeedPost; can
   const body = full || post.body.length <= 400 ? post.body : `${post.body.slice(0, 400)}…`;
   const down = post.progressText?.startsWith("−");
   return (
-    <article className={cn("rounded-2xl border bg-card p-4 shadow-xs", post.hidden && "border-dashed opacity-60", post.pinned && "border-primary/40")}>
+    <article data-tour={full ? undefined : "community-post"} className={cn("rounded-2xl border bg-card p-4 shadow-xs", post.hidden && "border-dashed opacity-60", post.pinned && "border-primary/40")}>
       {post.pinned && full ? (
         <p className="mb-2 flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground"><Pin className="size-3.5" aria-hidden />{S.pinned}</p>
       ) : null}

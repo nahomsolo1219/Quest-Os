@@ -21,9 +21,9 @@ export default async function PackagesPage() {
       <PageHeader title={S.tabs.packages} description={S.packagesIntro} />
       {pkgs.length === 0 ? <EmptyState title="No packages yet.">Run the reference seed to add Essential, Performance and Premium.</EmptyState> : (
         <div className="grid gap-4 lg:grid-cols-3">
-          {pkgs.map((p) => (
+          {pkgs.map((p, i) => (
             <Card key={p.id}>
-              <CardHeader><CardTitle className="flex items-center justify-between">{p.name}{p.active ? null : <Badge variant="outline">Not offered</Badge>}</CardTitle></CardHeader>
+              <CardHeader data-tour={i === 0 ? "settings-packages" : undefined}><CardTitle className="flex items-center justify-between">{p.name}{p.active ? null : <Badge variant="outline">Not offered</Badge>}</CardTitle></CardHeader>
               <CardContent>
                 <PackageForm id={p.id} labels={DELIVERY_LABELS} enabled={settings.pricing.enabledDeliveryOptions}
                   values={{ name: p.name, swapLimit: p.swapLimit, checkinIntervalDays: p.checkinIntervalDays, coaching: p.coaching, deliveryOptions: p.deliveryOptions,

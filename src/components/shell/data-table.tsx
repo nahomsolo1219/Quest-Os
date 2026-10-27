@@ -15,13 +15,15 @@ export type FilterDef = { columnId: string; label: string; options: { value: str
  * Staff list table (TanStack Table): search box, select filters, sortable headers.
  * Define `columns` in a client component next to the page that uses it.
  */
-export function DataTable<T>({ data, columns, filters = [], searchPlaceholder = "Search", empty, onRowHref }: {
+export function DataTable<T>({ data, columns, filters = [], searchPlaceholder = "Search", empty, onRowHref, searchTour }: {
   data: T[];
   columns: ColumnDef<T, unknown>[];
   filters?: FilterDef[];
   searchPlaceholder?: string;
   empty: { title: string; body?: ReactNode; action?: ReactNode };
   onRowHref?: (row: T) => string;
+  /** data-tour id for the search and filter bar (guided tour target) */
+  searchTour?: string;
 }) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
@@ -42,7 +44,7 @@ export function DataTable<T>({ data, columns, filters = [], searchPlaceholder = 
   const rows = table.getRowModel().rows;
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2" data-tour={searchTour}>
         <label className="sr-only" htmlFor="table-search">{searchPlaceholder}</label>
         <Input id="table-search" value={globalFilter} onChange={(e) => setGlobalFilter(e.target.value)}
           placeholder={searchPlaceholder} className="h-11 w-full sm:w-64" />

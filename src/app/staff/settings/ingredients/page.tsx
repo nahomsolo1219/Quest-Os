@@ -25,7 +25,7 @@ export default async function IngredientsPage({ searchParams }: { searchParams: 
   return (
     <div>
       <PageHeader title={S.tabs.ingredients} description={S.ingredientsIntro} />
-      <div className={cn("mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4", d.missingCount ? TONE_PANEL.warn : TONE_PANEL.good)}>
+      <div data-tour="settings-ingredients" className={cn("mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4", d.missingCount ? TONE_PANEL.warn : TONE_PANEL.good)}>
         <p className="stat-number text-xl">{S.missing(d.missingCount)}</p>
         <nav aria-label="Filter" className="flex flex-wrap gap-2">
           <Link href="/staff/settings/ingredients?show=missing" aria-current={filter === "missing" ? "page" : undefined} className={chip(filter === "missing")}>Missing price ({d.missingCount})</Link>
