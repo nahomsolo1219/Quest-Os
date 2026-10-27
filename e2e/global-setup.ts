@@ -1,18 +1,22 @@
 // Resets and seeds questmeals_e2e (demo, today = Mon 19 Oct 2026), sets every ingredient price so plan
 // prices exist, runs the Thursday lock of 15 Oct for the current week (orders, meals and drops for today),
 // and saves one signed-in storage state per role under e2e/.auth/.
+// Staff tours auto-start on a first visit and their overlay swallows clicks, so every staff user's tours are marked
+// skipped here (D650); e2e/tour.spec.ts clears and restores the rows of the user it walks through a tour.
 import { mkdirSync, rmSync } from "node:fs";
 import path from "node:path";
 import { request, type FullConfig } from "@playwright/test";
 import { and, eq, sql as dsql } from "drizzle-orm";
 import { createDb } from "../db/client";
 import { dropSchemas, runMigrations } from "../db/migrate";
-import { seedAll } from "../db/seed";
+import { DEMO_COACH, DEMO_STAFF_PASSWORD, seedAll } from "../db/seed";
 import * as s from "../db/schema";
 import { runJob } from "../src/server/jobs";
 import { loadActor } from "../src/server/authz";
 import { uploadReceipt } from "../src/server/services/client-app";
 import { createLead } from "../src/server/services/clients";
+import { createStaffUser } from "../src/server/auth";
+import { toursFor } from "../src/lib/tours";
 import { makePng } from "./png";
 import { AUTH_DIR, E2E_DB_URL, LOGINS, testIp, type RoleKey } from "./env";
 
@@ -20,6 +24,7 @@ export default async function globalSetup(config: FullConfig) {
   const url = E2E_DB_URL;
   // E2E_REUSE_DB=1 keeps the current database (only for iterating on one spec locally).
   if (!process.env.E2E_REUSE_DB) await resetAndSeed(url);
+  await skipAllTours(url);
   await saveLogins(config);
 }
 
@@ -69,6 +74,24 @@ async function resetAndSeed(url: string) {
     const opsActor = await loadActor(db, ops.id);
     for (const [last, phone] of [["Phone", "0911500001"], ["Laptop", "0911500002"]]) {
       await createLead({ db, actor: opsActor, now: new Date("2026-10-20T06:00:00Z") }, { firstName: "Onboard", lastName: last, phone, source: "walk_in" });
+    }
+    // The coach-only account of the demo copy's tour data (D608), created with the same helper db/seed uses, so the
+    // coach tour (client shell, no moderation step) and the "Coach" one-tap sign-in can be tested.
+    await createStaffUser(db, { ...DEMO_COACH, password: DEMO_STAFF_PASSWORD, isDemo: true });
+  } finally {
+    await sql.end({ timeout: 5 });
+  }
+}
+
+/** Marks every tour of every staff user as skipped (idempotent), so no tour auto-starts in the other specs. */
+export async function skipAllTours(url: string) {
+  const { db, sql } = createDb(url, { max: 1 });
+  try {
+    const users = await db.select({ id: s.user.id, roles: s.user.roles }).from(s.user);
+    const rows = users.flatMap((u) => toursFor(u.roles).map((tourId) => ({ userId: u.id, tourId, step: 0, status: "skipped" })));
+    if (rows.length) {
+      await db.insert(s.tourProgress).values(rows)
+        .onConflictDoUpdate({ target: [s.tourProgress.userId, s.tourProgress.tourId], set: { step: 0, status: "skipped" } });
     }
   } finally {
     await sql.end({ timeout: 5 });
