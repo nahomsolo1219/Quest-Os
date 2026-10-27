@@ -36,6 +36,13 @@ Resume: `pwd`, read this file, `features.json`, `git log --oneline -20`, run `np
 - Screenshots: docs/screenshots/before|after/<area>/<role>--<page>--<width>.jpg (`node scripts/shots-all.mjs <phase>`).
 - QA: new e2e/ui-refresh.spec.ts + rider Undo e2e; spec review found 3 undo gaps (fixed, D501); QA found area-level loading.tsx broke same-page ?param links in production (fixed, D513).
 
+## Milestone 8 — Staff guided tour + demo mode (branch `staff-tour`)
+- Brief: docs/STAFF_TOUR.md. Decisions D600–D653. Features TOUR-01…TOUR-14, DEMO-01…DEMO-06.
+- Tour engine (in-house, src/components/tour/): spotlight, Deep Forest step card (popover at 1280, sheet on phones), page-to-page steps that wait for `data-tour` targets and skip missing ones, menu sheet opening on phones, keyboard and aria-live, progress per user in `tour_progress` (migration 0005), "Take the tour" in the user menu.
+- Six tours written by four ui-builders in parallel (owner + coach, operations, nutritionist, kitchen + rider); every step screenshotted at 390 and 1280 in docs/screenshots/tour/<role>/ (`node scripts/tour-shots.mjs <tour>`).
+- Demo mode (`DEMO_MODE=true`): banner, Try a role one-tap sign-in, Telegram logged not sent, `POST /api/jobs/demo-reset` (404 otherwise) truncating and reseeding with tour data for today (db/seed/tour-data.ts; `npm run db:reset -- --tour-data` locally). Railway: `cron-demo-reset` in CRON.md; run the reset once after the first deploy (DEPLOY.md).
+- QA: e2e/tour.spec.ts (auto-start, skip, resume, replay, keyboard, every role to "Your week" at 390 and 1280), e2e/demo.spec.ts (second web server with DEMO_MODE=true); global setup marks tours skipped for the other specs. Spec review: no gaps.
+
 ## Known issues / notes
 - Ingredient prices are empty by design until staff enter them; plans cannot be priced before that.
 - Phone layouts: wide tables scroll horizontally inside their card (no page overflow).
