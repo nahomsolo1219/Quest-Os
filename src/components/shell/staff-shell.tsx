@@ -12,7 +12,7 @@ export function StaffShell({ roles, name, unread, children }: { roles: Role[]; n
   const items = navFor(STAFF_NAV, roles);
   const home = items.find((i) => !i.href.endsWith("/notifications"))?.href ?? "/staff";
   return (
-    <div className="min-h-dvh md:grid md:grid-cols-[232px_1fr]">
+    <div className="min-h-dvh md:grid md:grid-cols-[232px_1fr] print:block">
       <header className="no-print sticky top-0 z-30 flex h-14 items-center justify-between border-b bg-background/95 px-4 backdrop-blur md:hidden">
         <Link href={home} aria-label="Quest Meals home" className="flex min-h-11 items-center"><Logo variant="horizontal" height={24} priority /></Link>
         <MobileNav items={items} name={name} unread={unread} />
