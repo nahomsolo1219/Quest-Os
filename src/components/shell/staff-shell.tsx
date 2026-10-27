@@ -19,8 +19,12 @@ export function StaffShell({ roles, name, unread, children }: { roles: Role[]; n
       </header>
       <aside className="no-print sticky top-0 hidden h-dvh flex-col bg-sidebar text-sidebar-foreground md:flex">
         <Link href={home} aria-label="Quest Meals home" className="flex min-h-11 items-center px-5 pt-5 pb-4"><Logo variant="horizontal-reversed" height={26} priority /></Link>
-        <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-3">
-          <NavLinks items={items} unread={unread} tone="dark" />
+        <div className="relative min-h-0 flex-1">
+          <div className="h-full overflow-y-auto px-3 pb-6">
+            <NavLinks items={items} unread={unread} tone="dark" />
+          </div>
+          {/* Hints that the list scrolls when it is taller than the window */}
+          <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-sidebar to-transparent" />
         </div>
         <div className="space-y-2 border-t border-sidebar-border p-4 text-sm">
           <p className="truncate font-medium">{name}</p>
