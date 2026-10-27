@@ -35,15 +35,15 @@ export default async function ProductionPage({ params }: { params: Promise<{ dat
       <KitchenSheet>
         <PageHeader title={`${S.production} · ${formatDate(date, "long")}`}
           description={sheet.mealsCount ? <span className="text-base print:text-sm">{sheet.mealsCount} meals for {sheet.clientsCount} clients{sheet.quickStartMeals ? <> · includes {sheet.quickStartMeals} quick-start meals ({sheet.quickStartClients} clients)</> : null}</span> : undefined}
-          actions={sheet.mealsCount ? <PrintButton /> : null} />
+          actions={sheet.mealsCount ? <PrintButton tour="production-print" /> : null} />
         {sheet.mealsCount === 0 ? (
           <EmptyState title={S.emptyDay}>{S.emptyDayBody}</EmptyState>
         ) : (
           <>
             {/* Phones: one card per part, grouped by meal. */}
             <PhoneCards label={S.production}>
-              {meals.map((m) => (
-                <li key={m.mealId}>
+              {meals.map((m, mi) => (
+                <li key={m.mealId} data-tour={mi === 0 ? "production-first-meal" : undefined}>
                   <h2 className="mb-2 text-lg font-bold leading-snug">
                     <span className="mr-1 text-sm font-semibold uppercase tracking-wide text-primary">{SLOT_LABEL[m.slot]}</span>{" "}{m.mealName}
                   </h2>
@@ -90,10 +90,10 @@ export default async function ProductionPage({ params }: { params: Promise<{ dat
                     <th scope="col" className={cn(CELL, "text-right")}>Total</th>
                   </tr>
                 </thead>
-                {meals.map((m) => {
+                {meals.map((m, mi) => {
                   const rows = sheet.rows.filter((r) => r.mealId === m.mealId);
                   return (
-                    <tbody key={m.mealId} className="print-avoid-break border-t">
+                    <tbody key={m.mealId} data-tour={mi === 0 ? "production-first-meal" : undefined} className="print-avoid-break border-t">
                       <tr className="bg-primary/5">
                         <th colSpan={sheet.profiles.length + 2} scope="colgroup" className={cn(CELL, "text-left")}>
                           <span className="sticky left-3 inline-block print:static print:inline">
@@ -130,7 +130,7 @@ export default async function ProductionPage({ params }: { params: Promise<{ dat
               </table>
             </WideTable>
 
-            <section className="mt-8 print-break print:mt-6">
+            <section className="mt-8 print-break print:mt-6" data-tour="production-ingredients">
               <h2 className="text-xl font-bold print:text-lg">{S.ingredientTotals}</h2>
               <p className="mb-3 text-base text-muted-foreground print:mb-2 print:text-sm">{S.ingredientTotalsBody}</p>
               <ul aria-label={S.ingredientTotals} className="divide-y rounded-xl border md:hidden print:hidden">

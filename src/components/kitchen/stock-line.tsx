@@ -20,7 +20,7 @@ export type StockLineData = {
 };
 
 /** One stock line: expected on hand, a number input with Save, or one tap "Matches". */
-export function StockLine({ line, date }: { line: StockLineData; date: string }) {
+export function StockLine({ line, date, tour }: { line: StockLineData; date: string; tour?: string }) {
   const [value, setValue] = useState(line.countedUnits == null ? "" : String(line.countedUnits));
   const [pending, start] = useTransition();
   const id = `count-${line.ingredientId}`;
@@ -37,7 +37,7 @@ export function StockLine({ line, date }: { line: StockLineData; date: string })
   });
 
   return (
-    <li className={cn("flex flex-wrap items-end gap-2 border-b px-1 py-3", counted && "bg-success-soft/60")}>
+    <li data-tour={tour} className={cn("flex flex-wrap items-end gap-2 border-b px-1 py-3", counted && "bg-success-soft/60")}>
       <div className="min-w-0 basis-full sm:basis-auto sm:flex-1">
         <Label htmlFor={id} className="text-base font-semibold">
           {counted ? <Check aria-label="Counted" className="size-4 text-success" /> : null}{line.name}

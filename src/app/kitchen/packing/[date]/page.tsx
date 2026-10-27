@@ -31,8 +31,8 @@ export default async function PackingPage({ params }: { params: Promise<{ date: 
         actions={list.length ? <PrintButton /> : null} />
       {list.length === 0 ? <EmptyState title={S.emptyDay}>{S.emptyDayBody}</EmptyState> : (
         <div className="grid gap-4 lg:grid-cols-2 print:block">
-          {list.map((c) => (
-            <section key={c.clientId} aria-label={c.name}
+          {list.map((c, ci) => (
+            <section key={c.clientId} aria-label={c.name} data-tour={ci === 0 ? "packing-first-client" : undefined}
               className={cn("print-avoid-break rounded-xl border bg-white p-4 text-lg text-charcoal sm:p-5 print:mb-3 print:p-4 print:text-[11pt] print:text-black", c.hasConflicts && "border-2 border-danger/60")}>
               <header className="flex flex-wrap items-start justify-between gap-2">
                 <div>

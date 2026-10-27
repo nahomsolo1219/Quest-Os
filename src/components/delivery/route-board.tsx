@@ -55,7 +55,7 @@ export function RouteBoard({ date, groups: initial, riders, canManage }: {
           <div className="mb-2 flex flex-wrap items-end justify-between gap-2">
             <h2 id={`area-${gi}`} className="text-lg font-bold">{g.areaName} <span className="text-sm font-normal text-muted-foreground">· {g.drops.length} {g.drops.length === 1 ? "drop" : "drops"}</span></h2>
             {canManage && riders.length ? (
-              <div className="flex w-full items-center gap-2 sm:w-auto">
+              <div className="flex w-full items-center gap-2 sm:w-auto" data-tour={gi === 0 ? "route-assign" : undefined}>
                 <label htmlFor={`area-rider-${gi}`} className="shrink-0 text-sm">Assign area to</label>
                 <select id={`area-rider-${gi}`} className="h-11 min-w-0 flex-1 rounded-md border bg-background px-2 text-sm sm:w-44 sm:flex-none" disabled={pending} value=""
                   onChange={(e) => { if (e.target.value) assign(g.drops.map((d) => d.id), e.target.value === "none" ? null : e.target.value); }}>

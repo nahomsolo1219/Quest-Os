@@ -23,7 +23,7 @@ export function SheetNav({ date, current }: { date: DateStr; current: SheetKey }
       </div>
       <div className="-mx-1 flex gap-1 overflow-x-auto px-1">
         {SHEETS.map((s) => (
-          <Link key={s.key} href={`/kitchen/${s.key}/${date}`} aria-current={s.key === current ? "page" : undefined}
+          <Link key={s.key} href={`/kitchen/${s.key}/${date}`} data-tour={`sheet-tab-${s.key}`} aria-current={s.key === current ? "page" : undefined}
             className={cn("inline-flex min-h-11 shrink-0 items-center rounded-md border px-3 text-sm font-medium",
               s.key === current ? "border-primary bg-primary text-primary-foreground" : "bg-background hover:bg-muted")}>
             {s.label}

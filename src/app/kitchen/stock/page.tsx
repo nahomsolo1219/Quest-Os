@@ -43,7 +43,7 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
         <Button type="submit" variant="outline" className="h-11">Show</Button>
         {date !== today ? <Link href="/kitchen/stock" className="inline-flex h-11 items-center px-2 text-sm text-primary underline">Today</Link> : null}
       </form>
-      <div className="sticky top-14 z-10 mb-2 rounded-xl border bg-background/95 p-3 backdrop-blur md:top-0">
+      <div data-tour="stock-progress" className="sticky top-14 z-10 mb-2 rounded-xl border bg-background/95 p-3 backdrop-blur md:top-0">
         <p className="text-sm font-semibold" aria-live="polite">{sheet.counted} of {sheet.total} counted</p>
         <Progress value={sheet.total ? (sheet.counted / sheet.total) * 100 : 0} className="mt-2" aria-label={`${sheet.counted} of ${sheet.total} counted`} />
       </div>
@@ -57,7 +57,7 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
           <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">{GROUP_LABEL[g] ?? g}</h2>
           {canWrite ? (
             <ul>
-              {sheet.lines.filter((l) => l.foodGroup === g).map((l) => <StockLine key={`${l.ingredientId}:${date}`} line={l} date={date} />)}
+              {sheet.lines.filter((l) => l.foodGroup === g).map((l) => <StockLine key={`${l.ingredientId}:${date}`} line={l} date={date} tour={l === sheet.lines[0] ? "stock-first-line" : undefined} />)}
             </ul>
           ) : (
             <ul>

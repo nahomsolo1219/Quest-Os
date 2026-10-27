@@ -35,7 +35,7 @@ export function RiderDropCard({ drop, position }: { drop: DropCardData; position
   };
 
   return (
-    <li className="rounded-xl border bg-card p-4">
+    <li className="rounded-xl border bg-card p-4" data-tour={position === 1 ? "drop-first" : undefined}>
       <div className="flex items-start gap-3">
         <span className="stat-number text-2xl text-primary">{position}</span>
         <div className="min-w-0 flex-1">
@@ -54,10 +54,10 @@ export function RiderDropCard({ drop, position }: { drop: DropCardData; position
             <Phone aria-hidden className="size-5" /> Call {formatEthiopianPhone(drop.phone)}
           </a>
         ) : null}
-        <Button type="button" className="h-12 bg-success text-base hover:bg-success/90 disabled:border disabled:border-success/30 disabled:bg-success-soft disabled:text-success disabled:opacity-100" disabled={pending || drop.status === "delivered"} onClick={delivered}>
+        <Button type="button" data-tour={position === 1 ? "drop-delivered" : undefined} className="h-12 bg-success text-base hover:bg-success/90 disabled:border disabled:border-success/30 disabled:bg-success-soft disabled:text-success disabled:opacity-100" disabled={pending || drop.status === "delivered"} onClick={delivered}>
           {drop.status === "delivered" ? "Delivered" : "Delivered ✓"}
         </Button>
-        <Button type="button" variant="outline" className="h-12 border-danger/30 text-base text-danger" disabled={pending} aria-expanded={failing}
+        <Button type="button" data-tour={position === 1 ? "drop-failed" : undefined} variant="outline" className="h-12 border-danger/30 text-base text-danger" disabled={pending} aria-expanded={failing}
           onClick={() => setFailing((f) => !f)}>Failed…</Button>
       </div>
       {failing ? (

@@ -22,7 +22,7 @@ export default async function LabelsPage({ params }: { params: Promise<{ date: s
       <SheetNav date={date} current="labels" />
       <PageHeader title={`${S.labels} · ${formatDate(date, "long")}`}
         description={list.length ? `${list.length} labels · A4, 3 across. Print at 100% scale.` : undefined}
-        actions={list.length ? <PrintButton label="Print labels" /> : null} />
+        actions={list.length ? <PrintButton label="Print labels" tour="labels-print" /> : null} />
       {list.length === 0 ? <EmptyState title={S.emptyDay}>{S.emptyDayBody}</EmptyState> : (
         <div className="label-sheet grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {list.map((l, i) => (

@@ -27,7 +27,7 @@ export function WasteForm({ ingredients, today }: { ingredients: { id: string; n
   const selected = ingredients.find((i) => i.id === form.watch("ingredientId"));
   const err = form.formState.errors;
   return (
-    <form className="grid gap-3 rounded-xl border bg-card p-4 sm:grid-cols-2" onSubmit={form.handleSubmit(async (v) => {
+    <form data-tour="waste-form" className="grid gap-3 rounded-xl border bg-card p-4 sm:grid-cols-2" onSubmit={form.handleSubmit(async (v) => {
       const reason = v.reason === "Other" || v.note ? [v.reason, v.note].filter(Boolean).join(": ") : v.reason;
       const r = await logWasteAction({ ingredientId: v.ingredientId, qty: v.qty, reason, date: v.date });
       if (r.ok) {
