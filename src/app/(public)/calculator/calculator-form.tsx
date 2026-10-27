@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { Calculator } from "lucide-react";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -35,6 +36,11 @@ export function CalculatorForm({ nutrition }: { nutrition: NutritionSettings }) 
   const [price, setPrice] = useState<number | null | "loading">(null);
   const [, start] = useTransition();
   const e = form.formState.errors;
+  const resultRef = useRef<HTMLElement>(null);
+  // on phones the result is below the form: bring it into view after Calculate
+  useEffect(() => {
+    if (result && window.matchMedia("(max-width: 1023px)").matches) resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [result]);
 
   const onSubmit = form.handleSubmit((body) => {
     const s = suggestNutrition(body, nutrition);
@@ -52,8 +58,8 @@ export function CalculatorForm({ nutrition }: { nutrition: NutritionSettings }) 
   }).toString() : "";
 
   return (
-    <div className="mt-6 space-y-6">
-      <form onSubmit={onSubmit} className="space-y-4" noValidate>
+    <div className="mt-6 grid gap-6 lg:grid-cols-2 lg:items-start">
+      <form onSubmit={onSubmit} className="space-y-4 rounded-2xl border bg-card p-4 shadow-sm sm:p-6" noValidate>
         <ChoiceGroup name="sex" legend={S.sex} value={form.watch("sex")} onChange={(v) => form.setValue("sex", v, { shouldValidate: true })}
           options={SEXES.map((v) => ({ value: v, label: SEX_LABELS[v] }))} />
         <FieldError message={e.sex?.message} />
@@ -74,7 +80,7 @@ export function CalculatorForm({ nutrition }: { nutrition: NutritionSettings }) 
         <FieldError message={e.age?.message ?? e.weightKg?.message ?? e.heightCm?.message} />
         <div className="space-y-1.5">
           <Label htmlFor="activity">{S.activity}</Label>
-          <NativeSelect id="activity" {...form.register("activity")}>
+          <NativeSelect id="activity" className="bg-card" {...form.register("activity")}>
             {ACTIVITIES.map((a) => <option key={a} value={a}>{ACTIVITY_LABELS[a]}</option>)}
           </NativeSelect>
         </div>
@@ -85,7 +91,8 @@ export function CalculatorForm({ nutrition }: { nutrition: NutritionSettings }) 
       </form>
 
       {result ? (
-        <section aria-live="polite" className="space-y-4 rounded-2xl border bg-card p-4">
+        <section ref={resultRef} aria-live="polite" className="scroll-mt-4 space-y-4 rounded-2xl border bg-card p-4 shadow-sm sm:p-6 lg:sticky lg:top-6">
+          <h2 className="text-lg font-bold text-primary">{S.resultTitle}</h2>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{S.tdee}</p>
@@ -99,9 +106,9 @@ export function CalculatorForm({ nutrition }: { nutrition: NutritionSettings }) 
             </div>
           </div>
           <div className="rounded-xl bg-primary p-4 text-primary-foreground">
-            <p className="text-xs font-medium uppercase tracking-wide opacity-90">{S.size}</p>
+            <p className="text-xs font-medium uppercase tracking-wide text-lime">{S.size}</p>
             <p className="stat-number text-5xl">{result.s.size}<span className="ml-2 text-xl font-bold">{SIZE_LABELS[result.s.size]}</span></p>
-            <p className="mt-1 text-sm">{S.sizeNote(result.s.sizeKcal)}</p>
+            <p className="mt-1 text-sm text-primary-foreground/90">{S.sizeNote(result.s.sizeKcal)}</p>
           </div>
           <div>
             <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">{S.macros}</p>
@@ -114,7 +121,7 @@ export function CalculatorForm({ nutrition }: { nutrition: NutritionSettings }) 
               ))}
             </div>
           </div>
-          <div className="rounded-lg border p-3">
+          <div className="rounded-lg border bg-background p-3">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{S.price}</p>
             {price === "loading" ? <p className="text-sm text-muted-foreground">{S.priceLoading}</p>
               : price == null ? <p className="text-sm">{S.priceMissing}</p>
@@ -123,7 +130,13 @@ export function CalculatorForm({ nutrition }: { nutrition: NutritionSettings }) 
           <Button asChild className="h-12 w-full text-base"><Link href={`/signup?${query}`}>{S.cta}</Link></Button>
           <p className="text-center text-sm text-muted-foreground">{S.ctaNote}</p>
         </section>
-      ) : null}
+      ) : (
+        <section className="hidden rounded-2xl border border-dashed border-sage/60 p-6 text-center lg:block">
+          <Calculator className="mx-auto size-8 text-sage" aria-hidden />
+          <p className="mt-2 font-semibold text-primary">{S.emptyTitle}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{S.emptyText}</p>
+        </section>
+      )}
     </div>
   );
 }

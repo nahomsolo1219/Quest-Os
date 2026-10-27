@@ -9,7 +9,7 @@ import { ACTIVITIES, BILLING_PERIODS, DELIVERY_OPTIONS, GOALS, PROFILES, SEXES }
 const signUpSchema = z.object({
   firstName: z.string().trim().min(1, "Enter your first name.").max(60),
   lastName: z.string().trim().min(1, "Enter your last name.").max(60),
-  phone: z.string().refine((v) => normalizeEthiopianPhone(v) !== null, "Enter an Ethiopian mobile number, for example 0911 234 567."),
+  phone: z.string().refine((v) => normalizeEthiopianPhone(v) !== null, "Enter your mobile number after +251, for example 91 123 4567."),
   password: z.string().min(8, "Password must be at least 8 characters.").max(128),
   sex: z.enum(SEXES),
   age: z.number().int().min(14).max(90),
