@@ -36,14 +36,18 @@ export function findTarget(id: string): HTMLElement | null {
   return null;
 }
 
-function resolveHref(step: TourStep, c: TourContext): string | undefined {
+/** The step's page; null when it follows a link that is not on this page and has no fallback (skip the step). */
+function resolveHref(step: TourStep, c: TourContext): string | undefined | null {
   const p = step.path;
   if (!p) return undefined;
   if (typeof p === "string") return p;
   if (typeof p === "function") return p(c);
   const el = findTarget(p.hrefOf) ?? document.querySelector<HTMLElement>(`[data-tour="${CSS.escape(p.hrefOf)}"]`);
   const a = el?.closest("a") ?? el?.querySelector("a");
-  return a?.getAttribute("href") ?? undefined;
+  const href = a?.getAttribute("href");
+  if (href) return href;
+  if (p.else) return typeof p.else === "function" ? p.else(c) : p.else;
+  return null;
 }
 
 function isPhone() { return window.innerWidth <= PHONE_MAX; }
@@ -79,8 +83,15 @@ export function TourHost({ tours, progress, ctx }: { tours: TourId[]; progress: 
     const d = TOURS[tourId];
     if (idx < 0) idx = 0;
     if (idx >= d.steps.length) return;
-    const href = resolveHref(d.steps[idx], ctx);
-    update({ tourId, step: idx, dir, href });
+    let href = resolveHref(d.steps[idx], ctx);
+    // a step that follows a link which is not here: skip it now rather than wait for its target
+    while (href === null) {
+      const next = idx + dir;
+      if (next < 0 || next >= d.steps.length) { href = undefined; break; }
+      idx = next;
+      href = resolveHref(d.steps[idx], ctx);
+    }
+    update({ tourId, step: idx, dir, href: href ?? undefined });
     save(tourId, idx, "started");
   }, [ctx, save, update]);
 

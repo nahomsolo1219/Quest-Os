@@ -6,9 +6,10 @@ export type TourContext = { today: DateStr; tomorrow: DateStr };
 
 /**
  * Where a step happens. A string or a function of today's date; `{ hrefOf }` follows the link of a
- * target on the page the tour is on (e.g. "open the first client").
+ * target on the page the tour is on (e.g. "open the first client"); when that link is not on the page the tour
+ * goes to `else`, or skips the step at once when there is no `else`.
  */
-export type StepPath = string | ((c: TourContext) => string) | { hrefOf: string };
+export type StepPath = string | ((c: TourContext) => string) | { hrefOf: string; else?: string | ((c: TourContext) => string) };
 
 export type TourStep = {
   /** unique within the tour */
