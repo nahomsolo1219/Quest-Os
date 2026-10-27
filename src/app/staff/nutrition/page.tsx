@@ -20,17 +20,19 @@ export default async function NutritionQueuePage() {
   const actor = await requirePageActor("owner", "operations", "nutritionist");
   const q = await intakeQueue(await serviceCtx(actor));
   const overdue = q.provisional.filter((p) => p.overdue).length;
+  // the tour opens the first client who already has targets (or the first client) from "All clients"
+  const tourIdx = Math.max(0, q.clients.findIndex((c) => c.profile));
   return (
     <div className="space-y-6">
       <PageHeader title={S.title} description={S.queueIntro} />
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4" data-tour="nutrition-counts">
         <Stat label={S.provisionalTitle} value={q.provisional.length} tone={overdue ? "bad" : q.provisional.length ? "warn" : "default"} />
         <Stat label={S.noProfileTitle} value={q.noProfile.length} tone={q.noProfile.length ? "warn" : "default"} />
         <Link href="/staff/nutrition/profiles" className="rounded-xl focus-visible:outline-2"><Stat label={S.flaggedTitle} value={q.flaggedDays} tone={q.flaggedDays ? "warn" : "good"} /></Link>
         <Link href="/staff/nutrition/swaps" className="rounded-xl focus-visible:outline-2"><Stat label={S.swapRequestsTitle} value={q.swapRequests} tone={q.swapRequests ? "warn" : "default"} /></Link>
       </div>
 
-      <section className="space-y-2">
+      <section className="space-y-2" data-tour="nutrition-intake">
         <h2 className="text-lg font-semibold">{S.provisionalTitle}</h2>
         <p className="text-sm text-muted-foreground">{S.provisionalBody(q.confirmHours)}</p>
         {q.provisional.length === 0 ? <EmptyState title={S.provisionalEmpty} /> : (
@@ -69,14 +71,15 @@ export default async function NutritionQueuePage() {
         )}
       </section>
 
-      <Card>
+      <Card data-tour="nutrition-clients">
         <CardHeader><CardTitle>{S.allClientsTitle}</CardTitle></CardHeader>
         <CardContent>
           {q.clients.length === 0 ? <EmptyState title={S.allClientsEmpty} /> : (
             <ul className="divide-y">
-              {q.clients.map((c) => (
+              {q.clients.map((c, i) => (
                 <li key={c.id}>
-                  <Link href={`/staff/nutrition/clients/${c.id}`} className="flex min-h-11 items-center justify-between gap-2 py-2 hover:text-primary">
+                  <Link href={`/staff/nutrition/clients/${c.id}`} data-tour={i === tourIdx ? "nutrition-client-link" : undefined}
+                    className="flex min-h-11 items-center justify-between gap-2 py-2 hover:text-primary">
                     <span className="font-medium">{displayName(c.firstName, c.lastName)} <span className="text-sm font-normal text-muted-foreground">· {c.status}</span></span>
                     <span className="text-right text-sm text-muted-foreground">
                       {c.profile ? `${c.profile.size} ${goalLabel(c.profile.goal)} · ${c.profile.kcalTarget} kcal` : "No targets"}

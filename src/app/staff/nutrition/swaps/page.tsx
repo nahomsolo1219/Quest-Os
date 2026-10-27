@@ -19,12 +19,12 @@ export default async function SwapApprovalsPage() {
   return (
     <div className="space-y-4">
       <PageHeader title={S.tabs.swaps} description={`${S.swapsIntro} Next open week: ${formatDate(d.effectiveWeek, "long")}.`} />
-      {d.requests.length === 0 ? <EmptyState title={S.swapsEmptyTitle}>{S.swapsEmptyBody}</EmptyState> : (
+      {d.requests.length === 0 ? <div data-tour="swaps-first"><EmptyState title={S.swapsEmptyTitle}>{S.swapsEmptyBody}</EmptyState></div> : (
         <div className="grid gap-3 lg:grid-cols-2">
-          {d.requests.map((r) => {
+          {d.requests.map((r, i) => {
             const over = r.swapLimit != null && r.standing >= r.swapLimit;
             return (
-              <Card key={r.s.id}>
+              <Card key={r.s.id} data-tour={i === 0 ? "swaps-first" : undefined}>
                 <CardHeader>
                   <CardTitle className="flex flex-wrap items-center justify-between gap-2">
                     <Link href={`/staff/nutrition/clients/${r.s.clientId}`} className="hover:text-primary">{displayName(r.firstName, r.lastName)}</Link>

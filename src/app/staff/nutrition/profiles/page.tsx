@@ -21,6 +21,8 @@ export default async function ProfilesPage({ searchParams }: { searchParams: Pro
   const menu: MenuCode | "extra" = m === "extra" ? "extra" : (MENU_CODES as readonly string[]).includes(m ?? "") ? (m as MenuCode) : "A";
   const t = await profileTable(await serviceCtx(actor), menu);
   const computedAt = t.days.find((d) => d.result)?.result?.computedAt;
+  // the tour lights one day card: the first flagged one, else the first
+  const tourDay = Math.max(0, t.days.findIndex((d) => d.result?.flagged));
 
   return (
     <div className="space-y-4">
@@ -43,8 +45,9 @@ export default async function ProfilesPage({ searchParams }: { searchParams: Pro
         <section aria-label="Day totals" className="space-y-2">
           <h2 className="text-lg font-semibold">Menu {menu}: day totals per profile</h2>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
-            {t.days.map((d) => (
-              <div key={d.profile} className={cn("rounded-xl border bg-card p-3", d.result?.flagged && "border-warning/60 bg-warning-soft")}>
+            {t.days.map((d, di) => (
+              <div key={d.profile} data-tour={di === tourDay ? "profiles-totals" : undefined}
+                className={cn("rounded-xl border bg-card p-3", d.result?.flagged && "border-warning/60 bg-warning-soft")}>
                 <p className="text-sm font-semibold">{profileLabel(d.profile)}</p>
                 {d.result ? (
                   <>
@@ -60,13 +63,13 @@ export default async function ProfilesPage({ searchParams }: { searchParams: Pro
         </section>
       ) : <p className="text-sm text-muted-foreground">Replacement meals (the savory snack) scale with Menu A&apos;s factors for each profile.</p>}
 
-      {t.meals.map((meal) => (
+      {t.meals.map((meal, mi) => (
         <section key={meal.id} className="space-y-2">
           <h2 className="text-lg font-semibold"><span className="capitalize text-muted-foreground">{meal.slot}</span> · {meal.name}</h2>
           {/* phones: one card per part, the six profiles as a 3 × 2 grid */}
           <ul className="space-y-2 md:hidden" aria-label={`${meal.name} parts`}>
-            {meal.parts.map((part) => (
-              <li key={part.id} className="rounded-xl border bg-card p-3 shadow-sm">
+            {meal.parts.map((part, pi) => (
+              <li key={part.id} className="rounded-xl border bg-card p-3 shadow-sm" data-tour={mi === 0 && pi === 0 ? "profiles-portions" : undefined}>
                 <div className="flex items-baseline justify-between gap-2">
                   <p className="font-semibold">{part.name}</p>
                   <p className="shrink-0 text-xs text-muted-foreground">Base {part.baseQty} {part.unit === "piece" ? "pc" : "g"}</p>
@@ -106,8 +109,8 @@ export default async function ProfilesPage({ searchParams }: { searchParams: Pro
                 </tr>
               </thead>
               <tbody>
-                {meal.parts.map((part) => (
-                  <tr key={part.id} className="border-t">
+                {meal.parts.map((part, pi) => (
+                  <tr key={part.id} className="border-t" data-tour={mi === 0 && pi === 0 ? "profiles-portions" : undefined}>
                     <th scope="row" className="sticky left-0 z-10 bg-card px-2 py-1 text-left font-medium shadow-[1px_0_0_var(--border)]">
                       {part.name}
                       <span className="block text-xs font-normal text-muted-foreground">{part.category} · {part.unit === "piece" ? "pieces" : "g"}</span>

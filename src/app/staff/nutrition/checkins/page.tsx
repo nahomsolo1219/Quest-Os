@@ -21,7 +21,7 @@ export default async function CheckinsPage() {
     <div className="space-y-6">
       <PageHeader title={S.tabs.checkins} description={S.checkinsIntro} />
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
+        <Card data-tour="checkins-due">
           <CardHeader><CardTitle>{S.overdueTitle} ({d.overdue.length})</CardTitle></CardHeader>
           <CardContent>
             {d.overdue.length === 0 ? <EmptyState title={S.overdueEmpty} /> : (

@@ -15,7 +15,10 @@ export default async function NutritionSettingsPage() {
   const s = await readSettings(await serviceCtx(actor));
   return (
     <div>
-      <PageHeader title={S.tabs.nutrition} description={S.nutritionIntro} />
+      {/* tour target: the heading and intro (the whole form is taller than a screen) */}
+      <div data-tour="settings-nutrition">
+        <PageHeader title={S.tabs.nutrition} description={S.nutritionIntro} />
+      </div>
       <SettingsForm settingsKey="nutrition" value={s.nutrition} groups={NUTRITION_FIELDS} save={saveNutritionSettingsAction} extraCheck="macroSplit" />
     </div>
   );

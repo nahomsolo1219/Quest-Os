@@ -71,7 +71,7 @@ export default async function ClientNutritionPage({ params }: { params: Promise<
             {sug ? <p className="mt-3 text-sm text-muted-foreground">BMR {sug.bmr} · TDEE {sug.tdee} · goal-adjusted {sug.targetKcal} kcal → nearest size {sug.size} ({sug.sizeKcal} kcal)</p> : <p className="mt-3 text-sm text-warning">{S.noStats}</p>}
           </CardContent>
         </Card>
-        <Card>
+        <Card data-tour="client-nutrition-targets">
           <CardHeader><CardTitle>{S.suggestedVsSet}</CardTitle></CardHeader>
           <CardContent>
             <Table>
@@ -127,7 +127,7 @@ export default async function ClientNutritionPage({ params }: { params: Promise<
             {d.canWrite ? <><h3 className="font-semibold">{S.logCheckin}</h3><CheckinForm clientId={c.id} today={today} /></> : null}
           </CardContent>
         </Card>
-        <Card>
+        <Card data-tour="client-nutrition-consultations">
           <CardHeader><CardTitle>{S.consultations}</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             {d.consultations.length === 0 ? <EmptyState title={S.consultEmpty} /> : (
