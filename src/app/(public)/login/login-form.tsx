@@ -8,6 +8,7 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PhoneInput } from "@/components/public/phone-input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { authClient } from "@/lib/auth-client";
 import { normalizeEthiopianPhone } from "@/domain/phone";
@@ -28,9 +29,9 @@ export function LoginForm({ next }: { next?: string }) {
 
   return (
     <Tabs defaultValue="client" onValueChange={() => setError(null)}>
-      <TabsList className="grid h-13 w-full grid-cols-2">
-        <TabsTrigger value="client" className="h-11">{S.clientTab}</TabsTrigger>
-        <TabsTrigger value="staff" className="h-11">{S.staffTab}</TabsTrigger>
+      <TabsList className="grid w-full grid-cols-2 bg-muted p-1 group-data-[orientation=horizontal]/tabs:h-13">
+        <TabsTrigger value="client" className="h-11 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">{S.clientTab}</TabsTrigger>
+        <TabsTrigger value="staff" className="h-11 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">{S.staffTab}</TabsTrigger>
       </TabsList>
       <TabsContent value="client">
         <form className="mt-4 space-y-4" onSubmit={clientForm.handleSubmit(async (v) => {
@@ -40,16 +41,16 @@ export function LoginForm({ next }: { next?: string }) {
         })}>
           <div className="space-y-1.5">
             <Label htmlFor="phone">{S.phone}</Label>
-            <Input id="phone" type="tel" inputMode="tel" autoComplete="tel" className="h-11" placeholder={S.phoneHint} {...clientForm.register("phone")} />
-            {clientForm.formState.errors.phone ? <p className="text-sm text-red-700">{clientForm.formState.errors.phone.message}</p> : null}
+            <PhoneInput id="phone" placeholder={S.phoneHint} aria-invalid={clientForm.formState.errors.phone ? true : undefined} {...clientForm.register("phone")} />
+            {clientForm.formState.errors.phone ? <p className="text-sm text-danger">{clientForm.formState.errors.phone.message}</p> : null}
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="client-password">{S.password}</Label>
-            <Input id="client-password" type="password" autoComplete="current-password" className="h-11" {...clientForm.register("password")} />
-            {clientForm.formState.errors.password ? <p className="text-sm text-red-700">{clientForm.formState.errors.password.message}</p> : null}
+            <Input id="client-password" type="password" autoComplete="current-password" className="h-11 bg-card" {...clientForm.register("password")} />
+            {clientForm.formState.errors.password ? <p className="text-sm text-danger">{clientForm.formState.errors.password.message}</p> : null}
           </div>
-          {error ? <p role="alert" className="text-sm text-red-700">{error}</p> : null}
-          <Button type="submit" className="h-11 w-full" disabled={clientForm.formState.isSubmitting}>{S.submit}</Button>
+          {error ? <p role="alert" className="text-sm text-danger">{error}</p> : null}
+          <Button type="submit" className="h-12 w-full text-base" disabled={clientForm.formState.isSubmitting}>{S.submit}</Button>
         </form>
       </TabsContent>
       <TabsContent value="staff">
@@ -60,15 +61,15 @@ export function LoginForm({ next }: { next?: string }) {
         })}>
           <div className="space-y-1.5">
             <Label htmlFor="email">{S.email}</Label>
-            <Input id="email" type="email" autoComplete="email" className="h-11" {...staffForm.register("email")} />
-            {staffForm.formState.errors.email ? <p className="text-sm text-red-700">{staffForm.formState.errors.email.message}</p> : null}
+            <Input id="email" type="email" autoComplete="email" className="h-11 bg-card" {...staffForm.register("email")} />
+            {staffForm.formState.errors.email ? <p className="text-sm text-danger">{staffForm.formState.errors.email.message}</p> : null}
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="staff-password">{S.password}</Label>
-            <Input id="staff-password" type="password" autoComplete="current-password" className="h-11" {...staffForm.register("password")} />
+            <Input id="staff-password" type="password" autoComplete="current-password" className="h-11 bg-card" {...staffForm.register("password")} />
           </div>
-          {error ? <p role="alert" className="text-sm text-red-700">{error}</p> : null}
-          <Button type="submit" className="h-11 w-full" disabled={staffForm.formState.isSubmitting}>{S.submit}</Button>
+          {error ? <p role="alert" className="text-sm text-danger">{error}</p> : null}
+          <Button type="submit" className="h-12 w-full text-base" disabled={staffForm.formState.isSubmitting}>{S.submit}</Button>
         </form>
       </TabsContent>
     </Tabs>

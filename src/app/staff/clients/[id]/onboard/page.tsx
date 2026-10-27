@@ -68,9 +68,9 @@ export default async function OnboardPage({ params, searchParams }: { params: Pr
             </div>
             <MacroRow kcal={s.sizeKcal} proteinG={s.proteinG} carbG={s.carbG} fatG={s.fatG} />
           </>
-        ) : <p className="text-sm font-medium text-red-700">Fill in sex, age, weight, height, activity and goal on the intake step first.</p>}
+        ) : <p className="text-sm font-medium text-danger">Fill in sex, age, weight, height, activity and goal on the intake step first.</p>}
         {d.nutrition ? (
-          <div className="space-y-3 rounded-lg border p-3">
+          <div className="space-y-3 rounded-lg border p-3 bg-card">
             <p className="text-sm">{W.hasProfile} <span className="font-semibold">{profileLabel(profileOf(d.nutrition.size, d.nutrition.goal))}, {d.nutrition.kcalTarget} kcal</span>
               {d.nutrition.provisional ? <ToneBadge tone="warn" className="ml-2">Provisional — nutritionist to confirm within 48 h</ToneBadge> : null}</p>
             <Button asChild className="h-11"><Link href={href("plan")}>{W.skip}</Link></Button>
@@ -87,7 +87,7 @@ export default async function OnboardPage({ params, searchParams }: { params: Pr
         </div>
       );
     } else if (!d.nutrition) {
-      body = <p className="text-sm font-medium text-red-700">Set the calorie target and size on the nutrition step first. <Link className="underline" href={href("nutrition")}>Go to nutrition</Link></p>;
+      body = <p className="text-sm font-medium text-danger">Set the calorie target and size on the nutrition step first. <Link className="underline" href={href("nutrition")}>Go to nutrition</Link></p>;
     } else {
       const pkgs = await planOptions(ctx);
       body = (

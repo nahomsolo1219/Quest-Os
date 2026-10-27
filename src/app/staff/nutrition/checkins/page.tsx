@@ -30,7 +30,7 @@ export default async function CheckinsPage() {
                   <li key={c.id}>
                     <Link href={`/staff/nutrition/clients/${c.id}`} className="flex min-h-11 items-center justify-between py-2 hover:text-primary">
                       <span className="font-medium">{displayName(c.firstName, c.lastName)}</span>
-                      <span className="text-sm text-amber-800">{c.last ? `Last ${formatDate(c.last)} (${daysBetween(c.last, d.today)} days)` : "Never checked in"}</span>
+                      <span className="text-sm text-warning">{c.last ? `Last ${formatDate(c.last)} (${daysBetween(c.last, d.today)} days)` : "Never checked in"}</span>
                     </Link>
                   </li>
                 ))}
@@ -51,7 +51,7 @@ export default async function CheckinsPage() {
       <section className="space-y-2">
         <h2 className="text-lg font-semibold">{S.recentTitle}</h2>
         {d.recent.length === 0 ? <EmptyState title={S.recentEmpty} /> : (
-          <div className="overflow-x-auto rounded-xl border">
+          <div className="overflow-x-auto rounded-xl border bg-card">
             <Table>
               <TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Client</TableHead><TableHead>Weight</TableHead><TableHead>Adherence</TableHead><TableHead>Notes</TableHead></TableRow></TableHeader>
               <TableBody>

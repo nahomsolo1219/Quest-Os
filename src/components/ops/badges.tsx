@@ -1,17 +1,12 @@
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { StatusBadge, TONE_TEXT, type StatusTone } from "@/components/shell/status-badge";
 
-const TONES = {
-  good: "border-emerald-200 bg-emerald-50 text-emerald-800",
-  warn: "border-amber-200 bg-amber-50 text-amber-900",
-  bad: "border-red-200 bg-red-50 text-red-800",
-  muted: "border-border bg-muted text-muted-foreground",
-  info: "border-sky-200 bg-sky-50 text-sky-900",
-} as const;
-export type Tone = keyof typeof TONES;
+/** Tone names used across staff screens; all render the one StatusBadge. */
+export type Tone = "good" | "warn" | "bad" | "muted" | "info";
+const TO_STATUS: Record<Tone, StatusTone> = { good: "good", warn: "warn", bad: "bad", muted: "paused", info: "info" };
 
 export function ToneBadge({ tone, children, className }: { tone: Tone; children: React.ReactNode; className?: string }) {
-  return <Badge variant="outline" className={cn("whitespace-nowrap", TONES[tone], className)}>{children}</Badge>;
+  return <StatusBadge tone={TO_STATUS[tone]} className={className}>{children}</StatusBadge>;
 }
 
 const CLIENT_STATUS: Record<string, [string, Tone]> = {
@@ -54,7 +49,7 @@ export function PaymentRowBadge({ status }: { status: string }) {
 export function ConflictList({ conflicts, className }: { conflicts: string[]; className?: string }) {
   if (conflicts.length === 0) return null;
   return (
-    <ul className={cn("space-y-0.5 text-sm font-medium text-red-700", className)}>
+    <ul className={cn("space-y-0.5 text-sm font-medium", TONE_TEXT.bad, className)}>
       {conflicts.map((c) => <li key={c}>{c}</li>)}
     </ul>
   );

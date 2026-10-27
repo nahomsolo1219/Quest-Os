@@ -2,6 +2,8 @@ import Link from "next/link";
 import { PageHeader } from "@/components/shell/page-header";
 import { EmptyState } from "@/components/shell/empty-state";
 import { StockLine } from "@/components/kitchen/stock-line";
+import { units } from "@/components/kitchen/format";
+import { StatusBadge, TONE_PANEL } from "@/components/shell/status-badge";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { addisDate, formatDate, isDateStr } from "@/domain/time";
 import { requirePageActor, serviceCtx } from "@/server/session";
 import { stockSheet } from "@/server/services/inventory";
+import { cn } from "@/lib/utils";
 import { S } from "../strings";
 
 export const dynamic = "force-dynamic";
@@ -44,6 +47,9 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
         <p className="text-sm font-semibold" aria-live="polite">{sheet.counted} of {sheet.total} counted</p>
         <Progress value={sheet.total ? (sheet.counted / sheet.total) * 100 : 0} className="mt-2" aria-label={`${sheet.counted} of ${sheet.total} counted`} />
       </div>
+      {!canWrite && sheet.lines.length ? (
+        <p role="note" className={cn("mb-2 rounded-xl border p-3 text-sm font-medium", TONE_PANEL.info)}>{S.stockReadOnly}</p>
+      ) : null}
       {sheet.lines.length === 0 ? (
         <EmptyState title="No ingredients are tracked in stock">Ask an owner to mark ingredients as tracked in Settings → Ingredients.</EmptyState>
       ) : groups.map((g) => (
@@ -56,9 +62,14 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
           ) : (
             <ul>
               {sheet.lines.filter((l) => l.foodGroup === g).map((l) => (
-                <li key={l.ingredientId} className="flex justify-between border-b py-3 text-sm">
-                  <span className="font-semibold">{l.name}</span>
-                  <span>Expected {l.expectedUnits} {l.unit} · {l.countedUnits == null ? "not counted" : `counted ${l.countedUnits} ${l.unit}`}</span>
+                <li key={l.ingredientId} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b px-1 py-3">
+                  <span className="min-w-0">
+                    <span className="block text-base font-semibold">{l.name}</span>
+                    <span className="text-sm text-muted-foreground">Expected {units(l.expectedUnits, l.unit)}</span>
+                  </span>
+                  {l.countedUnits == null
+                    ? <StatusBadge tone="paused">Not counted</StatusBadge>
+                    : <StatusBadge tone="good">Counted {units(l.countedUnits, l.unit)}</StatusBadge>}
                 </li>
               ))}
             </ul>

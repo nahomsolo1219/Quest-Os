@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/shell/status-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
@@ -28,9 +28,9 @@ export default async function SwapApprovalsPage() {
                 <CardHeader>
                   <CardTitle className="flex flex-wrap items-center justify-between gap-2">
                     <Link href={`/staff/nutrition/clients/${r.s.clientId}`} className="hover:text-primary">{displayName(r.firstName, r.lastName)}</Link>
-                    <Badge variant="secondary" className={over ? "bg-amber-100 text-amber-900" : ""}>
+                    <StatusBadge tone={over ? "warn" : "info"}>
                       {r.swapLimit != null ? `${r.standing} of ${r.swapLimit} swaps used` : "No active plan"}
-                    </Badge>
+                    </StatusBadge>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
@@ -41,7 +41,7 @@ export default async function SwapApprovalsPage() {
                     {r.requestedBy ? ` by ${r.requestedBy}` : ""} · from {formatDate(r.s.effectiveWeekStart)}
                   </p>
                   {r.allergies.length || r.dislikes.length ? (
-                    <p className="text-sm text-red-700">Allergies: {r.allergies.join(", ") || "none"} · Dislikes: {r.dislikes.join(", ") || "none"}</p>
+                    <p className="text-sm text-danger">Allergies: {r.allergies.join(", ") || "none"} · Dislikes: {r.dislikes.join(", ") || "none"}</p>
                   ) : null}
                   <SwapDecision id={r.s.id} isCustom={!r.s.swapRuleId} rules={d.rules} />
                 </CardContent>

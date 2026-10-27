@@ -50,12 +50,12 @@ export default async function ChallengePage({ params }: { params: Promise<{ id: 
         </div>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-xl border p-4">
+        <div className="rounded-2xl border bg-card p-4">
           <p className="text-sm text-muted-foreground">{S.streak}</p>
           <p className="stat-number mt-1 flex items-center gap-1 text-3xl font-bold"><Flame className="size-6 text-primary" aria-hidden />{c.myStreak}</p>
           <p className="text-xs text-muted-foreground">{S.dayUnit(c.myStreak)}</p>
         </div>
-        <div className="rounded-xl border p-4">
+        <div className="rounded-2xl border bg-card p-4">
           <p className="text-sm text-muted-foreground">{S.days}</p>
           <p className="stat-number mt-1 text-3xl font-bold">{c.myDays}</p>
           <p className="text-xs text-muted-foreground">{S.dayUnit(c.myDays)}</p>
@@ -66,7 +66,7 @@ export default async function ChallengePage({ params }: { params: Promise<{ id: 
         {c.leaderboard.length === 0 ? <EmptyState title={S.emptyBoard}>{S.emptyBoardBody}</EmptyState> : (
           <ol className="divide-y rounded-xl border">
             {c.leaderboard.map((r) => (
-              <li key={r.userId} className={cn("flex min-h-14 items-center gap-3 px-3", r.me && "bg-primary/5 font-semibold")}>
+              <li key={r.userId} className={cn("flex min-h-14 items-center gap-3 px-3", r.me && "bg-accent font-semibold")}>
                 <span className="w-6 text-center font-bold text-muted-foreground">{r.rank}</span>
                 <PersonAvatar person={r} size={32} />
                 <span className="min-w-0 flex-1 truncate">{r.name}{r.me ? ` (${S.you})` : ""}</span>

@@ -16,7 +16,7 @@ export function ChallengeCheckIn({ challengeId, canCheckIn, checkedInToday, reas
   const [pending, start] = useTransition();
   if (checkedInToday) {
     return (
-      <div role="status" className="flex min-h-16 items-center justify-center gap-2 rounded-2xl bg-green-50 text-lg font-bold text-green-800">
+      <div role="status" className="flex min-h-16 items-center justify-center gap-2 rounded-2xl bg-success-soft text-lg font-bold text-success">
         <Check className="size-6" aria-hidden />{S.alreadyToday}
       </div>
     );

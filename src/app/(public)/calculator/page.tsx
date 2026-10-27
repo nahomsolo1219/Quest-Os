@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { PublicHeader } from "@/components/public/public-header";
 import { db } from "@db/client";
 import { publicCalculatorSettings } from "@/server/services/settings";
 import { CalculatorForm } from "./calculator-form";
@@ -10,12 +10,9 @@ export const metadata = { title: "Calorie calculator" };
 export default async function CalculatorPage() {
   const settings = await publicCalculatorSettings(db);
   return (
-    <main className="mx-auto max-w-xl px-4 pb-16">
-      <header className="flex h-16 items-center justify-between">
-        <Link href="/" className="inline-flex min-h-11 items-center text-xl font-extrabold text-primary">Quest Meals</Link>
-        <Link href="/login" className="flex min-h-11 items-center rounded-lg px-3 text-sm font-semibold hover:bg-accent">Sign in</Link>
-      </header>
-      <h1 className="text-3xl font-extrabold tracking-tight">{S.title}</h1>
+    <main className="mx-auto w-full max-w-xl px-4 pb-16 lg:max-w-5xl">
+      <PublicHeader />
+      <h1 className="mt-4 text-3xl font-bold tracking-tight text-primary">{S.title}</h1>
       <p className="mt-2 text-muted-foreground">{S.intro}</p>
       <CalculatorForm nutrition={settings.nutrition} />
     </main>

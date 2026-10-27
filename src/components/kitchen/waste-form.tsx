@@ -41,13 +41,13 @@ export function WasteForm({ ingredients, today }: { ingredients: { id: string; n
           <option value="">Pick an ingredient</option>
           {ingredients.map((i) => <option key={i.id} value={i.id}>{i.name}</option>)}
         </select>
-        {err.ingredientId ? <p className="text-sm text-red-700">{err.ingredientId.message}</p> : null}
+        {err.ingredientId ? <p className="text-sm text-danger">{err.ingredientId.message}</p> : null}
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="waste-qty">Amount{selected ? ` (${selected.unit === "piece" ? "pieces" : selected.unit})` : ""}</Label>
         <Input id="waste-qty" type="number" inputMode="decimal" min={0} step={selected?.unit === "piece" ? 1 : 0.05} className="h-11"
           {...form.register("qty", { valueAsNumber: true })} />
-        {err.qty ? <p className="text-sm text-red-700">{err.qty.message}</p> : null}
+        {err.qty ? <p className="text-sm text-danger">{err.qty.message}</p> : null}
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="waste-reason">Reason</Label>
@@ -55,7 +55,7 @@ export function WasteForm({ ingredients, today }: { ingredients: { id: string; n
           <option value="">Pick a reason</option>
           {REASONS.map((r) => <option key={r} value={r}>{r}</option>)}
         </select>
-        {err.reason ? <p className="text-sm text-red-700">{err.reason.message}</p> : null}
+        {err.reason ? <p className="text-sm text-danger">{err.reason.message}</p> : null}
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="waste-note">Note (optional)</Label>
@@ -64,7 +64,7 @@ export function WasteForm({ ingredients, today }: { ingredients: { id: string; n
       <div className="space-y-1.5">
         <Label htmlFor="waste-date">Date</Label>
         <Input id="waste-date" type="date" max={today} defaultValue={today} className="h-11" {...form.register("date")} />
-        {err.date ? <p className="text-sm text-red-700">{err.date.message}</p> : null}
+        {err.date ? <p className="text-sm text-danger">{err.date.message}</p> : null}
       </div>
       <div className="flex items-end">
         <Button type="submit" className="h-11 w-full" disabled={form.formState.isSubmitting}>Log waste</Button>

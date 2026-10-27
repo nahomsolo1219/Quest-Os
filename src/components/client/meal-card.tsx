@@ -22,7 +22,7 @@ export function MealCard({ meal, compact, children }: { meal: MealCardData; comp
       </div>
       <MacroRow kcal={meal.kcal} proteinG={meal.proteinG} carbG={meal.carbG} fatG={meal.fatG} compact={compact} />
       {meal.items.length && !compact ? <p className="text-sm text-muted-foreground">{meal.items.join(" · ")}</p> : null}
-      {meal.conflicts.length ? <p className="text-sm font-medium text-red-700">{T.today.conflict} {meal.conflicts.join("; ")}</p> : null}
+      {meal.conflicts.length ? <p className="text-sm font-medium text-danger">{T.today.conflict} {meal.conflicts.join("; ")}</p> : null}
       {children}
     </article>
   );

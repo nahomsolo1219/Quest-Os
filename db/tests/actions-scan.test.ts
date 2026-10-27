@@ -32,7 +32,12 @@ describe("server actions", () => {
 describe("route handlers", () => {
   const routes = files.filter((f) => f.endsWith("route.ts"));
   const GUARDS = [/getActor\(/, /x-cron-secret/, /verifyLocal\(/, /x-telegram-bot-api-secret-token/, /toNextJsHandler\(/, /homePathFor\(/];
-  for (const file of routes) {
+  // Public on purpose (D469): job names and run times only, no input, no user data.
+  const PUBLIC = new Set(["src/app/api/jobs/health/route.ts"]);
+  it("only the known public routes skip authentication", () => {
+    for (const file of PUBLIC) expect(routes, file).toContain(file);
+  });
+  for (const file of routes.filter((f) => !PUBLIC.has(f))) {
     it(`${file} authenticates the caller`, () => {
       const src = readFileSync(file, "utf8");
       expect(GUARDS.some((g) => g.test(src)), file).toBe(true);

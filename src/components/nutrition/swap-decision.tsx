@@ -17,7 +17,7 @@ export function SwapDecision({ id, isCustom, rules }: { id: string; isCustom: bo
       {isCustom ? (
         <div className="space-y-1.5">
           <Label htmlFor={`rule-${id}`}>Map to swap rule (optional)</Label>
-          <select id={`rule-${id}`} className="h-11 w-full rounded-md border bg-background px-3" value={ruleId} onChange={(e) => setRuleId(e.target.value)}>
+          <select id={`rule-${id}`} className="h-11 w-full rounded-md border bg-card px-3" value={ruleId} onChange={(e) => setRuleId(e.target.value)}>
             <option value="">Keep as a custom note for the kitchen</option>
             {rules.map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
           </select>

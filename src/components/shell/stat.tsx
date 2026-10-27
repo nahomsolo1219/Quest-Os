@@ -8,7 +8,7 @@ export function Stat({ label, value, unit, tone, className }: {
     <div className={cn("rounded-xl border bg-card p-3", className)}>
       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
       <p className={cn("stat-number mt-1 text-2xl",
-        tone === "good" && "text-emerald-700", tone === "warn" && "text-amber-700", tone === "bad" && "text-red-700")}>
+        tone === "good" && "text-success", tone === "warn" && "text-warning", tone === "bad" && "text-danger")}>
         {value}
         {unit ? <span className="ml-1 text-sm font-semibold text-muted-foreground">{unit}</span> : null}
       </p>
@@ -19,7 +19,7 @@ export function Stat({ label, value, unit, tone, className }: {
 /** kcal / P / C / F row. */
 export function MacroRow({ kcal, proteinG, carbG, fatG, compact }: { kcal: number; proteinG: number; carbG: number; fatG: number; compact?: boolean }) {
   const items = [
-    { label: "kcal", value: Math.round(kcal) },
+    { label: "kcal", value: Math.round(kcal).toLocaleString("en-US") },
     { label: "Protein", value: `${Math.round(proteinG)} g` },
     { label: "Carbs", value: `${Math.round(carbG)} g` },
     { label: "Fat", value: `${Math.round(fatG)} g` },

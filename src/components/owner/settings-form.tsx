@@ -91,7 +91,7 @@ export function SettingsForm({ settingsKey, value, groups, save, extraCheck, can
     <form className="space-y-6" onSubmit={handleSubmit((v) => run(() => save(fromForm(v, value, groups), String(v.reason ?? "")), () => form.reset(v)))}>
       <fieldset disabled={!canEdit} className="space-y-6">
         {groups.map((g) => (
-          <section key={g.title} className="space-y-3 rounded-xl border p-4">
+          <section key={g.title} className="space-y-3 rounded-xl border p-4 bg-card">
             <div>
               <h2 className="font-semibold">{g.title}</h2>
               {g.help ? <p className="text-sm text-muted-foreground">{g.help}</p> : null}
@@ -105,7 +105,7 @@ export function SettingsForm({ settingsKey, value, groups, save, extraCheck, can
                   <div key={f.path} className={wide ? "col-span-2 space-y-1.5 md:col-span-3 xl:col-span-4" : "flex flex-col justify-end gap-1.5"}>
                     {f.kind === "bool" ? (
                       <label htmlFor={id} className="flex min-h-11 items-center gap-3 text-sm font-medium">
-                        <input id={id} type="checkbox" className="size-5 accent-[#c2410c]" {...register(fk(f.path))} />{f.label}
+                        <input id={id} type="checkbox" className="size-5 accent-primary" {...register(fk(f.path))} />{f.label}
                       </label>
                     ) : f.kind === "checks" ? (
                       <fieldset>
@@ -113,7 +113,7 @@ export function SettingsForm({ settingsKey, value, groups, save, extraCheck, can
                         <div className="mt-1 flex flex-wrap gap-x-4">
                           {f.options!.map((o) => (
                             <label key={o.value} className="flex min-h-11 items-center gap-2 text-sm">
-                              <input type="checkbox" value={o.value} disabled={o.disabled} className="size-5 accent-[#c2410c]" {...register(fk(f.path))} />{o.label}
+                              <input type="checkbox" value={o.value} disabled={o.disabled} className="size-5 accent-primary" {...register(fk(f.path))} />{o.label}
                             </label>
                           ))}
                         </div>
@@ -122,7 +122,7 @@ export function SettingsForm({ settingsKey, value, groups, save, extraCheck, can
                       <>
                         <label htmlFor={id} className="block text-sm font-medium leading-tight">{f.label}{f.unit ? <span className="font-normal text-muted-foreground"> ({f.unit})</span> : null}</label>
                         {f.kind === "select" ? (
-                          <select id={id} className="h-11 w-full rounded-md border bg-background px-3" {...register(fk(f.path))}>
+                          <select id={id} className="h-11 w-full rounded-md border bg-card px-3" {...register(fk(f.path))}>
                             {f.options!.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                           </select>
                         ) : (
@@ -132,7 +132,7 @@ export function SettingsForm({ settingsKey, value, groups, save, extraCheck, can
                       </>
                     )}
                     {f.help ? <p className="text-xs text-muted-foreground">{f.help}</p> : null}
-                    {e ? <p className="text-sm text-red-700">{e}</p> : null}
+                    {e ? <p className="text-sm text-danger">{e}</p> : null}
                   </div>
                 );
               })}
@@ -143,8 +143,8 @@ export function SettingsForm({ settingsKey, value, groups, save, extraCheck, can
           <div className="space-y-3">
             <div className="space-y-1.5">
               <Label htmlFor="sf-reason">Reason for the change (shown in the change log)</Label>
-              <Textarea id="sf-reason" rows={2} {...register("reason")} />
-              {errors.reason ? <p className="text-sm text-red-700">{String(errors.reason.message)}</p> : null}
+              <Textarea id="sf-reason" rows={2} className="bg-card" {...register("reason")} />
+              {errors.reason ? <p className="text-sm text-danger">{String(errors.reason.message)}</p> : null}
             </div>
             <Button type="submit" className="h-11" disabled={pending || !isDirty}>{pending ? "Saving…" : "Save changes"}</Button>
           </div>

@@ -25,14 +25,18 @@ export default async function ProfilesPage({ searchParams }: { searchParams: Pro
   return (
     <div className="space-y-4">
       <PageHeader title={S.tabs.profiles} description={S.profilesIntro} actions={t.canEdit ? <RecomputeButton /> : null} />
-      <nav aria-label="Menu" className="flex flex-wrap gap-2">
-        {[...MENU_CODES, "extra" as const].map((code) => (
-          <Link key={code} href={`/staff/nutrition/profiles?menu=${code}`} aria-current={menu === code ? "page" : undefined}
-            className={cn("inline-flex min-h-11 items-center rounded-full border px-4 text-sm font-medium",
-              menu === code ? "border-primary bg-primary text-primary-foreground" : "hover:bg-muted")}>
-            {code === "extra" ? "Replacement meals" : `Menu ${code} · ${MENU_DAYS[code]}`}
-          </Link>
-        ))}
+      <nav aria-label="Menu" className="-mx-4 overflow-x-auto px-4 md:mx-0 md:px-0">
+        <ul className="flex w-max gap-2 md:w-auto md:flex-wrap">
+          {[...MENU_CODES, "extra" as const].map((code) => (
+            <li key={code}>
+              <Link href={`/staff/nutrition/profiles?menu=${code}`} aria-current={menu === code ? "page" : undefined}
+                className={cn("inline-flex min-h-11 items-center whitespace-nowrap rounded-full border px-4 text-sm font-medium",
+                  menu === code ? "border-primary bg-primary text-primary-foreground" : "bg-card hover:bg-muted")}>
+                {code === "extra" ? "Replacement meals" : `Menu ${code} · ${MENU_DAYS[code]}`}
+              </Link>
+            </li>
+          ))}
+        </ul>
       </nav>
 
       {menu !== "extra" ? (
@@ -40,13 +44,13 @@ export default async function ProfilesPage({ searchParams }: { searchParams: Pro
           <h2 className="text-lg font-semibold">Menu {menu}: day totals per profile</h2>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
             {t.days.map((d) => (
-              <div key={d.profile} className={cn("rounded-xl border p-3", d.result?.flagged && "border-amber-400 bg-amber-50")}>
+              <div key={d.profile} className={cn("rounded-xl border bg-card p-3", d.result?.flagged && "border-warning/60 bg-warning-soft")}>
                 <p className="text-sm font-semibold">{profileLabel(d.profile)}</p>
                 {d.result ? (
                   <>
                     <p className="stat-number text-xl">{d.result.kcal} <span className="text-xs font-semibold text-muted-foreground">kcal</span></p>
                     <p className="text-xs tabular-nums text-muted-foreground">P {d.result.proteinG} · C {d.result.carbG} · F {d.result.fatG} g</p>
-                    {d.result.flagged ? <p className="mt-1 text-xs font-medium text-amber-900">{d.result.flagReason ?? "Outside target"}</p> : <p className="mt-1 text-xs text-emerald-700">On target</p>}
+                    {d.result.flagged ? <p className="mt-1 text-xs font-medium text-warning">{d.result.flagReason ?? "Outside target"}</p> : <p className="mt-1 text-xs text-success">On target</p>}
                   </>
                 ) : <p className="text-sm text-muted-foreground">Not computed. Press Recompute.</p>}
               </div>
@@ -59,11 +63,44 @@ export default async function ProfilesPage({ searchParams }: { searchParams: Pro
       {t.meals.map((meal) => (
         <section key={meal.id} className="space-y-2">
           <h2 className="text-lg font-semibold"><span className="capitalize text-muted-foreground">{meal.slot}</span> · {meal.name}</h2>
-          <div className="overflow-x-auto rounded-xl border">
+          {/* phones: one card per part, the six profiles as a 3 × 2 grid */}
+          <ul className="space-y-2 md:hidden" aria-label={`${meal.name} parts`}>
+            {meal.parts.map((part) => (
+              <li key={part.id} className="rounded-xl border bg-card p-3 shadow-sm">
+                <div className="flex items-baseline justify-between gap-2">
+                  <p className="font-semibold">{part.name}</p>
+                  <p className="shrink-0 text-xs text-muted-foreground">Base {part.baseQty} {part.unit === "piece" ? "pc" : "g"}</p>
+                </div>
+                <p className="text-xs text-muted-foreground">{part.category} · {part.unit === "piece" ? "pieces" : "g"}</p>
+                <div className="mt-2 grid grid-cols-3 gap-1">
+                  {part.cells.map((cell) => (
+                    <div key={cell.profile} className="min-w-0 rounded-md bg-muted/50 p-1">
+                      <p className="px-1 text-[11px] font-semibold text-muted-foreground">{profileLabel(cell.profile)}</p>
+                      <PortionCell partId={part.id} profile={cell.profile} qty={cell.qty} computedQty={cell.computedQty} isManual={cell.isManual}
+                        unit={part.unit} canEdit={t.canEdit && part.category !== "seasoning"} label={`${part.name}, ${profileLabel(cell.profile)}`} />
+                    </div>
+                  ))}
+                </div>
+              </li>
+            ))}
+            <li className="rounded-xl border bg-muted p-3">
+              <p className="text-sm font-semibold">Meal kcal · P/C/F g</p>
+              <div className="mt-1 grid grid-cols-3 gap-2 text-xs">
+                {meal.macros.map((mm) => (
+                  <div key={mm.profile} className="tabular-nums">
+                    <span className="block font-semibold text-muted-foreground">{profileLabel(mm.profile)}</span>
+                    <span className="block text-sm font-semibold">{mm.kcal}</span>
+                    {mm.proteinG}/{mm.carbG}/{mm.fatG}
+                  </div>
+                ))}
+              </div>
+            </li>
+          </ul>
+          <div className="hidden overflow-x-auto rounded-xl border bg-card md:block">
             <table className="w-full min-w-[760px] text-sm">
-              <thead className="bg-muted/60">
+              <thead className="bg-muted">
                 <tr>
-                  <th scope="col" className="sticky left-0 bg-muted px-2 py-2 text-left">Part</th>
+                  <th scope="col" className="sticky left-0 z-10 bg-muted px-2 py-2 text-left shadow-[1px_0_0_var(--border)]">Part</th>
                   <th scope="col" className="px-2 py-2 text-right">Base</th>
                   {PROFILES.map((p) => <th key={p} scope="col" className="px-2 py-2 text-right">{profileLabel(p)}</th>)}
                 </tr>
@@ -71,7 +108,7 @@ export default async function ProfilesPage({ searchParams }: { searchParams: Pro
               <tbody>
                 {meal.parts.map((part) => (
                   <tr key={part.id} className="border-t">
-                    <th scope="row" className="sticky left-0 bg-background px-2 py-1 text-left font-medium">
+                    <th scope="row" className="sticky left-0 z-10 bg-card px-2 py-1 text-left font-medium shadow-[1px_0_0_var(--border)]">
                       {part.name}
                       <span className="block text-xs font-normal text-muted-foreground">{part.category} · {part.unit === "piece" ? "pieces" : "g"}</span>
                     </th>
@@ -84,8 +121,8 @@ export default async function ProfilesPage({ searchParams }: { searchParams: Pro
                     ))}
                   </tr>
                 ))}
-                <tr className="border-t bg-muted/40 text-xs">
-                  <th scope="row" className="sticky left-0 bg-muted px-2 py-2 text-left">Meal kcal · P/C/F g</th>
+                <tr className="border-t bg-muted text-xs">
+                  <th scope="row" className="sticky left-0 z-10 bg-muted px-2 py-2 text-left shadow-[1px_0_0_var(--border)]">Meal kcal · P/C/F g</th>
                   <td />
                   {meal.macros.map((mm) => (
                     <td key={mm.profile} className="px-2 py-2 text-right tabular-nums">

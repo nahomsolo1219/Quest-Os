@@ -5,7 +5,8 @@ import { EmptyState } from "@/components/shell/empty-state";
 import { MacroRow, Stat } from "@/components/shell/stat";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { UnderlineTabsList, UnderlineTabsTrigger } from "@/components/shell/underline-tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AccountBox } from "@/components/ops/account-box";
 import { ClientStatusBadge, ConflictList, InvoiceBadge, OrderStatusBadge, PaymentBadge, PaymentRowBadge, ToneBadge } from "@/components/ops/badges";
@@ -77,12 +78,12 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
       />
 
       {d.conflicts.length ? (
-        <div role="alert" className="mb-4 rounded-xl border-2 border-red-300 bg-red-50 p-4">
-          <p className="font-semibold text-red-800">{S.conflictsTitle}</p>
-          <p className="mb-2 text-sm text-red-800">{S.conflictsBody}</p>
+        <div role="alert" className="mb-4 rounded-xl border-2 border-danger/30 bg-danger-soft p-4">
+          <p className="font-semibold text-danger">{S.conflictsTitle}</p>
+          <p className="mb-2 text-sm text-danger">{S.conflictsBody}</p>
           <ul className="space-y-1">
             {d.conflicts.map((m) => (
-              <li key={m.mealName} className="text-sm text-red-700">
+              <li key={m.mealName} className="text-sm text-danger">
                 <span className="font-semibold">Menu {m.menu} {SLOT_LABEL[m.slot]} · {m.mealName}:</span> {m.conflicts.join("; ")}
               </li>
             ))}
@@ -91,11 +92,9 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
       ) : null}
 
       <Tabs defaultValue={defaultTab}>
-        <div className="-mx-4 overflow-x-auto px-4 md:mx-0 md:px-0">
-          <TabsList className="h-11 w-max">
-            {visibleTabs.map((k) => <TabsTrigger key={k} value={k} className="min-h-9 px-3">{S.tabs[k]}</TabsTrigger>)}
-          </TabsList>
-        </div>
+        <UnderlineTabsList>
+          {visibleTabs.map((k) => <UnderlineTabsTrigger key={k} value={k}>{S.tabs[k]}</UnderlineTabsTrigger>)}
+        </UnderlineTabsList>
 
         <TabsContent value="profile" className="mt-2">
           <div className="grid gap-4 lg:grid-cols-[1fr_300px]">
@@ -248,7 +247,7 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
                     <div className="flex items-center gap-2"><span className="stat-number text-lg">{formatBirr(inv.amountBirr)}</span><InvoiceBadge status={inv.status} /></div>
                   </div>
                   {inv.payments.length ? (
-                    <ul className="divide-y rounded-lg border text-sm">
+                    <ul className="divide-y rounded-lg border text-sm bg-card">
                       {inv.payments.map((p) => (
                         <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 p-2">
                           <span>{METHOD_LABEL[p.method]} {formatBirr(p.amountBirr)}{p.reference ? ` · ref ${p.reference}` : ""} · {formatAddisDateTime(p.submittedAt)}</span>
@@ -256,7 +255,7 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
                             {receipts.get(p.id) ? <a className="font-medium text-primary underline" href={receipts.get(p.id)} target="_blank" rel="noreferrer">{S.receipt}</a> : null}
                             <PaymentRowBadge status={p.status} />
                           </span>
-                          {p.rejectionReason ? <p className="w-full text-red-700">{p.rejectionReason}</p> : null}
+                          {p.rejectionReason ? <p className="w-full text-danger">{p.rejectionReason}</p> : null}
                         </li>
                       ))}
                     </ul>
@@ -272,7 +271,7 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
 
         <TabsContent value="orders" className="mt-2">
           {d.orders.length === 0 ? <EmptyState title={S.ordersEmpty} /> : (
-            <div className="overflow-x-auto rounded-xl border">
+            <div className="overflow-x-auto rounded-xl border bg-card">
               <Table>
                 <TableHeader><TableRow><TableHead>Week</TableHead><TableHead>Status</TableHead><TableHead>Profile</TableHead><TableHead>Days</TableHead><TableHead>Conflicts</TableHead></TableRow></TableHeader>
                 <TableBody>

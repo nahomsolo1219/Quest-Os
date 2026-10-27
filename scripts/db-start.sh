@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Starts a local Postgres 16 for development and tests on port 54329 and creates
-# the databases `questmeals` and `questmeals_test`.
+# the databases `questmeals`, `questmeals_test`, `questmeals_e2e` (Playwright) and `questmeals_sim` (week simulation).
 # Order: Docker (postgres:16-alpine) -> local Postgres binaries (pg_ctl) -> PGlite socket server.
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -10,7 +10,7 @@ mkdir -p .data
 ready() { PGPASSWORD=postgres psql -h localhost -p "$PORT" -U postgres -d postgres -tAc "select 1" >/dev/null 2>&1; }
 wait_ready() { for _ in $(seq 1 60); do ready && return 0; sleep 1; done; echo "Postgres did not become ready" >&2; return 1; }
 create_dbs() {
-  for db in questmeals questmeals_test; do
+  for db in questmeals questmeals_test questmeals_e2e questmeals_sim; do
     PGPASSWORD=postgres psql -h localhost -p "$PORT" -U postgres -d postgres -tAc "select 1 from pg_database where datname='$db'" | grep -q 1 \
       || PGPASSWORD=postgres psql -h localhost -p "$PORT" -U postgres -d postgres -c "create database $db" >/dev/null
   done

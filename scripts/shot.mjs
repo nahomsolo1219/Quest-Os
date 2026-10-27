@@ -4,7 +4,7 @@ import { chromium } from "@playwright/test";
 
 const [who, password, path, out, width = "390", base = "http://localhost:3000"] = process.argv.slice(2);
 if (!who || !password || !path || !out) { console.error("usage: node scripts/shot.mjs <email|phone> <password> <path> <out.png> [width]"); process.exit(1); }
-const browser = await chromium.launch();
+const browser = await chromium.launch({ executablePath: process.env.PW_CHROMIUM_PATH || undefined });
 const context = await browser.newContext({ viewport: { width: Number(width), height: 900 } });
 const isPhone = !who.includes("@");
 const res = await context.request.post(`${base}/api/auth/sign-in/${isPhone ? "phone-number" : "email"}`, {

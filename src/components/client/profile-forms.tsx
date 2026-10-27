@@ -61,7 +61,7 @@ export function TelegramConnect({ linked, configured }: { linked: boolean; confi
   if (!configured) return <p className="text-sm text-muted-foreground">{T.profile.notSetUp}</p>;
   if (linked) return (
     <div className="flex items-center justify-between gap-3">
-      <p className="text-sm font-medium text-emerald-700">{T.profile.connected}</p>
+      <p className="text-sm font-medium text-success">{T.profile.connected}</p>
       <Button type="button" variant="outline" className="h-11" disabled={pending} onClick={() => run(() => disconnectTelegramAction())}>{T.profile.disconnect}</Button>
     </div>
   );

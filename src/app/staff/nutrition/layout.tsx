@@ -1,4 +1,4 @@
-import { TabNav } from "@/components/owner/tab-nav";
+import { UnderlineTabNav } from "@/components/shell/underline-tabs";
 import { requirePageActor } from "@/server/session";
 import { S } from "./strings";
 
@@ -12,7 +12,7 @@ export default async function NutritionLayout({ children }: { children: React.Re
   ];
   return (
     <div>
-      <TabNav items={items} label={S.title} />
+      <UnderlineTabNav items={items} label={S.title} />
       {children}
     </div>
   );

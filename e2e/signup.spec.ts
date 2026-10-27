@@ -80,5 +80,5 @@ test("sign-up refuses a phone that already has an account", async ({ page }) => 
   await page.getByLabel("Phone number").fill("abc");
   await page.getByLabel("Password").fill("short");
   await page.getByRole("button", { name: "Next" }).click();
-  await expect(page.getByText("Enter an Ethiopian mobile number, for example 0911 234 567.")).toBeVisible();
+  await expect(page.getByText("Enter your mobile number after +251, for example 91 123 4567.")).toBeVisible();
 });

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PublicHeader } from "@/components/public/public-header";
 import { redirect } from "next/navigation";
 import { db } from "@db/client";
 import { getActor } from "@/server/session";
@@ -25,15 +26,16 @@ export default async function SignupPage({ searchParams }: { searchParams: Promi
     goal: q.goal === "lean" || q.goal === "build" ? q.goal : undefined,
   };
   return (
-    <main className="mx-auto max-w-xl px-4 pb-16">
-      <header className="flex h-16 items-center justify-between">
-        <Link href="/" className="inline-flex min-h-11 items-center text-xl font-extrabold text-primary">Quest Meals</Link>
-        <Link href="/login" className="flex min-h-11 items-center rounded-lg px-3 text-sm font-semibold hover:bg-accent">{S.signIn}</Link>
-      </header>
-      <h1 className="text-3xl font-extrabold tracking-tight">{S.title}</h1>
-      <SignupForm options={options} nutrition={settings.nutrition} prefill={prefill} source={q.source ?? null} />
-      <p className="mt-6 text-sm text-muted-foreground">
-        {S.haveAccount} <Link className="font-semibold text-primary underline" href="/login">{S.signIn}</Link>
+    <main className="mx-auto w-full max-w-xl px-4 pb-16">
+      <PublicHeader />
+      <h1 className="mt-4 text-3xl font-bold tracking-tight text-primary">{S.title}</h1>
+      <p className="mt-1 text-muted-foreground">{S.intro}</p>
+      <div className="mt-5 rounded-2xl border bg-card p-4 shadow-sm sm:p-6">
+        <SignupForm options={options} nutrition={settings.nutrition} prefill={prefill} source={q.source ?? null} />
+      </div>
+      <p className="mt-4 text-center text-sm text-muted-foreground">
+        {S.haveAccount}{" "}
+        <Link className="inline-flex min-h-11 items-center font-semibold text-primary underline underline-offset-4" href="/login">{S.signIn}</Link>
       </p>
     </main>
   );

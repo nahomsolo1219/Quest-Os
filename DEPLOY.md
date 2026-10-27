@@ -93,7 +93,7 @@ Then sign in at `/login` → Staff tab, and as an owner:
 
 ## 5. Cron services
 
-Create the eight cron services exactly as in [CRON.md](CRON.md) (one per job, `curlimages/curl` image, UTC schedules). Use the same `CRON_SECRET` and point `APP_URL` at the `web` domain. Test one by hand:
+Create the eight cron services exactly as in [CRON.md](CRON.md) (one per job, image `alpine:3.20`, the exact start command from its table, UTC schedules, restart policy Never). Do not use `curlimages/curl`: its entrypoint is curl, so a `sh -c` start command never runs. After the first scheduled time, `https://<domain>/api/jobs/health` (and the owner Dashboard's Scheduled jobs card) must show each job's last run; see "How to test a cron" in CRON.md. Use the same `CRON_SECRET` and point `APP_URL` at the `web` domain. Test one by hand:
 
 ```
 curl -fsS -X POST -H "x-cron-secret: $CRON_SECRET" "$APP_URL/api/jobs/sunday-stock"

@@ -1,7 +1,7 @@
 // Delivery and pick-up (module 10): drop list by area in route order, route reordering, rider assignment,
 // delivered / failed (with reason), and the cafe pick-up list.
-import { and, arrayContains, eq, inArray } from "drizzle-orm";
-import { areas, clients, deliveryDrops, orderDays, orderMeals, user } from "@db/schema";
+import { and, arrayContains, eq, inArray, like } from "drizzle-orm";
+import { areas, clients, deliveryDrops, notifications, orderDays, orderMeals, user } from "@db/schema";
 import { assertCan, can, canUpdateDrop, ForbiddenError, hasRole } from "@/server/authz";
 import { groupDropsByArea, type AreaGroup } from "@/domain/delivery";
 import { addisDate, formatDate, isDateStr } from "@/domain/time";
@@ -183,5 +183,49 @@ export async function markFailed(ctx: Ctx, dropId: string, reason: string) {
     body: `${formatDate(drop.dropDate)} · ${text}`, link: `/staff/delivery?date=${drop.dropDate}`,
     dedupeKey: `drop-failed:${drop.id}:${ctx.now.getTime()}`,
   });
+  return row;
+}
+
+/** How long after marking a drop the same status can be undone (the UI offers ~8 s; this allows for slow networks). */
+export const UNDO_WINDOW_MS = 2 * 60 * 1000;
+
+/** When the drop was last marked failed: the instant in the ops notification's dedupe key (no failed-at column). */
+async function failedAt(ctx: Ctx, dropId: string): Promise<Date | null> {
+  const rows = await ctx.db.select({ key: notifications.dedupeKey }).from(notifications)
+    .where(like(notifications.dedupeKey, `drop-failed:${dropId}:%`));
+  const times = rows.map((r) => Number(r.key?.split(":")[2])).filter((n) => Number.isFinite(n));
+  return times.length ? new Date(Math.max(...times)) : null;
+}
+
+/**
+ * Undo a just-made "Delivered", "Handed over" or "Failed": the drop goes back to pending.
+ * - `expected` is the status the toast was about; if the drop changed since, nothing is undone.
+ * - Same access as marking it (today's drops; riders only their own or unassigned), and only within
+ *   UNDO_WINDOW_MS of that status change (deliveredAt, or the failed notification), not of any later
+ *   edit such as a route reorder, so older history cannot be rewritten.
+ * - `release`: the mark made a rider take an unassigned drop; undo gives it back (riders only, their own drop).
+ */
+export async function undoDropStatus(ctx: Ctx, dropId: string, expected: "delivered" | "failed", release = false) {
+  const drop = await loadDropForUpdate(ctx, dropId);
+  if (drop.status !== expected) throw new ServiceError("This drop changed since, so there is nothing to undo.");
+  const markedAt = expected === "delivered" ? drop.deliveredAt : await failedAt(ctx, dropId);
+  if (!markedAt || ctx.now.getTime() - markedAt.getTime() > UNDO_WINDOW_MS) {
+    throw new ServiceError("Too late to undo. Mark the drop again with the right status.");
+  }
+  const releaseRider = release && drop.kind === "delivery" && hasRole(ctx.actor, "delivery") && !hasRole(ctx.actor, "operations")
+    && drop.riderUserId === actorUserId(ctx.actor);
+  const [row] = await ctx.db.update(deliveryDrops)
+    .set({ status: "pending", failedReason: null, deliveredAt: null, updatedAt: ctx.now, ...(releaseRider ? { riderUserId: null } : {}) })
+    .where(and(eq(deliveryDrops.id, dropId), eq(deliveryDrops.status, expected))).returning();
+  if (!row) throw new ServiceError("This drop changed since, so there is nothing to undo.");
+  if (expected === "failed") {
+    const [c] = await ctx.db.select({ firstName: clients.firstName, lastName: clients.lastName }).from(clients).where(eq(clients.id, drop.clientId));
+    const ops = await userIdsWithRoles(ctx.db, ["operations"]);
+    await notify(ctx.db, {
+      userIds: ops, kind: "delivery.failed", title: `Drop no longer failed: ${c ? `${c.firstName} ${c.lastName}` : "client"}`,
+      body: `${formatDate(drop.dropDate)} · the rider undid "failed"; the drop is pending again.`, link: `/staff/delivery?date=${drop.dropDate}`,
+      dedupeKey: `drop-undo:${drop.id}:${ctx.now.getTime()}`,
+    });
+  }
   return row;
 }

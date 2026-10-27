@@ -37,7 +37,7 @@ export default async function ProgressPage() {
         {points.length ? <WeightChart points={points} /> : <EmptyState title={T.progress.none}>{T.progress.noneHint}</EmptyState>}
         {points.length ? (
           <ul className="divide-y text-sm">
-            {points.slice(-5).reverse().map((p) => <li key={p.date} className="flex justify-between py-2"><span>{formatDate(p.date, "long")}</span><span className="font-semibold">{p.kg} kg</span></li>)}
+            {points.slice(-5).reverse().map((p) => <li key={p.date} className="flex justify-between py-2"><span>{formatDate(p.date, "long")}</span><span className="font-semibold tabular">{p.kg} kg</span></li>)}
           </ul>
         ) : null}
       </section>

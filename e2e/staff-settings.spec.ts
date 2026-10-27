@@ -9,7 +9,12 @@ test("pricing settings save with a toast and refuse an invalid value", async ({ 
   await page.goto("/staff/settings/pricing");
   const drop = page.getByLabel("Cost per drop (ETB)");
   const value = info.project.name === "phone" ? "160" : "170";
-  await drop.fill(value);
+  // typing while the form hydrates can append to the server value ("160170"): wait, then check what was typed
+  await page.waitForLoadState("networkidle");
+  await expect(async () => {
+    await drop.fill(value);
+    await expect(drop).toHaveValue(value, { timeout: 1000 });
+  }).toPass();
   await page.getByRole("button", { name: /^Save/ }).first().click();
   await expect(toast(page, "Settings saved and logged.")).toBeVisible();
   const [row] = await query<{ v: number }>("select (value->>'dropCostBirr')::int as v from settings where key = 'pricing'");
@@ -17,7 +22,7 @@ test("pricing settings save with a toast and refuse an invalid value", async ({ 
 
   await drop.fill("-5");
   await page.getByRole("button", { name: /^Save/ }).first().click();
-  await expect(page.locator("[data-sonner-toast][data-type=error], [role=alert], .text-red-700, .text-destructive").filter({ hasText: /./ }).first()).toBeVisible();
+  await expect(page.locator("[data-sonner-toast][data-type=error], [role=alert], .text-danger, .text-destructive").filter({ hasText: /./ }).first()).toBeVisible();
   const [after] = await query<{ v: number }>("select (value->>'dropCostBirr')::int as v from settings where key = 'pricing'");
   expect(after?.v).toBe(Number(value));
   await screenshot(page, "settings-pricing-error", info);
@@ -43,11 +48,11 @@ test("swap table: edit a rule label", async ({ page }, info) => {
 });
 
 test("ingredient price edit adds a price history row", async ({ page }, info) => {
-  await page.goto("/staff/settings/ingredients");
+  await page.goto("/staff/settings/ingredients?show=all");
   const item = page.getByRole("listitem").filter({ has: page.getByRole("heading", { name: "Tilapia fillet", exact: true }) });
   const price = info.project.name === "phone" ? "700" : "720";
   await item.getByLabel("ETB per kg").fill(price);
-  await item.getByRole("button", { name: "Save price" }).click();
+  await item.getByRole("button", { name: "Save", exact: true }).click();
   await expect(toast(page, "Price saved. A price history row was added.")).toBeVisible();
   const rows = await query<{ cost: number; hist: number }>(
     `select i.cost_per_unit_birr as cost, (select count(*)::int from ingredient_prices p where p.ingredient_id = i.id) as hist

@@ -6,11 +6,13 @@ import { useForm, type FieldPath } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
+import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ChoiceGroup } from "@/components/public/choice-group";
 import { TagInput } from "@/components/public/tag-input";
+import { PhoneInput } from "@/components/public/phone-input";
 import { ACTIVITY_LABELS, DELIVERY_LABELS, GOAL_LABELS, SEX_LABELS } from "@/components/public/labels";
 import { NativeSelect } from "@/components/client/native-select";
 import { FieldError } from "@/components/client/field-error";
@@ -140,12 +142,12 @@ export function SignupForm({ options, nutrition, prefill, source }: { options: O
   });
 
   return (
-    <form onSubmit={onSubmit} noValidate className="mt-4 space-y-5">
+    <form onSubmit={onSubmit} noValidate className="space-y-5">
       <ol className="grid grid-cols-5 gap-1" aria-label={S.step(step + 1, 5)}>
         {S.steps.map((label, i) => (
           <li key={label} className="space-y-1">
-            <div className={cn("h-1.5 rounded-full", i <= step ? "bg-primary" : "bg-muted")} />
-            <p className={cn("text-center text-[11px]", i === step ? "font-semibold text-foreground" : "text-muted-foreground")}>{label}</p>
+            <div className={cn("h-1.5 rounded-full", i < step ? "bg-primary" : i === step ? "bg-lime" : "bg-muted")} />
+            <p className={cn("text-center text-xs", i === step ? "font-semibold text-primary" : "text-muted-foreground")} aria-current={i === step ? "step" : undefined}>{label}</p>
           </li>
         ))}
       </ol>
@@ -166,7 +168,8 @@ export function SignupForm({ options, nutrition, prefill, source }: { options: O
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="phone">{S.phone}</Label>
-            <Input id="phone" type="tel" inputMode="tel" autoComplete="tel" placeholder={S.phoneHint} className="h-11" {...form.register("phone")} />
+            <PhoneInput id="phone" placeholder={S.phoneHint} aria-invalid={e.phone ? true : undefined} {...form.register("phone")} />
+            <p className="text-xs text-muted-foreground">{S.phoneNote}</p>
             <FieldError message={e.phone?.message} />
           </div>
           <div className="space-y-1.5">
@@ -200,14 +203,14 @@ export function SignupForm({ options, nutrition, prefill, source }: { options: O
           <FieldError message={e.age?.message ?? e.weightKg?.message ?? e.heightCm?.message} />
           <div className="space-y-1.5">
             <Label htmlFor="activity">How active are you?</Label>
-            <NativeSelect id="activity" {...form.register("activity")}>
+            <NativeSelect id="activity" className="bg-card" {...form.register("activity")}>
               {ACTIVITIES.map((a) => <option key={a} value={a}>{ACTIVITY_LABELS[a]}</option>)}
             </NativeSelect>
           </div>
           <ChoiceGroup name="goal" legend="Your goal" value={v.goal} onChange={(x) => form.setValue("goal", x, { shouldValidate: true })}
             options={GOALS.map((g) => ({ value: g, label: GOAL_LABELS[g].title, hint: GOAL_LABELS[g].hint }))} />
           <FieldError message={e.goal?.message} />
-          {suggestion ? <p className="rounded-lg bg-accent p-3 text-sm">{S.sizeLive(suggestion.size, suggestion.sizeKcal)}</p> : null}
+          {suggestion ? <p className="rounded-lg border border-primary/15 bg-accent p-3 text-sm text-accent-foreground">{S.sizeLive(suggestion.size, suggestion.sizeKcal)}</p> : null}
         </div>
       ) : null}
 
@@ -238,7 +241,7 @@ export function SignupForm({ options, nutrition, prefill, source }: { options: O
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="areaId">{S.area}</Label>
-            <NativeSelect id="areaId" {...form.register("areaId")}>
+            <NativeSelect id="areaId" className="bg-card" {...form.register("areaId")}>
               <option value="">{S.chooseArea}</option>
               {options.areas.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
             </NativeSelect>
@@ -254,19 +257,23 @@ export function SignupForm({ options, nutrition, prefill, source }: { options: O
       {step === 4 ? (
         <div className="space-y-4">
           <fieldset className="space-y-2">
-            <legend className="text-sm font-medium">{S.package}</legend>
+            <legend className="mb-1.5 text-sm font-medium">{S.package}</legend>
             {options.packages.map((p) => {
               const allowed = p.deliveryOptions.includes(v.deliveryOption as DeliveryOption);
               return (
-                <label key={p.id} className={cn("block cursor-pointer rounded-xl border p-3 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring",
-                  v.packageId === p.id && "border-primary bg-primary/5 ring-1 ring-primary", !allowed && "cursor-not-allowed opacity-50")}>
+                <label key={p.id} className={cn("relative block cursor-pointer rounded-xl border p-3 pr-11 transition-colors has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring",
+                  v.packageId === p.id ? "border-primary bg-primary text-primary-foreground shadow-sm" : "border-input bg-card hover:border-primary/40 hover:bg-accent",
+                  !allowed && "cursor-not-allowed opacity-50 hover:border-input hover:bg-card")}>
+                  {v.packageId === p.id ? (
+                    <span aria-hidden className="absolute right-3 top-3 flex size-6 items-center justify-center rounded-full bg-lime text-forest"><Check className="size-4" strokeWidth={3} /></span>
+                  ) : <span aria-hidden className="absolute right-3 top-3 size-6 rounded-full border border-input" />}
                   <input type="radio" name="packageId" value={p.id} disabled={!allowed} checked={v.packageId === p.id}
                     onChange={() => form.setValue("packageId", p.id, { shouldValidate: true })} className="sr-only" />
                   <span className="flex items-baseline justify-between gap-2">
                     <span className="text-lg font-bold">{p.name}</span>
-                    <span className="text-sm font-semibold text-primary">{S.swaps(p.swapLimit)}</span>
+                    <span className={cn("text-sm font-semibold", v.packageId === p.id ? "text-lime" : "text-primary")}>{S.swaps(p.swapLimit)}</span>
                   </span>
-                  <span className="mt-1 block text-sm text-muted-foreground">
+                  <span className={cn("mt-1 block text-sm", v.packageId === p.id ? "text-primary-foreground/85" : "text-muted-foreground")}>
                     {S.checkins(p.checkinIntervalDays)} · {p.coaching} · {p.deliveryOptions.map((d) => DELIVERY_LABELS[d].split(" (")[0]).join(" or ")}
                   </span>
                   {!allowed ? <span className="mt-1 block text-xs">{S.notForDelivery}</span> : null}
@@ -283,17 +290,17 @@ export function SignupForm({ options, nutrition, prefill, source }: { options: O
               { value: "next_week", label: S.startMonday, hint: S.startMondayHint },
             ]} />
           {v.packageId ? (
-            <section aria-live="polite" className="rounded-xl border bg-card p-4">
+            <section aria-live="polite" className="rounded-xl border border-primary/15 bg-accent p-4">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{S.quote}</p>
               {quote === "loading" || quote === null ? <p className="text-sm text-muted-foreground">{S.quoteLoading}</p>
-                : !quote.ok ? <p className="mt-1 text-sm font-medium text-amber-800">{S.priceMissing}</p>
+                : !quote.ok ? <p className="mt-1 text-sm font-medium text-warning">{S.priceMissing}</p>
                   : (
                     <div className="space-y-1">
                       <p className="stat-number text-3xl">{formatBirr(quote.planPrice)} <span className="text-sm font-semibold text-muted-foreground">{S.planMonth}</span></p>
                       {v.start === "quick_start" && quote.quickStart ? (
                         <>
                           <p className="text-sm">{S.firstPayment(formatBirr(quote.quickStart.amount), quote.quickStart.serviceDays, formatDate(quote.quickStart.startDate, "long"))}</p>
-                          {quote.quickStart.capacityShifted ? <p className="text-sm font-medium text-amber-800">{S.capacity(formatDate(quote.quickStart.startDate, "long"))}</p> : null}
+                          {quote.quickStart.capacityShifted ? <p className="text-sm font-medium text-warning">{S.capacity(formatDate(quote.quickStart.startDate, "long"))}</p> : null}
                         </>
                       ) : <p className="text-sm text-muted-foreground">{S.mondayNote}</p>}
                     </div>
@@ -303,7 +310,8 @@ export function SignupForm({ options, nutrition, prefill, source }: { options: O
         </div>
       ) : null}
 
-      <div className="flex gap-3">
+      {/* mousedown does not take focus: blurring a field would re-validate it and move these buttons under the finger */}
+      <div className="flex gap-3" onMouseDown={(ev) => { if ((ev.target as HTMLElement).closest("button")) ev.preventDefault(); }}>
         {step > 0 ? <Button type="button" variant="outline" className="h-12 flex-1" onClick={() => setStep((s) => s - 1)}>{S.back}</Button> : null}
         {step < 4
           ? <Button type="button" className="h-12 flex-1 text-base" onClick={next}>{S.next}</Button>

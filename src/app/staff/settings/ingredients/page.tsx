@@ -6,6 +6,7 @@ import { serviceCtx } from "@/server/session";
 import { listIngredients } from "@/server/services/catalog";
 import { formatAddisDateTime } from "@/domain/time";
 import { cn } from "@/lib/utils";
+import { TONE_PANEL } from "@/components/shell/status-badge";
 import { requireSettingsTab } from "../guard";
 import { S } from "../strings";
 
@@ -16,19 +17,23 @@ export default async function IngredientsPage({ searchParams }: { searchParams: 
   const actor = await requireSettingsTab("ingredients.read");
   const { show } = await searchParams;
   const d = await listIngredients(await serviceCtx(actor));
-  const list = show === "missing" ? d.ingredients.filter((i) => i.needsPrice && i.costPerUnitBirr === null) : d.ingredients;
+  // default to "Missing price" while any price is missing (UI refresh item 13); ?show=all shows everything
+  const filter: "missing" | "all" = show === "all" || show === "missing" ? show : d.missingCount > 0 ? "missing" : "all";
+  const list = filter === "missing" ? d.ingredients.filter((i) => i.needsPrice && i.costPerUnitBirr === null) : d.ingredients;
+  const chip = (on: boolean) => cn("inline-flex min-h-11 items-center whitespace-nowrap rounded-full border px-4 text-sm font-medium",
+    on ? "border-primary bg-primary text-primary-foreground" : "bg-card hover:bg-muted");
   return (
     <div>
       <PageHeader title={S.tabs.ingredients} description={S.ingredientsIntro} />
-      <div className={cn("mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4", d.missingCount ? "border-amber-300 bg-amber-50" : "border-emerald-300 bg-emerald-50")}>
+      <div className={cn("mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4", d.missingCount ? TONE_PANEL.warn : TONE_PANEL.good)}>
         <p className="stat-number text-xl">{S.missing(d.missingCount)}</p>
-        <nav aria-label="Filter" className="flex gap-2">
-          <Link href="/staff/settings/ingredients" className={cn("inline-flex min-h-11 items-center rounded-full border bg-background px-4 text-sm", show !== "missing" && "border-primary font-semibold")}>All ({d.ingredients.length})</Link>
-          <Link href="/staff/settings/ingredients?show=missing" className={cn("inline-flex min-h-11 items-center rounded-full border bg-background px-4 text-sm", show === "missing" && "border-primary font-semibold")}>Missing price ({d.missingCount})</Link>
+        <nav aria-label="Filter" className="flex flex-wrap gap-2">
+          <Link href="/staff/settings/ingredients?show=missing" aria-current={filter === "missing" ? "page" : undefined} className={chip(filter === "missing")}>Missing price ({d.missingCount})</Link>
+          <Link href="/staff/settings/ingredients?show=all" aria-current={filter === "all" ? "page" : undefined} className={chip(filter === "all")}>All ({d.ingredients.length})</Link>
         </nav>
       </div>
-      {list.length === 0 ? <EmptyState title="Nothing to show.">Every ingredient has a price. Show all to edit nutrition values.</EmptyState> : (
-        <ul className="divide-y rounded-xl border px-4">
+      {list.length === 0 ? <EmptyState title="Every ingredient has a price." action={<Link href="/staff/settings/ingredients?show=all" className="inline-flex h-11 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground">Show all ingredients</Link>}>Show all to edit prices or nutrition values.</EmptyState> : (
+        <ul className="divide-y rounded-xl border bg-card px-4">
           {list.map((i) => (
             <IngredientRow key={i.id} canPrice={d.canPrice} canSupplier={d.canSupplier} canNutrition={d.canNutrition}
               ing={{ id: i.id, name: i.name, foodGroup: i.foodGroup, purchaseUnit: i.purchaseUnit, nutritionBasis: i.nutritionBasis, costPerUnitBirr: i.costPerUnitBirr,

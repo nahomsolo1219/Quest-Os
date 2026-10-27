@@ -5,7 +5,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import * as s from "../schema";
 import { runJob } from "../../src/server/jobs";
 import type { Ctx } from "../../src/server/services/context";
-import { assignRider, dropsForDate, markDelivered, markFailed, pickupList, reorderDrops } from "../../src/server/services/delivery";
+import { assignRider, dropsForDate, markDelivered, markFailed, pickupList, reorderDrops, undoDropStatus } from "../../src/server/services/delivery";
 import { ForbiddenError, type Actor } from "../../src/server/authz";
 import { inRollback, testDb } from "./helpers";
 
@@ -100,6 +100,31 @@ describe("drops", () => {
       const notes = await tx.select().from(s.notifications).where(and(eq(s.notifications.kind, "delivery.failed"), eq(s.notifications.userId, ops.userId)));
       expect(notes).toHaveLength(1);
       expect(notes[0].link).toBe(`/staff/delivery?date=${MON}`);
+    });
+  });
+
+  it("undo puts a just-marked drop back to pending: same access, only the status it was about, timed from the mark, releases a claim", async () => {
+    await inRollback(db, async (tx) => {
+      const { ops, otherRider, rider } = await setup(tx);
+      const [d] = await tx.select().from(s.deliveryDrops).where(and(eq(s.deliveryDrops.dropDate, MON), eq(s.deliveryDrops.kind, "delivery"), isNull(s.deliveryDrops.riderUserId))).limit(1);
+      const ctx: Ctx = { db: tx, actor: rider, now: MON_MORNING };
+      const later = (iso: string): Ctx => ({ ...ctx, now: at(iso) });
+      await markFailed(ctx, d.id, "Not home"); // unassigned -> rider takes it
+      await expect(undoDropStatus({ ...ctx, actor: otherRider }, d.id, "failed")).rejects.toBeInstanceOf(ForbiddenError);
+      await expect(undoDropStatus(later("2026-10-26T06:00:05Z"), d.id, "delivered")).rejects.toThrow(/changed since/);
+      const r = await undoDropStatus(later("2026-10-26T06:00:08Z"), d.id, "failed", true);
+      expect(r.status).toBe("pending");
+      expect(r.failedReason).toBeNull();
+      expect(r.riderUserId).toBeNull(); // the claim made by "Failed" is given back
+      const notes = await tx.select().from(s.notifications).where(and(eq(s.notifications.kind, "delivery.failed"), eq(s.notifications.userId, ops.userId)));
+      expect(notes.map((n) => n.title)).toEqual(expect.arrayContaining([expect.stringMatching(/^Drop no longer failed/)]));
+
+      // Delivered at 06:00; a route reorder at 08:00 bumps updatedAt but must not reopen the undo window.
+      await markDelivered(ctx, d.id);
+      await reorderDrops({ db: tx, actor: ops, now: at("2026-10-26T08:00:00Z") }, MON,
+        (await tx.select({ id: s.deliveryDrops.id }).from(s.deliveryDrops).where(and(eq(s.deliveryDrops.dropDate, MON), eq(s.deliveryDrops.kind, "delivery")))).map((x) => x.id));
+      await expect(undoDropStatus(later("2026-10-26T08:00:30Z"), d.id, "delivered")).rejects.toThrow(/Too late/);
+      expect((await undoDropStatus(later("2026-10-26T06:00:30Z"), d.id, "delivered")).status).toBe("pending");
     });
   });
 

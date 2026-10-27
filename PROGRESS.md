@@ -28,6 +28,14 @@ Resume: `pwd`, read this file, `features.json`, `git log --oneline -20`, run `np
 - Final spec-review passes (D050–D079) closed the remaining billing and lock gaps: per-day delivery option on order days, remainder billing for lengthened periods, re-billing voided periods without double-billing, renewals counted from the start.
 - Final gate: clean clone → `QM_NO_DEV=1 bash scripts/init.sh && npm run verify` passes (typecheck, lint, 236 unit, 259 db, e2e phone + laptop, bundle checks, simulation).
 
+## Milestone 7 — UI refresh: Quest brand, easier screens, cron fix (branch `ui-refresh`)
+- Brief: docs/UI_REFRESH.md. Decisions D460–D516. `npm run verify` green (e2e 280 passed, simulation PASSED). Loading skeletons only on area home pages (Next 15.5 bug, D515). Features UI-01…UI-19, JOB-FIX.
+- Brand assets cut from the guideline PDF into public/brand + public/icons (scripts/brand/). Theme tokens (light + dark), Inter, one StatusBadge, logo everywhere, grouped staff sidebar with icons, page-level skeletons, brand error/not-found pages, AlertDialog confirmations, rider Undo.
+- Built by four ui-builders in parallel (public, staff, kitchen+delivery, client): +251 phone field, filled choices, signed-in home + hero; staff Today to-do list, underline tabs, tables → phone cards, ingredients one Save; 18 px kitchen sheets with tick boxes (A4 print unchanged); client Today hero + calorie ring, Plan hub, menu day strip, cutoff countdowns.
+- Crons: Alpine + wget start command per job (CRON.md, DEPLOY.md), public `GET /api/jobs/health`, owner Dashboard "Scheduled jobs" card. The Railway services themselves still have to be switched by the owner (table in the PR).
+- Screenshots: docs/screenshots/before|after/<area>/<role>--<page>--<width>.jpg (`node scripts/shots-all.mjs <phase>`).
+- QA: new e2e/ui-refresh.spec.ts + rider Undo e2e; spec review found 3 undo gaps (fixed, D501); QA found area-level loading.tsx broke same-page ?param links in production (fixed, D513).
+
 ## Known issues / notes
 - Ingredient prices are empty by design until staff enter them; plans cannot be priced before that.
 - Phone layouts: wide tables scroll horizontally inside their card (no page overflow).

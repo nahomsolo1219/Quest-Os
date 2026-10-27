@@ -16,7 +16,7 @@ export function PortionCell({ partId, profile, qty, computedQty, isManual, unit,
   const [value, setValue] = useState(String(qty ?? ""));
   const { pending, run } = useAction();
   const shown = qty === null ? "–" : unit === "piece" ? `${qty} pc` : `${qty}`;
-  const cls = cn("min-h-11 w-full rounded-md px-2 text-right tabular-nums", isManual && "bg-amber-100 font-semibold text-amber-900 ring-1 ring-amber-300");
+  const cls = cn("min-h-11 w-full rounded-md px-2 text-right tabular-nums", isManual && "bg-warning-soft font-semibold text-warning ring-1 ring-warning/30");
   if (!canEdit || qty === null) return <div className={cn(cls, "flex items-center justify-end")} title={isManual ? `Manual (computed ${computedQty})` : undefined}>{shown}</div>;
   if (!editing) {
     return (
@@ -35,7 +35,7 @@ export function PortionCell({ partId, profile, qty, computedQty, isManual, unit,
     }}>
       <label htmlFor={id} className="sr-only">{label} ({unit === "piece" ? "pieces" : "grams"})</label>
       <input id={id} type="number" inputMode="numeric" min={0} max={2000} autoFocus value={value} onChange={(e) => setValue(e.target.value)}
-        className="h-11 w-full rounded-md border bg-background px-2 text-right tabular-nums" />
+        className="h-11 w-full rounded-md border bg-card px-2 text-right tabular-nums" />
       <div className="flex gap-1">
         <Button type="submit" size="sm" className="h-11 flex-1" disabled={pending}>Save</Button>
         <Button type="button" size="sm" variant="ghost" className="h-11" onClick={() => setEditing(false)}>Cancel</Button>

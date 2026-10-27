@@ -1,10 +1,10 @@
 // Quest Meals service worker: network-first pages with an offline fallback,
 // cache-first for static build assets and icons. No API or data caching.
-const CACHE = "qm-v1";
+const CACHE = "qm-v2";
 const OFFLINE_URL = "/offline";
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE).then((c) => c.addAll([OFFLINE_URL, "/icons/icon-192.png"])));
+  event.waitUntil(caches.open(CACHE).then((c) => c.addAll([OFFLINE_URL, "/icons/icon-192.png", "/brand/logo-full.svg"])));
   self.skipWaiting();
 });
 
@@ -25,7 +25,7 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(fetch(req).catch(() => caches.match(OFFLINE_URL)));
     return;
   }
-  if (url.pathname.startsWith("/_next/static/") || url.pathname.startsWith("/icons/")) {
+  if (url.pathname.startsWith("/_next/static/") || url.pathname.startsWith("/icons/") || url.pathname.startsWith("/brand/")) {
     event.respondWith(
       caches.match(req).then(
         (hit) =>

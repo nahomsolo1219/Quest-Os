@@ -21,11 +21,13 @@ const columns: ColumnDef<ClientListRow, unknown>[] = [
   { accessorKey: "phone", header: S.colPhone, cell: ({ row }) => <span className="whitespace-nowrap">{formatEthiopianPhone(row.original.phone)}</span>, enableGlobalFilter: false },
   { id: "delivery", accessorFn: (r) => (r.deliveryOption ? DELIVERY_LABEL[r.deliveryOption] : "—"), header: S.colDelivery, enableGlobalFilter: false },
   { accessorKey: "profile", header: S.colProfile, enableGlobalFilter: false,
-    cell: ({ row }) => row.original.profile ? <span className="whitespace-nowrap">{row.original.profile}{row.original.provisional ? <span className="ml-1 text-xs text-amber-700">({S.provisional})</span> : null}</span> : "—" },
+    cell: ({ row }) => row.original.profile ? <span className="whitespace-nowrap">{row.original.profile}{row.original.provisional ? <span className="ml-1 text-xs text-warning">({S.provisional})</span> : null}</span> : "—" },
 ];
 
 export function ClientsTable({ rows, areas, plans }: { rows: ClientListRow[]; areas: string[]; plans: string[] }) {
   return (
+    // white table on Mist (DataTable is lead-owned; style its scroll box from here)
+    <div className="[&_.overflow-x-auto]:bg-card [&_select]:bg-card [&_input]:bg-card">
     <DataTable
       data={rows}
       columns={columns}
@@ -39,5 +41,6 @@ export function ClientsTable({ rows, areas, plans }: { rows: ClientListRow[]; ar
       ]}
       empty={{ title: S.emptyTitle, body: S.emptyBody, action: <Button asChild className="h-11"><Link href="/staff/clients/new">{S.addLead}</Link></Button> }}
     />
+    </div>
   );
 }

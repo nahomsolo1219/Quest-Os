@@ -55,9 +55,9 @@ export function RouteBoard({ date, groups: initial, riders, canManage }: {
           <div className="mb-2 flex flex-wrap items-end justify-between gap-2">
             <h2 id={`area-${gi}`} className="text-lg font-bold">{g.areaName} <span className="text-sm font-normal text-muted-foreground">· {g.drops.length} {g.drops.length === 1 ? "drop" : "drops"}</span></h2>
             {canManage && riders.length ? (
-              <div className="flex items-center gap-2">
-                <label htmlFor={`area-rider-${gi}`} className="text-sm">Assign area to</label>
-                <select id={`area-rider-${gi}`} className="h-11 rounded-md border bg-background px-2 text-sm" disabled={pending} value=""
+              <div className="flex w-full items-center gap-2 sm:w-auto">
+                <label htmlFor={`area-rider-${gi}`} className="shrink-0 text-sm">Assign area to</label>
+                <select id={`area-rider-${gi}`} className="h-11 min-w-0 flex-1 rounded-md border bg-background px-2 text-sm sm:w-44 sm:flex-none" disabled={pending} value=""
                   onChange={(e) => { if (e.target.value) assign(g.drops.map((d) => d.id), e.target.value === "none" ? null : e.target.value); }}>
                   <option value="">Choose rider</option>
                   {riders.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
@@ -66,7 +66,7 @@ export function RouteBoard({ date, groups: initial, riders, canManage }: {
               </div>
             ) : null}
           </div>
-          <ol className="divide-y rounded-xl border">
+          <ol className="divide-y rounded-xl border bg-card">
             {g.drops.map((d, i) => (
               <li key={d.id}
                 draggable={canManage}
@@ -78,9 +78,10 @@ export function RouteBoard({ date, groups: initial, riders, canManage }: {
                 {canManage ? <GripVertical aria-hidden className="hidden size-5 shrink-0 cursor-grab text-muted-foreground sm:block" /> : null}
                 <span className="stat-number w-7 shrink-0 text-center text-lg" title="Route position">{offsets[gi] + i + 1}</span>
                 <div className="min-w-0 flex-1">
-                  <p className="font-semibold">{d.name} <StatusChip status={d.status} /></p>
-                  <p className="truncate text-sm text-muted-foreground">{d.address ?? "No address"}{d.slot ? ` · ${SLOT_TEXT[d.slot] ?? d.slot}` : ""} · {d.mealsCount} meals</p>
-                  {d.status === "failed" && d.failedReason ? <p className="text-sm font-semibold text-red-700">Failed: {d.failedReason}</p> : null}
+                  <p className="flex flex-wrap items-center gap-x-2 gap-y-1 font-semibold">{d.name} <StatusChip status={d.status} /></p>
+                  <p className="line-clamp-2 text-sm text-muted-foreground sm:truncate" title={d.address ?? undefined}>{d.address ?? "No address"}</p>
+                  <p className="text-sm text-muted-foreground">{d.mealsCount} meals{d.slot ? ` · ${SLOT_TEXT[d.slot] ?? d.slot}` : ""}</p>
+                  {d.status === "failed" && d.failedReason ? <p className="text-sm font-semibold text-danger">Failed: {d.failedReason}</p> : null}
                 </div>
                 {canManage ? (
                   <div className="flex w-full items-center gap-2 sm:w-auto">

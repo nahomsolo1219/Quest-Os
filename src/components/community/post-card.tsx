@@ -12,13 +12,13 @@ export function PostCard({ post, canReact, full = false }: { post: FeedPost; can
   const body = full || post.body.length <= 400 ? post.body : `${post.body.slice(0, 400)}…`;
   const down = post.progressText?.startsWith("−");
   return (
-    <article className={cn("rounded-xl border bg-card p-4 shadow-xs", post.hidden && "border-dashed opacity-60", post.pinned && "border-primary/40")}>
+    <article className={cn("rounded-2xl border bg-card p-4 shadow-xs", post.hidden && "border-dashed opacity-60", post.pinned && "border-primary/40")}>
+      {post.pinned && full ? (
+        <p className="mb-2 flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground"><Pin className="size-3.5" aria-hidden />{S.pinned}</p>
+      ) : null}
       <div className="flex items-start justify-between gap-2">
         <PersonLine person={post.author} when={post.when} />
-        <div className="flex shrink-0 flex-wrap justify-end gap-1">
-          {post.pinned && full ? <Badge variant="outline" className="gap-1"><Pin className="size-3" aria-hidden />{S.pinned}</Badge> : null}
-          {post.type !== "post" ? <Badge variant="secondary">{post.type === "question" ? "Q&A" : S.types[post.type]}</Badge> : null}
-        </div>
+        {post.type !== "post" ? <Badge variant="secondary" className="shrink-0">{post.type === "question" ? "Q&A" : S.types[post.type]}</Badge> : null}
       </div>
       {post.hidden ? (
         <p className="mt-3 flex items-center gap-1.5 rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
@@ -49,7 +49,7 @@ export function PostCard({ post, canReact, full = false }: { post: FeedPost; can
         <div className="flex items-center gap-3 text-sm text-muted-foreground">
           {post.type === "question" ? (
             post.answered
-              ? <span className="inline-flex items-center gap-1 font-medium text-green-700"><CheckCircle2 className="size-4" aria-hidden />{S.answered}</span>
+              ? <span className="inline-flex items-center gap-1 font-medium text-success"><CheckCircle2 className="size-4" aria-hidden />{S.answered}</span>
               : <span>{S.unanswered}</span>
           ) : null}
           {full ? <span className="inline-flex items-center gap-1"><MessageCircle className="size-4" aria-hidden />{S.comments(post.commentCount)}</span> : (

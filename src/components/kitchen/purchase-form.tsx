@@ -43,23 +43,23 @@ export function PurchaseForm({ ingredients, today }: {
     })}>
       <div className="space-y-1.5 sm:col-span-2">
         <Label htmlFor="p-ingredient">Ingredient</Label>
-        <select id="p-ingredient" className="h-11 w-full rounded-md border bg-background px-3" {...form.register("ingredientId")}>
+        <select id="p-ingredient" className="h-11 w-full rounded-md border bg-card px-3" {...form.register("ingredientId")}>
           <option value="">Pick an ingredient</option>
           {ingredients.map((i) => <option key={i.id} value={i.id}>{i.name} ({i.unit}){i.costPerUnitBirr == null ? " · price missing" : ""}</option>)}
         </select>
-        {err.ingredientId ? <p className="text-sm text-red-700">{err.ingredientId.message}</p> : null}
+        {err.ingredientId ? <p className="text-sm text-danger">{err.ingredientId.message}</p> : null}
         {selected ? <p className="text-sm text-muted-foreground">Current price: {selected.costPerUnitBirr == null ? "price missing" : `${formatBirr(selected.costPerUnitBirr)} per ${selected.unit}`}</p> : null}
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="p-qty">Quantity{selected ? ` (${UNIT_WORD[selected.unit]})` : ""}</Label>
         <Input id="p-qty" type="number" inputMode="decimal" min={0} step={selected?.unit === "piece" ? 1 : 0.1} className="h-11"
           {...form.register("qty", { valueAsNumber: true })} />
-        {err.qty ? <p className="text-sm text-red-700">{err.qty.message}</p> : null}
+        {err.qty ? <p className="text-sm text-danger">{err.qty.message}</p> : null}
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="p-price">Total price (ETB)</Label>
         <Input id="p-price" type="number" inputMode="numeric" min={1} step={1} className="h-11" {...form.register("totalPriceBirr", { valueAsNumber: true })} />
-        {err.totalPriceBirr ? <p className="text-sm text-red-700">{err.totalPriceBirr.message}</p> : null}
+        {err.totalPriceBirr ? <p className="text-sm text-danger">{err.totalPriceBirr.message}</p> : null}
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="p-supplier">Supplier</Label>
@@ -68,11 +68,11 @@ export function PurchaseForm({ ingredients, today }: {
       <div className="space-y-1.5">
         <Label htmlFor="p-date">Purchase date</Label>
         <Input id="p-date" type="date" max={today} defaultValue={today} className="h-11" {...form.register("purchasedOn")} />
-        {err.purchasedOn ? <p className="text-sm text-red-700">{err.purchasedOn.message}</p> : null}
+        {err.purchasedOn ? <p className="text-sm text-danger">{err.purchasedOn.message}</p> : null}
       </div>
       <div className="sm:col-span-2">
         <Button type="submit" className="h-11 w-full sm:w-auto" disabled={form.formState.isSubmitting}>Log purchase</Button>
-        {last ? <p role="status" className="mt-2 text-sm font-semibold text-emerald-700">{last}</p> : null}
+        {last ? <p role="status" className="mt-2 text-sm font-semibold text-success">{last}</p> : null}
       </div>
     </form>
   );

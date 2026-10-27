@@ -25,8 +25,11 @@ const columns: ColumnDef<MemberRow, unknown>[] = [
 
 export function MembersTable({ rows }: { rows: MemberRow[] }) {
   return (
+    // white table on Mist (DataTable is lead-owned; style its scroll box from here)
+    <div className="[&_.overflow-x-auto]:bg-card [&_select]:bg-card [&_input]:bg-card">
     <DataTable data={rows} columns={columns} searchPlaceholder="Search members"
       filters={[{ columnId: "status", label: "Plan", options: [{ value: "active", label: "Active" }, { value: "paused", label: "Paused" }, { value: "ended", label: "Ended" }] }]}
       empty={{ title: T.membersEmpty, body: T.membersEmptyBody }} />
+    </div>
   );
 }

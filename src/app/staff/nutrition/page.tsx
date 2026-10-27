@@ -9,6 +9,7 @@ import { intakeQueue } from "@/server/services/nutrition";
 import { displayName } from "@/domain/format";
 import { formatAddisDateTime } from "@/domain/time";
 import { S } from "./strings";
+import { StatusBadge } from "@/components/shell/status-badge";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Nutrition" };
@@ -36,12 +37,12 @@ export default async function NutritionQueuePage() {
           <ul className="grid gap-2 md:grid-cols-2">
             {q.provisional.map((p) => (
               <li key={p.clientId}>
-                <Link href={`/staff/nutrition/clients/${p.clientId}`} className="flex min-h-11 items-center justify-between gap-3 rounded-xl border p-3 hover:bg-muted">
+                <Link href={`/staff/nutrition/clients/${p.clientId}`} className="flex min-h-11 items-center justify-between gap-3 rounded-xl border p-3 hover:bg-muted bg-card">
                   <div className="min-w-0">
                     <p className="font-semibold">{displayName(p.firstName, p.lastName)}</p>
                     <p className="text-sm text-muted-foreground">{p.size} {goalLabel(p.goal)} · {p.kcalTarget} kcal · signed up {formatAddisDateTime(p.setAt)}</p>
                   </div>
-                  <Badge variant={p.overdue ? "destructive" : "secondary"} className={p.overdue ? "" : "bg-amber-100 text-amber-900"}>{S.hoursLeft(p.hoursLeft)}</Badge>
+                  <StatusBadge tone={p.overdue ? "bad" : "warn"}>{S.hoursLeft(p.hoursLeft)}</StatusBadge>
                 </Link>
               </li>
             ))}
@@ -55,11 +56,11 @@ export default async function NutritionQueuePage() {
           <ul className="grid gap-2 md:grid-cols-2">
             {q.noProfile.map((c) => (
               <li key={c.id}>
-                <Link href={`/staff/nutrition/clients/${c.id}`} className="flex min-h-11 items-center justify-between gap-3 rounded-xl border p-3 hover:bg-muted">
+                <Link href={`/staff/nutrition/clients/${c.id}`} className="flex min-h-11 items-center justify-between gap-3 rounded-xl border p-3 hover:bg-muted bg-card">
                   <span className="font-semibold">{displayName(c.firstName, c.lastName)}</span>
                   <span className="flex gap-1">
-                    <Badge variant="outline">{c.status}</Badge>
-                    {c.statsComplete ? null : <Badge variant="secondary" className="bg-amber-100 text-amber-900">{S.statsMissing}</Badge>}
+                    <StatusBadge status={c.status} />
+                    {c.statsComplete ? null : <StatusBadge tone="warn">{S.statsMissing}</StatusBadge>}
                   </span>
                 </Link>
               </li>
@@ -79,7 +80,7 @@ export default async function NutritionQueuePage() {
                     <span className="font-medium">{displayName(c.firstName, c.lastName)} <span className="text-sm font-normal text-muted-foreground">· {c.status}</span></span>
                     <span className="text-right text-sm text-muted-foreground">
                       {c.profile ? `${c.profile.size} ${goalLabel(c.profile.goal)} · ${c.profile.kcalTarget} kcal` : "No targets"}
-                      {c.profile?.provisional ? <Badge variant="secondary" className="ml-2 bg-amber-100 text-amber-900">{S.provisional}</Badge> : null}
+                      {c.profile?.provisional ? <StatusBadge tone="warn" className="ml-2">{S.provisional}</StatusBadge> : null}
                       {c.profile?.isOverride ? <Badge variant="outline" className="ml-2">{S.override}</Badge> : null}
                     </span>
                   </Link>

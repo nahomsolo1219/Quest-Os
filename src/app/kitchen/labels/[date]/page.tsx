@@ -35,7 +35,7 @@ export default async function LabelsPage({ params }: { params: Promise<{ date: s
               <p>{SLOT_LABEL[l.slot]}{l.serviceDate !== l.cookDate ? ` · for ${formatDate(l.serviceDate)}` : ""}</p>
               <p className="tabular-nums">{l.kcal} kcal · P {l.proteinG} g · C {l.carbG} g · F {l.fatG} g</p>
               <p>Cooked {formatDate(l.cookDate)} · <span className="font-bold">Eat by {formatDate(l.eatBy)}</span></p>
-              {l.allergyNote ? <p className="truncate font-bold text-red-700 print:text-black">{l.allergyNote}</p> : null}
+              {l.allergyNote ? <p className="truncate font-bold text-danger print:text-black">{l.allergyNote}</p> : null}
               <p className="mt-auto italic">{l.reheat}</p>
             </div>
           ))}

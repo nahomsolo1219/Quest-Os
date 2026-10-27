@@ -19,7 +19,7 @@ export default async function NotificationsPage() {
     <div className="mx-auto max-w-3xl">
       <PageHeader title={S.title} description={S.description(unread)} actions={unread ? <MarkAllReadButton /> : null} />
       {items.length === 0 ? <EmptyState title={S.emptyTitle}>{S.emptyBody}</EmptyState> : (
-        <ul className="divide-y rounded-xl border">
+        <ul className="divide-y rounded-xl border bg-card">
           {items.map((n) => (
             <li key={n.id} className={cn("flex flex-wrap items-start gap-3 p-3", !n.readAt && "bg-primary/5")}>
               <span aria-hidden className={cn("mt-2 size-2 shrink-0 rounded-full", n.readAt ? "bg-transparent" : "bg-primary")} />

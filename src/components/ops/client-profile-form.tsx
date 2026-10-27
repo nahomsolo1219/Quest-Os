@@ -57,7 +57,7 @@ function Select({ id, label, options, placeholder, reg }: { id: string; label: s
   return (
     <div className="space-y-1.5">
       <Label htmlFor={id}>{label}</Label>
-      <select id={id} className="h-11 w-full rounded-md border bg-background px-3 text-sm" {...reg}>
+      <select id={id} className="h-11 w-full rounded-md border bg-card px-3 text-sm" {...reg}>
         <option value="">{placeholder}</option>
         {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
       </select>
@@ -88,7 +88,7 @@ export function ClientProfileForm({ clientId, defaults, areas, mode = "full", su
     <div className="space-y-1.5">
       <Label htmlFor={`pf-${name}`}>{label}</Label>
       <Input id={`pf-${name}`} className="h-11" {...props} {...form.register(name)} />
-      {err[name] ? <p className="text-sm text-red-700">{err[name]?.message}</p> : null}
+      {err[name] ? <p className="text-sm text-danger">{err[name]?.message}</p> : null}
     </div>
   );
   return (
@@ -107,7 +107,7 @@ export function ClientProfileForm({ clientId, defaults, areas, mode = "full", su
         <Select id="pf-activity" label={S.activity} placeholder={S.notSet} options={Object.entries(ACTIVITY_LABEL)} reg={form.register("activity")} />
         <div>
           <Select id="pf-goal" label={S.goal} placeholder={S.notSet} options={Object.entries(GOAL_LABEL)} reg={form.register("goal")} />
-          {err.goal ? <p className="mt-1 text-sm text-red-700">{err.goal.message}</p> : null}
+          {err.goal ? <p className="mt-1 text-sm text-danger">{err.goal.message}</p> : null}
         </div>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">

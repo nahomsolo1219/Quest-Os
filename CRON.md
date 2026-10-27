@@ -19,21 +19,46 @@ On Thursdays `thursday-lock` and `daily-quick-start` both run at 18:00 Addis. `t
 
 ## Railway setup (one cron service per job)
 
-For each row, create a service in the same Railway project (see DEPLOY.md):
+> **Why the old setup never ran:** the services used image `curlimages/curl` with a start command `sh -c 'curl …'`. That image's entrypoint *is* curl, so Railway handed `sh -c '…'` to curl as arguments and every run only logged `curl: try 'curl --help'`. Use plain **Alpine** (no entrypoint; busybox `wget` with TLS is built in) and call the shell explicitly.
 
-1. New → Empty service → name it e.g. `cron-thursday-lock`.
-2. Settings → Source: Docker image `curlimages/curl:8.10.1` (tiny image with curl).
-3. Settings → Deploy → Custom start command:
-   ```
-   sh -c 'curl -fsS -X POST -H "x-cron-secret: $CRON_SECRET" "$APP_URL/api/jobs/thursday-lock"'
-   ```
-4. Settings → Cron schedule: the UTC value from the table (`0 15 * * 4`).
-5. Variables: `CRON_SECRET` = `${{web.CRON_SECRET}}` and `APP_URL` = `https://${{web.RAILWAY_PUBLIC_DOMAIN}}` (reference variables from the app service, here named `web`).
+For each row of the table below, one service in the same Railway project (see DEPLOY.md):
 
-A cron run that exits non-zero shows as failed in Railway; check the app logs and re-run the service manually (safe, because the jobs are idempotent).
+1. New → Empty service → name it as in the table (e.g. `cron-thursday-lock`).
+2. Settings → Source → **Docker image** `alpine:3.20`.
+3. Settings → Deploy → **Custom start command**: the exact command from the table (only the job name changes).
+4. Settings → **Cron schedule**: the UTC value from the table.
+5. Settings → Deploy → **Restart policy: Never** (a cron run must exit; Railway starts it again at the next schedule).
+6. Variables: `CRON_SECRET` = `${{web.CRON_SECRET}}` and `APP_URL` = `https://${{web.RAILWAY_PUBLIC_DOMAIN}}` (reference variables from the app service, here named `web`).
+
+| Service | Image | Start command | Cron (UTC) | Addis |
+| --- | --- | --- | --- | --- |
+| `cron-tuesday-reminder` | `alpine:3.20` | `/bin/sh -c "wget -S -O- --header=\"x-cron-secret: $CRON_SECRET\" --post-data= \"$APP_URL/api/jobs/tuesday-reminder\"; code=\$?; echo job-exit=\$code; exit \$code"` | `0 7 * * 2` | Tue 10:00 |
+| `cron-thursday-last-call` | `alpine:3.20` | `/bin/sh -c "wget -S -O- --header=\"x-cron-secret: $CRON_SECRET\" --post-data= \"$APP_URL/api/jobs/thursday-last-call\"; code=\$?; echo job-exit=\$code; exit \$code"` | `0 13 * * 4` | Thu 16:00 |
+| `cron-thursday-lock` | `alpine:3.20` | `/bin/sh -c "wget -S -O- --header=\"x-cron-secret: $CRON_SECRET\" --post-data= \"$APP_URL/api/jobs/thursday-lock\"; code=\$?; echo job-exit=\$code; exit \$code"` | `0 15 * * 4` | Thu 18:00 |
+| `cron-friday-shopping` | `alpine:3.20` | `/bin/sh -c "wget -S -O- --header=\"x-cron-secret: $CRON_SECRET\" --post-data= \"$APP_URL/api/jobs/friday-shopping\"; code=\$?; echo job-exit=\$code; exit \$code"` | `0 5 * * 5` | Fri 08:00 |
+| `cron-daily-quick-start` | `alpine:3.20` | `/bin/sh -c "wget -S -O- --header=\"x-cron-secret: $CRON_SECRET\" --post-data= \"$APP_URL/api/jobs/daily-quick-start\"; code=\$?; echo job-exit=\$code; exit \$code"` | `0 15 * * *` | Daily 18:00 |
+| `cron-daily-morning` | `alpine:3.20` | `/bin/sh -c "wget -S -O- --header=\"x-cron-secret: $CRON_SECRET\" --post-data= \"$APP_URL/api/jobs/daily-morning\"; code=\$?; echo job-exit=\$code; exit \$code"` | `0 3 * * *` | Daily 06:00 |
+| `cron-sunday-stock` | `alpine:3.20` | `/bin/sh -c "wget -S -O- --header=\"x-cron-secret: $CRON_SECRET\" --post-data= \"$APP_URL/api/jobs/sunday-stock\"; code=\$?; echo job-exit=\$code; exit \$code"` | `0 14 * * 0` | Sun 17:00 |
+| `cron-daily-renewals` | `alpine:3.20` | `/bin/sh -c "wget -S -O- --header=\"x-cron-secret: $CRON_SECRET\" --post-data= \"$APP_URL/api/jobs/daily-renewals\"; code=\$?; echo job-exit=\$code; exit \$code"` | `0 6 * * *` | Daily 09:00 |
+
+What the command does: `wget` POSTs (empty body) to the job route with the secret header, `-S` prints the HTTP status line to the log, `-O-` prints the JSON result, then the log ends with `job-exit=0` (success) or a non-zero `job-exit=` (HTTP error such as 401 wrong secret, 404 wrong job name, 5xx, or no connection). The service exits with that code, so a failed call shows as a failed run in Railway.
+
+A run that fails is safe to re-run by hand (Railway: the service → ⋯ → **Run now**, or the curl below): every job is idempotent.
+
+## How to test a cron
+
+1. **Health page (no secret):** open `https://<your-domain>/api/jobs/health`. It lists every job with its schedule, last start and finish (UTC) and `"overdue": true` if the last scheduled time (plus 30 min) passed without a run. The owner Dashboard shows the same as the **Scheduled jobs** card (red = overdue).
+2. **Run one now:** in Railway open e.g. `cron-sunday-stock` → **Run now** (or temporarily set its schedule to a minute or two from now, in UTC). The service log must show `HTTP/1.1 200 OK`, a JSON line like `{"job":"sunday-stock","runKey":"2026-10-25","result":{…}}` and `job-exit=0`.
+   - `401` → `CRON_SECRET` on the cron service does not match the web service.
+   - `404` → typo in the job name.
+   - `wget: bad address` / connection refused → `APP_URL` is wrong (must be `https://` + the web service's public domain).
+   - Log shows only `curl: try 'curl --help'` → the service still uses the old curl image; switch to `alpine:3.20`.
+3. Reload `/api/jobs/health`: the job's `finished` time is the run you just made and `overdue` is false.
+4. Put the schedule back to the UTC value in the table.
 
 ## Running a job by hand
 
+From any machine with curl:
 ```
 curl -fsS -X POST -H "x-cron-secret: $CRON_SECRET" "$APP_URL/api/jobs/daily-quick-start"
 ```

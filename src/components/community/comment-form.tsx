@@ -31,7 +31,7 @@ export function CommentForm({ postId }: { postId: string }) {
         <span className="text-xs text-muted-foreground">{S.chars(len, 1000)}</span>
         <Button type="submit" className="h-11" disabled={form.formState.isSubmitting}>{S.commentSend}</Button>
       </div>
-      {form.formState.errors.body ? <p className="text-sm text-red-700">{form.formState.errors.body.message}</p> : null}
+      {form.formState.errors.body ? <p className="text-sm text-danger">{form.formState.errors.body.message}</p> : null}
     </form>
   );
 }

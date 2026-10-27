@@ -4,6 +4,7 @@ import { and, eq, sql } from "drizzle-orm";
 import * as s from "../schema";
 import { JOB_NAMES, runJob } from "../../src/server/jobs";
 import { inRollback, testDb, testUrl } from "./helpers";
+import { jobsHealth } from "../../src/server/services/jobs-health";
 
 const { db, sql: conn } = testDb();
 afterAll(() => conn.end({ timeout: 5 }));
@@ -35,6 +36,37 @@ describe("job route", () => {
     expect(ok.status).toBe(200);
     expect((await ok.json()).runKey).toBe("2026-10-25");
     delete process.env.QM_FAKE_NOW;
+  });
+});
+
+describe("jobs health", () => {
+  it("reports the last run per job and flags jobs overdue by their schedule (JOB-FIX)", async () => {
+    await inRollback(db, async (tx) => {
+      const now = at("2026-10-27T08:00:00Z"); // Tue 11:00 Addis
+      await tx.delete(s.jobRuns); // other tests in this file run jobs outside a rollback
+      await runJob(tx as never, "daily-morning", at("2026-10-27T03:00:30Z"));
+      await runJob(tx as never, "tuesday-reminder", at("2026-10-20T07:00:30Z")); // last week's run only
+      const h = await jobsHealth(tx as never, now);
+      expect(h.map((j) => j.name)).toEqual([...JOB_NAMES]);
+      const morning = h.find((j) => j.name === "daily-morning")!;
+      expect(morning.ok).toBe(true);
+      expect(morning.finished).not.toBeNull();
+      // finished_at is wall-clock time of the run, so it is after today's 03:00 UTC schedule
+      expect(morning.overdue).toBe(false);
+      const sunday = h.find((j) => j.name === "sunday-stock")!;
+      expect(sunday.ok).toBeNull();
+      expect(sunday.overdue).toBe(true);
+    });
+  });
+
+  it("GET /api/jobs/health needs no secret", async () => {
+    process.env.DATABASE_URL = testUrl();
+    const { GET } = await import("../../src/app/api/jobs/health/route");
+    const res = await GET();
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.jobs).toHaveLength(JOB_NAMES.length);
+    expect(Object.keys(body.jobs[0]).sort()).toEqual(["addis", "finished", "lastScheduled", "name", "ok", "overdue", "schedule", "started"]);
   });
 });
 

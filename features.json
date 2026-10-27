@@ -1384,5 +1384,145 @@
     "description": "npm run verify runs typecheck, lint, unit, db tests, e2e and the simulation and fails on any failure",
     "test": "scripts/verify.sh",
     "status": "passing"
+  },
+  {
+    "id": "UI-01",
+    "module": "ui-refresh",
+    "description": "Quest brand tokens (Deep Forest, Fresh Lime, Morning Mist, Oat, Charcoal, Sage, Tangerine) mapped onto the shadcn theme in light and dark; themeColor and manifest colours; every text pair passes WCAG AA",
+    "test": "src/lib/brand.test.ts",
+    "status": "passing"
+  },
+  {
+    "id": "UI-02",
+    "module": "ui-refresh",
+    "description": "Logo from the brand guideline in the staff sidebar (reversed), staff and client top bars, login, sign-up, public home, calculator and offline; favicon and PWA icons from the mark",
+    "test": "e2e/pwa.spec.ts",
+    "status": "passing"
+  },
+  {
+    "id": "UI-03",
+    "module": "ui-refresh",
+    "description": "Inter (self-hosted via next/font) with semibold headings and tabular numbers for macros, money and counts",
+    "test": "docs/screenshots/after",
+    "status": "passing"
+  },
+  {
+    "id": "UI-04",
+    "module": "ui-refresh",
+    "description": "One StatusBadge for every status (word + colour, never colour alone); no hand-set amber/red/emerald classes left",
+    "test": "src/lib/brand.test.ts",
+    "status": "passing"
+  },
+  {
+    "id": "UI-05",
+    "module": "ui-refresh",
+    "description": "Loading skeletons per area, brand error and not-found pages with a way back, AlertDialog confirmations instead of window.confirm, 8 s Undo for rider Failed and counter Hand over",
+    "test": "db/tests/delivery.test.ts, e2e/delivery.spec.ts",
+    "status": "passing"
+  },
+  {
+    "id": "UI-06",
+    "module": "ui-refresh",
+    "description": "Login and sign-up phone field with a fixed +251 prefix; normalizeEthiopianPhone stays the single source of truth; staff sign in by email",
+    "test": "e2e/auth.spec.ts",
+    "status": "passing"
+  },
+  {
+    "id": "UI-07",
+    "module": "ui-refresh",
+    "description": "Calculator and sign-up choices: the selected option is filled Deep Forest with a check icon",
+    "test": "e2e/signup.spec.ts",
+    "status": "passing"
+  },
+  {
+    "id": "UI-08",
+    "module": "ui-refresh",
+    "description": "Public home: brand hero with the logo and an optional public/brand/hero.jpg slot; signed-in visitors see Go to my app for their role",
+    "test": "docs/screenshots/after/public",
+    "status": "passing"
+  },
+  {
+    "id": "UI-09",
+    "module": "ui-refresh",
+    "description": "Staff sidebar grouped into Today, Clients & money, Kitchen & delivery, Community, Admin with icons; role filtering kept, empty sections hidden; Notifications with unread count visible at 1280x720",
+    "test": "e2e/ui-refresh.spec.ts",
+    "status": "passing"
+  },
+  {
+    "id": "UI-10",
+    "module": "ui-refresh",
+    "description": "Staff Today is a to-do list (one row per action with count and button, only actions the role can do); All clear with the next cutoff countdown",
+    "test": "db/tests/ops.test.ts",
+    "status": "passing"
+  },
+  {
+    "id": "UI-11",
+    "module": "ui-refresh",
+    "description": "One underline tab style (horizontal scroll with fade on phones) on Nutrition, Purchasing, Community, Settings and the client page; Settings tabs fit at 1280",
+    "test": "e2e/staff-settings.spec.ts",
+    "status": "passing"
+  },
+  {
+    "id": "UI-12",
+    "module": "ui-refresh",
+    "description": "Tables become cards below md (key fields + More); at md+ sticky first column and scroll inside the table: profile table, production, recipes, weekly orders, purchasing",
+    "test": "e2e/kitchen.spec.ts",
+    "status": "passing"
+  },
+  {
+    "id": "UI-13",
+    "module": "ui-refresh",
+    "description": "Ingredients settings open on Missing price while any price is missing; one Save per row",
+    "test": "e2e/staff-settings.spec.ts",
+    "status": "passing"
+  },
+  {
+    "id": "UI-14",
+    "module": "ui-refresh",
+    "description": "Stock count shows 'Kitchen or operations staff complete the count' to viewers who cannot edit",
+    "test": "docs/screenshots/after/kitchen",
+    "status": "passing"
+  },
+  {
+    "id": "UI-15",
+    "module": "ui-refresh",
+    "description": "Kitchen sheets: 18 px high-contrast text, roomier rows, 44 px tick boxes (device only); A4 print unchanged",
+    "test": "e2e/kitchen.spec.ts",
+    "status": "passing"
+  },
+  {
+    "id": "UI-16",
+    "module": "ui-refresh",
+    "description": "Client bottom tabs with icons; Swaps, Pause, Payments and Profile live under Plan; pay banner stays on Today when an invoice is due",
+    "test": "e2e/ui-refresh.spec.ts",
+    "status": "passing"
+  },
+  {
+    "id": "UI-17",
+    "module": "ui-refresh",
+    "description": "Client Today hero: drop status, calorie ring against the target, meals in slot order",
+    "test": "e2e/client-app.spec.ts",
+    "status": "passing"
+  },
+  {
+    "id": "UI-18",
+    "module": "ui-refresh",
+    "description": "Client menu: Mon-Sun day strip with today highlighted",
+    "test": "e2e/ui-refresh.spec.ts",
+    "status": "passing"
+  },
+  {
+    "id": "UI-19",
+    "module": "ui-refresh",
+    "description": "Deadline countdowns (Change by Thu 6 pm \u00b7 2 d 7 h left) on client Today, Swaps, Pause, Payments and staff Today; cutoff instants from the server, Addis time via src/domain/time.ts",
+    "test": "e2e/client-app.spec.ts",
+    "status": "passing"
+  },
+  {
+    "id": "JOB-FIX",
+    "module": "jobs",
+    "description": "Railway crons run on alpine:3.20 with a working wget start command (CRON.md/DEPLOY.md); GET /api/jobs/health shows the last run per job and overdue jobs; owner Dashboard Scheduled jobs card",
+    "test": "db/tests/jobs.test.ts, e2e/ui-refresh.spec.ts",
+    "status": "passing"
   }
 ]

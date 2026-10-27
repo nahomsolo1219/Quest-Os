@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/shell/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
@@ -9,6 +8,9 @@ import { ATTENTION_LABELS, ownerDashboard } from "@/server/services/dashboard";
 import { displayName } from "@/domain/format";
 import { formatBirr } from "@/domain/money";
 import { S } from "./strings";
+import { JobsCard } from "@/components/owner/jobs-card";
+import { jobsHealth } from "@/server/services/jobs-health";
+import { StatusBadge } from "@/components/shell/status-badge";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Dashboard" };
@@ -18,7 +20,8 @@ const MONTHS = ["January", "February", "March", "April", "May", "June", "July", 
 
 export default async function DashboardPage() {
   const actor = await requirePageActor("owner");
-  const d = await ownerDashboard(await serviceCtx(actor));
+  const ctx = await serviceCtx(actor);
+  const [d, jobs] = await Promise.all([ownerDashboard(ctx), jobsHealth(ctx.db, ctx.now)]);
   const k = d.kpis;
   const [y, m] = d.monthStart.split("-");
   const collectedShare = k.invoiced > 0 ? k.collected / k.invoiced : null;
@@ -74,7 +77,7 @@ export default async function DashboardPage() {
                       <span className="font-medium">{displayName(a.firstName, a.lastName)}</span>
                       <span className="flex flex-wrap gap-1">
                         {a.reasons.map((r) => (
-                          <Badge key={r} variant="secondary" className={r === "allergy_conflict" || r === "unpaid" ? "bg-red-100 text-red-800" : "bg-amber-100 text-amber-900"}>{ATTENTION_LABELS[r]}</Badge>
+                          <StatusBadge key={r} tone={r === "allergy_conflict" || r === "unpaid" ? "bad" : "warn"}>{ATTENTION_LABELS[r]}</StatusBadge>
                         ))}
                       </span>
                     </Link>
@@ -99,6 +102,7 @@ export default async function DashboardPage() {
             )}
           </CardContent>
         </Card>
+        <JobsCard jobs={jobs} />
       </div>
     </div>
   );

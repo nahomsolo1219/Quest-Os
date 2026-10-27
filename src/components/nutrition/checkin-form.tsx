@@ -26,14 +26,14 @@ export function CheckinForm({ clientId, today, clients }: { clientId?: string; t
   const { pending, run } = useAction();
   const form = useForm<In, unknown, Out>({ resolver: zodResolver(schema), defaultValues: { clientId: clientId ?? "", date: today, weightKg: "", adherencePct: "", notes: "" } });
   const { register, handleSubmit, formState: { errors } } = form;
-  const err = (m?: string) => (m ? <p className="text-sm text-red-700">{m}</p> : null);
+  const err = (m?: string) => (m ? <p className="text-sm text-danger">{m}</p> : null);
   return (
     <form className="space-y-3" onSubmit={handleSubmit((v) => run(() => logCheckinAction({ ...v, weightKg: v.weightKg as number | null, adherencePct: v.adherencePct as number | null }),
       () => form.reset({ clientId: clientId ?? "", date: today, weightKg: "", adherencePct: "", notes: "" })))}>
       {clients ? (
         <div className="space-y-1.5">
           <Label htmlFor="ck-client">Client</Label>
-          <select id="ck-client" className="h-11 w-full rounded-md border bg-background px-3" {...register("clientId")}>
+          <select id="ck-client" className="h-11 w-full rounded-md border bg-card px-3" {...register("clientId")}>
             <option value="">Pick a client</option>
             {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
