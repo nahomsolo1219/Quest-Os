@@ -16,7 +16,11 @@ export const NAV_ICONS: Record<NavIcon, LucideIcon> = {
   menu: NotebookText, progress: TrendingUp, plan: ListChecks,
 };
 
+/** Client pages that live under the Plan tab. */
+const PLAN_PAGES = ["/app/swaps", "/app/pause", "/app/payments", "/app/profile"];
+
 export function isActive(pathname: string, href: string) {
+  if (href === "/app/plan" && PLAN_PAGES.some((p) => pathname.startsWith(p))) return true;
   return href === "/staff" || href === "/kitchen" || href === "/app" || href === "/delivery" ? pathname === href : pathname.startsWith(href);
 }
 

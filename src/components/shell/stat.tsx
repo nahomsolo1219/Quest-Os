@@ -19,7 +19,7 @@ export function Stat({ label, value, unit, tone, className }: {
 /** kcal / P / C / F row. */
 export function MacroRow({ kcal, proteinG, carbG, fatG, compact }: { kcal: number; proteinG: number; carbG: number; fatG: number; compact?: boolean }) {
   const items = [
-    { label: "kcal", value: Math.round(kcal) },
+    { label: "kcal", value: Math.round(kcal).toLocaleString("en-US") },
     { label: "Protein", value: `${Math.round(proteinG)} g` },
     { label: "Carbs", value: `${Math.round(carbG)} g` },
     { label: "Fat", value: `${Math.round(fatG)} g` },
