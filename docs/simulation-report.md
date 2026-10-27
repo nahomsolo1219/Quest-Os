@@ -1,6 +1,6 @@
 # Week simulation report
 
-**Result: PASS** · 2026-10-27 · 6.7 s
+**Result: PASS** · 2026-10-27 · 6.2 s
 
 | Summary | |
 |---|---|
