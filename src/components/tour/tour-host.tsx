@@ -11,7 +11,8 @@ import { TOURS } from "./tours";
 import type { TourContext, TourStep } from "./types";
 import { RUN_KEY, PAUSED_KEY, TOUR_NAV_EVENT, TOUR_START_EVENT, TOUR_STATE_EVENT, type TourStartDetail } from "./events";
 
-type Run = { tourId: TourId; step: number; dir: 1 | -1; href?: string };
+/** `seen`: pages already resolved for steps (so Back into a "follow the link" step goes to the same page). */
+type Run = { tourId: TourId; step: number; dir: 1 | -1; href?: string; seen?: Record<number, string> };
 type Phase = "idle" | "navigating" | "waiting" | "show";
 
 const WAIT_MS = 6000;
@@ -83,17 +84,25 @@ export function TourHost({ tours, progress, ctx }: { tours: TourId[]; progress: 
     const d = TOURS[tourId];
     if (idx < 0) idx = 0;
     if (idx >= d.steps.length) return;
-    let href = resolveHref(d.steps[idx], ctx);
+    const seen = run?.tourId === tourId ? { ...(run.seen ?? {}) } : {};
+    const resolve = (i: number) => {
+      const p = d.steps[i].path;
+      // going back into a step that followed a link: reuse the page it went to
+      if (p && typeof p === "object" && seen[i]) return seen[i];
+      return resolveHref(d.steps[i], ctx);
+    };
+    let href = resolve(idx);
     // a step that follows a link which is not here: skip it now rather than wait for its target
     while (href === null) {
       const next = idx + dir;
       if (next < 0 || next >= d.steps.length) { href = undefined; break; }
       idx = next;
-      href = resolveHref(d.steps[idx], ctx);
+      href = resolve(idx);
     }
-    update({ tourId, step: idx, dir, href: href ?? undefined });
+    if (href) seen[idx] = href;
+    update({ tourId, step: idx, dir, href: href ?? undefined, seen });
     save(tourId, idx, "started");
-  }, [ctx, save, update]);
+  }, [ctx, run, save, update]);
 
   const close = useCallback((status: TourStatus | "paused") => {
     if (run) {
