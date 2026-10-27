@@ -23,7 +23,22 @@ export default async function globalSetup(config: FullConfig) {
   await saveLogins(config);
 }
 
+/** Creates the e2e database on first use (scripts/db-start.sh only creates questmeals and questmeals_test). */
+async function ensureDatabase(url: string) {
+  const u = new URL(url);
+  const name = u.pathname.slice(1);
+  u.pathname = "/postgres";
+  const { sql } = createDb(u.toString(), { max: 1 });
+  try {
+    const rows = await sql`select 1 from pg_database where datname = ${name}`;
+    if (rows.length === 0) await sql.unsafe(`create database "${name.replace(/"/g, "")}"`);
+  } finally {
+    await sql.end({ timeout: 5 });
+  }
+}
+
 async function resetAndSeed(url: string) {
+  await ensureDatabase(url);
   await dropSchemas(url);
   await runMigrations(url);
   process.env.STORAGE_DRIVER = "local";

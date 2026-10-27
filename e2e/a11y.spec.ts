@@ -10,6 +10,10 @@ const SCREENS: [RoleKey | "anon", string][] = [
   ["client", "/app/community/new"], ["client", "/app/notifications"],
   ["ops", "/staff"], ["ops", "/staff/clients"], ["ops", "/staff/clients/new"], ["ops", "/staff/payments"], ["ops", "/staff/delivery"],
   ["kitchen", "/kitchen"], ["kitchen", "/kitchen/stock"], ["rider", "/delivery"], ["rider", "/delivery/pickup"],
+  // UI refresh screens: owner dashboard (Scheduled jobs), responsive tables, underline tabs, kitchen tick boxes
+  ["owner", "/staff/dashboard"], ["ops", "/staff/orders"], ["ops", "/staff/purchasing"], ["owner", "/staff/nutrition"],
+  ["owner", "/staff/settings"], ["kitchen", "/kitchen/production/2026-10-20"], ["kitchen", "/kitchen/recipes/2026-10-20"],
+  ["kitchen", "/kitchen/packing/2026-10-20"],
 ];
 
 type Offender = { path: string; what: string };

@@ -7,6 +7,7 @@ const PER_PROJECT = {
   phone: { assign: "Bethlehem Tadesse", delivered: "Abel Tesfaye", failed: "Yared Getachew", pickup: "Hiwot Desta" },
   laptop: { assign: "Natnael Worku", delivered: "Liya Haile", failed: "Mikias Alemayehu", pickup: "Sara Mekonnen" },
 };
+const UNDO_DROP = { phone: "Bethlehem Tadesse", laptop: "Natnael Worku" };
 const data = (project: string) => PER_PROJECT[project === "laptop" ? "laptop" : "phone"];
 const dropStatus = async (full: string) => {
   const [first, last] = full.split(" ");
@@ -53,6 +54,23 @@ test.describe("rider", () => {
     await expect(card(d.failed).getByText("Failed: Not home")).toBeVisible();
     expect(await dropStatus(d.failed)).toEqual({ status: "failed", failed_reason: "Not home" });
     await screenshot(page, "rider-drops", info);
+  });
+
+  test("Failed toast offers Undo; Undo puts the drop back to pending", async ({ page }) => {
+    // Bethlehem / Natnael: assigned by the ops test above, not marked by any other rider test
+    const who = UNDO_DROP[test.info().project.name === "laptop" ? "laptop" : "phone"];
+    await page.goto("/delivery");
+    const card = page.getByRole("listitem").filter({ has: page.getByRole("heading", { name: who }) });
+    await card.getByRole("button", { name: "Failed…" }).click();
+    await card.getByLabel("Not home").check();
+    await card.getByRole("button", { name: "Save as failed" }).click();
+    const t = toast(page, "Marked failed. Operations have been told.");
+    await expect(t).toBeVisible();
+    expect((await dropStatus(who)).status).toBe("failed");
+    await t.getByRole("button", { name: "Undo" }).click();
+    await expect(toast(page, "Undone. The drop is pending again.")).toBeVisible();
+    expect(await dropStatus(who)).toEqual({ status: "pending", failed_reason: null });
+    await expect(card.getByRole("button", { name: "Failed…" })).toBeVisible();
   });
 
   test("failed without a reason shows a specific message", async ({ page }) => {

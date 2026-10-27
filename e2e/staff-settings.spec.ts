@@ -9,7 +9,12 @@ test("pricing settings save with a toast and refuse an invalid value", async ({ 
   await page.goto("/staff/settings/pricing");
   const drop = page.getByLabel("Cost per drop (ETB)");
   const value = info.project.name === "phone" ? "160" : "170";
-  await drop.fill(value);
+  // typing while the form hydrates can append to the server value ("160170"): wait, then check what was typed
+  await page.waitForLoadState("networkidle");
+  await expect(async () => {
+    await drop.fill(value);
+    await expect(drop).toHaveValue(value, { timeout: 1000 });
+  }).toPass();
   await page.getByRole("button", { name: /^Save/ }).first().click();
   await expect(toast(page, "Settings saved and logged.")).toBeVisible();
   const [row] = await query<{ v: number }>("select (value->>'dropCostBirr')::int as v from settings where key = 'pricing'");
@@ -17,7 +22,7 @@ test("pricing settings save with a toast and refuse an invalid value", async ({ 
 
   await drop.fill("-5");
   await page.getByRole("button", { name: /^Save/ }).first().click();
-  await expect(page.locator("[data-sonner-toast][data-type=error], [role=alert], .text-red-700, .text-destructive").filter({ hasText: /./ }).first()).toBeVisible();
+  await expect(page.locator("[data-sonner-toast][data-type=error], [role=alert], .text-danger, .text-destructive").filter({ hasText: /./ }).first()).toBeVisible();
   const [after] = await query<{ v: number }>("select (value->>'dropCostBirr')::int as v from settings where key = 'pricing'");
   expect(after?.v).toBe(Number(value));
   await screenshot(page, "settings-pricing-error", info);
