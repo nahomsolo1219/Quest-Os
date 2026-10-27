@@ -30,7 +30,7 @@ export function RiderDropCard({ drop, position }: { drop: DropCardData; position
     if (!text) { toast.error(reason === "Other" ? "Write what happened." : "Pick a reason."); return; }
     start(async () => {
       const r = await markFailedAction({ dropId: drop.id, reason: reason === "Other" ? `Other: ${text}` : text });
-      if (r.ok) { toastWithUndo(r.message ?? "Marked failed", drop.id); setFailing(false); setReason(""); setOther(""); } else toast.error(r.error);
+      if (r.ok) { toastWithUndo(r.message ?? "Marked failed", drop.id, "failed", drop.riderUserId == null); setFailing(false); setReason(""); setOther(""); } else toast.error(r.error);
     });
   };
 

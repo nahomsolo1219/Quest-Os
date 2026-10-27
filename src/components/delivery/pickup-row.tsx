@@ -20,7 +20,7 @@ export function PickupRow({ drop }: { drop: DropCardData }) {
       </div>
       <Button type="button" className="h-12 min-w-36 text-base" disabled={pending || done} onClick={() => start(async () => {
         const r = await markHandedOverAction({ dropId: drop.id });
-        if (r.ok) toastWithUndo(`${drop.name}: handed over`, drop.id); else toast.error(r.error);
+        if (r.ok) toastWithUndo(`${drop.name}: handed over`, drop.id, "delivered"); else toast.error(r.error);
       })}>{done ? "Handed over" : "Hand over"}</Button>
     </li>
   );

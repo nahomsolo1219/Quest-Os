@@ -33,8 +33,10 @@ export async function markFailedAction(input: z.input<typeof failSchema>) {
   return r;
 }
 
-export async function undoDropAction(input: z.input<typeof idSchema>) {
-  const r = await runAction(idSchema, input, async (ctx, d) => { await undoDropStatus(ctx, d.dropId); return null; }, "Undone. The drop is pending again.");
+const undoSchema = z.object({ dropId: z.uuid(), expected: z.enum(["delivered", "failed"]), release: z.boolean().default(false) });
+
+export async function undoDropAction(input: z.input<typeof undoSchema>) {
+  const r = await runAction(undoSchema, input, async (ctx, d) => { await undoDropStatus(ctx, d.dropId, d.expected, d.release); return null; }, "Undone. The drop is pending again.");
   if (r.ok) refresh();
   return r;
 }

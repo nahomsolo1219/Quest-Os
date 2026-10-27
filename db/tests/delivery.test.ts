@@ -103,21 +103,28 @@ describe("drops", () => {
     });
   });
 
-  it("undo puts a just-marked drop back to pending, only within the undo window and for the same access", async () => {
+  it("undo puts a just-marked drop back to pending: same access, only the status it was about, timed from the mark, releases a claim", async () => {
     await inRollback(db, async (tx) => {
       const { ops, otherRider, rider } = await setup(tx);
-      const [d] = await tx.select().from(s.deliveryDrops).where(and(eq(s.deliveryDrops.dropDate, MON), eq(s.deliveryDrops.kind, "delivery"))).limit(1);
+      const [d] = await tx.select().from(s.deliveryDrops).where(and(eq(s.deliveryDrops.dropDate, MON), eq(s.deliveryDrops.kind, "delivery"), isNull(s.deliveryDrops.riderUserId))).limit(1);
       const ctx: Ctx = { db: tx, actor: rider, now: MON_MORNING };
-      await markFailed(ctx, d.id, "Not home");
-      await expect(undoDropStatus({ ...ctx, actor: otherRider }, d.id)).rejects.toBeInstanceOf(ForbiddenError);
-      const r = await undoDropStatus({ ...ctx, now: at("2026-10-26T06:00:08Z") }, d.id);
+      const later = (iso: string): Ctx => ({ ...ctx, now: at(iso) });
+      await markFailed(ctx, d.id, "Not home"); // unassigned -> rider takes it
+      await expect(undoDropStatus({ ...ctx, actor: otherRider }, d.id, "failed")).rejects.toBeInstanceOf(ForbiddenError);
+      await expect(undoDropStatus(later("2026-10-26T06:00:05Z"), d.id, "delivered")).rejects.toThrow(/changed since/);
+      const r = await undoDropStatus(later("2026-10-26T06:00:08Z"), d.id, "failed", true);
       expect(r.status).toBe("pending");
       expect(r.failedReason).toBeNull();
+      expect(r.riderUserId).toBeNull(); // the claim made by "Failed" is given back
       const notes = await tx.select().from(s.notifications).where(and(eq(s.notifications.kind, "delivery.failed"), eq(s.notifications.userId, ops.userId)));
       expect(notes.map((n) => n.title)).toEqual(expect.arrayContaining([expect.stringMatching(/^Drop no longer failed/)]));
+
+      // Delivered at 06:00; a route reorder at 08:00 bumps updatedAt but must not reopen the undo window.
       await markDelivered(ctx, d.id);
-      await expect(undoDropStatus({ ...ctx, now: at("2026-10-26T06:05:00Z") }, d.id)).rejects.toThrow(/Too late/);
-      expect((await undoDropStatus({ ...ctx, now: at("2026-10-26T06:00:30Z") }, d.id)).status).toBe("pending");
+      await reorderDrops({ db: tx, actor: ops, now: at("2026-10-26T08:00:00Z") }, MON,
+        (await tx.select({ id: s.deliveryDrops.id }).from(s.deliveryDrops).where(and(eq(s.deliveryDrops.dropDate, MON), eq(s.deliveryDrops.kind, "delivery")))).map((x) => x.id));
+      await expect(undoDropStatus(later("2026-10-26T08:00:30Z"), d.id, "delivered")).rejects.toThrow(/Too late/);
+      expect((await undoDropStatus(later("2026-10-26T06:00:30Z"), d.id, "delivered")).status).toBe("pending");
     });
   });
 
