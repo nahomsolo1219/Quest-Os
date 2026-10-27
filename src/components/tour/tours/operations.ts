@@ -23,7 +23,7 @@ export const operationsTour: TourDef = {
       path: "/staff/clients/new",
       target: "newclient-form",
       title: "Add a new lead",
-      body: "When someone calls or messages about a plan, add them here: name, phone and where they heard about Quest Meals. You can onboard them right after.",
+      body: "When someone calls or messages about a plan, add them here: start with their name, then phone and where they heard about Quest Meals. You can onboard them right after.",
     },
     {
       id: "lead-on-today",
@@ -135,7 +135,7 @@ export const operationsTour: TourDef = {
       path: "/staff/notifications",
       target: "notifications-list",
       title: "Notifications",
-      body: "New receipts, failed drops and other alerts land here. Press Open to go straight to the thing that needs you.",
+      body: "New receipts, failed drops and other alerts land here, newest first. Press Open to go straight to the thing that needs you.",
     },
     yourWeekStep([
       { label: "Every morning: work through the Today to-do list", href: "/staff" },
