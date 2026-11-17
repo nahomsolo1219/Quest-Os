@@ -165,7 +165,7 @@ export function Experience({ areas, source, daysLeft }: { areas: { id: string; n
                 <input className={styles.input} autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} required />
               </label>
               <label className={styles.field}>
-                <span>Phone</span>
+                <span>WhatsApp number</span>
                 <PhoneInput placeholder="9XX XXX XXX" value={phone} onChange={(e) => setPhone(e.target.value)} required />
               </label>
               {areas.length ? (
