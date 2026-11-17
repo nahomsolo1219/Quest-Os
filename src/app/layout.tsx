@@ -7,7 +7,7 @@ import { DemoBanner } from "@/components/demo/demo-banner";
 import { isDemoMode, realAppUrl } from "@/lib/demo";
 
 // Self-hosted at build time by next/font (no runtime call to Google).
-const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"], display: "swap", variable: "--font-inter" });
+const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700", "800"], display: "swap", variable: "--font-inter" });
 
 export const metadata: Metadata = {
   title: { default: "Quest Meals", template: "%s · Quest Meals" },
