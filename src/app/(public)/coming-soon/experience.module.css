@@ -38,7 +38,7 @@
 .labelTag { background: var(--lime); color: #fff; font-weight: 700; font-size: 0.8125rem; padding: 0.15rem 0.6rem; border-radius: 4px; }
 .small { font-size: 0.75rem; font-weight: 500; color: var(--charcoal); opacity: 0.75; }
 .hand { font-family: var(--font-hand), cursive; color: #1D2A6B; font-weight: 600; }
-.dish { margin-top: 0.1rem; font-size: clamp(1.4rem, 3.4vw, 1.75rem); line-height: 1.15; border-bottom: 1.5px solid rgba(17,48,26,.35); padding-bottom: 0.35rem; min-height: 2.2em; }
+.dish { font-family: var(--font-hand), cursive; color: #1D2A6B; font-weight: 600; margin-top: 0.1rem; font-size: clamp(1.4rem, 3.4vw, 1.75rem); line-height: 1.15; border-bottom: 1.5px solid rgba(17,48,26,.35); padding-bottom: 0.35rem; min-height: 2.2em; }
 .macros { margin-top: 0.9rem; display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 0.5rem; }
 .box { display: flex; flex-direction: column; justify-content: space-between; gap: 0.25rem; border: 1.5px solid rgba(17,48,26,.55); border-radius: 6px; padding: 0.4rem 0.55rem; font-size: 0.8125rem; font-weight: 600; min-width: 0; }
 .kcal { font-size: clamp(1.9rem, 4.5vw, 2.4rem); line-height: 1; }
@@ -53,6 +53,11 @@
 .line:nth-child(2) { grid-column: 1 / -1; }
 .keep { margin-top: 0.8rem; font-size: 0.75rem; font-weight: 600; }
 .note { margin-top: 1rem; font-size: 0.8125rem; color: var(--charcoal); opacity: 0.75; text-align: center; }
+
+/* Handwritten values write themselves in, left to right, when they change */
+.write { display: inline-block; animation: write 650ms cubic-bezier(.4,0,.2,1) both; }
+@keyframes write { from { clip-path: inset(0 100% 0 0); transform: translateY(1px); } to { clip-path: inset(0 0 0 0); transform: none; } }
+.sample { opacity: 0.55; }
 
 /* The one orchestrated moment: a round sticker stamps onto the label when they join */
 .stamp {
@@ -109,6 +114,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .stampOn { animation: none; transform: rotate(-10deg); opacity: 1; }
+  .write { animation: none; }
 }
 
 .trayTitle { font-size: 1.375rem; font-weight: 700; letter-spacing: -0.02em; color: var(--forest); }
