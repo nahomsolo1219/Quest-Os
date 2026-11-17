@@ -25,11 +25,11 @@ export default async function ComingSoon({ searchParams }: { searchParams: Promi
   return (
     <main className={`${ethiopic.variable} ${hand.variable} min-h-dvh overflow-x-clip bg-[#E4DFD0]`}>
       <div className="mx-auto w-full max-w-6xl px-4 sm:px-8">
-        <header className="flex h-20 items-center justify-between gap-4">
+        <header className="flex h-16 items-center justify-between gap-4">
           <Logo variant="horizontal" height={28} priority />
           <p className="text-sm font-semibold text-[#11301A]">Opens Monday 30 November</p>
         </header>
-        <div className="pb-16 pt-6 lg:pb-24 lg:pt-10">
+        <div className="pb-16 pt-2 lg:pb-20 lg:pt-4">
           <Experience areas={areas} source={q.src ?? q.utm_source ?? null} daysLeft={daysLeft} />
         </div>
       </div>

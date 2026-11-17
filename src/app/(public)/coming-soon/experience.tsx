@@ -72,7 +72,7 @@ function MealLabel({ meal, name, joined, position }: { meal: Meal; name: string;
         </div>
         <p className={styles.keep}>Keep 0–5°C | Reheat hot</p>
         <span className={`${styles.stamp} ${joined ? styles.stampOn : ""}`} aria-hidden={!joined}>
-          <span className={styles.stampSmall}>On the list</span>
+          <span className={styles.stampSmall}>Waitlist</span>
           <span className={styles.stampNo}>{position ? `No. ${position}` : "Saved"}</span>
         </span>
       </div>
@@ -125,17 +125,20 @@ export function Experience({ areas, source, daysLeft }: { areas: { id: string; n
   return (
     <div className={styles.stage}>
       <div className={styles.copy}>
-        <h1 className={styles.headline}>Your box, built to your&nbsp;numbers.</h1>
+        <h1 className={styles.headline}>Fresh meals, portioned for your&nbsp;goal.</h1>
         <p className={styles.amharic} lang="am">ምግብዎ፣ በግብዎ ልክ።</p>
         <p className={styles.lede}>
-          Quest cooks fresh, weighed meals in Addis Ababa, planned by coaches Dagi and Kidus and portioned to your calories and protein.
-          We open on Monday 30 November{daysLeft > 0 ? `, ${daysLeft} ${daysLeft === 1 ? "day" : "days"} from now` : ""}.
+          Ready-to-eat meals delivered in Addis Ababa, cooked fresh and weighed to your calories and protein.
+          Planned by coaches Dagi and Kidus, with a fasting menu.
+        </p>
+        <p className={styles.opens}>
+          Opening Monday 30 November{daysLeft > 0 ? ` (in ${daysLeft} ${daysLeft === 1 ? "day" : "days"})` : ""}. Join the waitlist to get first access.
         </p>
       </div>
 
       <div className={styles.trayCol}>
-        <h2 className={styles.trayTitle}>{joined ? "Your spot is saved" : "Every box comes labelled with your numbers"}</h2>
-        {joined ? null : <p className={styles.trayHint}>Pick your goal and fasting days below and watch the label change.</p>}
+        <h2 className={styles.trayTitle}>{joined ? "You’re on the waitlist" : "Every meal comes with a label like this"}</h2>
+        {joined ? null : <p className={styles.trayHint}>Choose your goal and fasting days to see an example.</p>}
         <MealLabel meal={meal} name={name} joined={!!joined} position={joined?.position ?? null} />
         {joined ? null : (
           <div className={styles.controls}>
@@ -148,16 +151,14 @@ export function Experience({ areas, source, daysLeft }: { areas: { id: string; n
       <div className={styles.formCol}>
         {joined ? (
           <div className={styles.done} role="status">
-            <h2 className={styles.formTitle}>{joined.position ? `You’re number ${joined.position} on the list.` : "You’re on the list."}</h2>
-            <p>We’ll message you before we open on Monday 30 November. Your box will be built to your real numbers then.</p>
+            <h2 className={styles.formTitle}>{joined.position ? `You’re number ${joined.position} on the waitlist.` : "You’re on the waitlist."}</h2>
+            <p>We’ll message you before we open on Monday 30 November.</p>
             <p className={styles.doneLinks}>
               <Link href="/calculator">Find my exact calories</Link>
             </p>
           </div>
         ) : (
           <form onSubmit={submit} noValidate className={styles.form}>
-            <h2 className={styles.formTitle}>Save your spot</h2>
-            <p className={styles.formHint}>We’ll keep your choices and message you before we open.</p>
             <div className={styles.fields}>
               <label className={styles.field}>
                 <span>Your name</span>
@@ -179,11 +180,11 @@ export function Experience({ areas, source, daysLeft }: { areas: { id: string; n
             </div>
             <label className={styles.check}>
               <input type="checkbox" checked={telegram} onChange={(e) => setTelegram(e.target.checked)} />
-              Send me launch news on Telegram
+              Also message me on Telegram
             </label>
             <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden className="hidden" value={website} onChange={(e) => setWebsite(e.target.value)} />
             {error ? <p className={styles.error} role="alert">{error}</p> : null}
-            <button type="submit" disabled={pending} className={styles.submit}>{pending ? "Saving your spot…" : "Save my spot"}</button>
+            <button type="submit" disabled={pending} className={styles.submit}>{pending ? "Joining…" : "Join the waitlist"}</button>
           </form>
         )}
       </div>
