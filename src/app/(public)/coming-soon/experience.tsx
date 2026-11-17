@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { PhoneInput } from "@/components/public/phone-input";
 import { joinWaitlistAction } from "./actions";
@@ -19,7 +19,27 @@ const FASTING: { value: Fasting; label: string }[] = [
   { value: "seasons", label: "Wed, Fri and fasting seasons" },
 ];
 
+const SAMPLE_NAMES = ["Selam", "Dawit", "Hana", "Yonas", "Meron", "Abel", "Kidist", "Natnael", "Liya", "Bereket"];
+
+/** Handwritten value that "writes itself in" whenever the text changes. */
+function Hand({ text, className }: { text: string; className?: string }) {
+  return <span key={text} className={`${styles.hand} ${styles.write} ${className ?? ""}`}>{text}</span>;
+}
+
+/** Until the visitor types, the client-name line cycles through sample names. */
+function useSampleName(active: boolean) {
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    if (!active || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const t = setInterval(() => setI((n) => (n + 1) % SAMPLE_NAMES.length), 2400);
+    return () => clearInterval(t);
+  }, [active]);
+  return SAMPLE_NAMES[i];
+}
+
 function MealLabel({ meal, name, joined, position }: { meal: Meal; name: string; joined: boolean; position: number | null }) {
+  const typed = name.trim();
+  const sample = useSampleName(!typed);
   return (
     <figure className={styles.sleeve} aria-label={`Example meal label: ${meal.name}, ${meal.kcal} kcal, ${meal.protein} g protein, ${meal.carbs} g carbs, ${meal.fat} g fat.`}>
       <div className={styles.label}>
@@ -28,15 +48,15 @@ function MealLabel({ meal, name, joined, position }: { meal: Meal; name: string;
           <span className={styles.labelTag}>Meal</span>
         </div>
         <p className={styles.small}>Food item name</p>
-        <p className={`${styles.hand} ${styles.dish}`}>{meal.name}</p>
+        <p className={styles.dish}><Hand text={meal.name} /></p>
         <div className={styles.macros}>
           <div className={`${styles.box} ${styles.kcalBox}`}>
             <span className={styles.small}>Calories</span>
-            <span><span className={`${styles.hand} ${styles.kcal}`}>{meal.kcal}</span> kcal</span>
+            <span><Hand text={String(meal.kcal)} className={styles.kcal} /> kcal</span>
           </div>
           {([["Protein", meal.protein], ["Carbs", meal.carbs], ["Fat", meal.fat]] as const).map(([k, v]) => (
             <div key={k} className={styles.box}>
-              <span><span className={`${styles.hand} ${styles.gram}`}>{v}</span> g</span>
+              <span><Hand text={String(v)} className={styles.gram} /> g</span>
               <span className={styles.small}>{k}</span>
             </div>
           ))}
@@ -45,8 +65,8 @@ function MealLabel({ meal, name, joined, position }: { meal: Meal; name: string;
           <span className={styles.checks}>
             <span className={styles.cb} /> Breakfast <span className={`${styles.cb} ${styles.cbOn}`} aria-hidden>✓</span> Lunch <span className={styles.cb} /> Dinner
           </span>
-          <span className={styles.line}><span className={styles.small}>Client name</span><span className={styles.hand}>{name.trim() || "\u00a0"}</span></span>
-          <span className={styles.line}><span className={styles.small}>Size</span><span className={styles.hand}>{meal.size}</span></span>
+          <span className={styles.line}><span className={styles.small}>Client name</span><Hand text={typed || sample} className={typed ? undefined : styles.sample} /></span>
+          <span className={styles.line}><span className={styles.small}>Size</span><Hand text={meal.size} /></span>
           <span className={styles.line}><span className={styles.small}>Made</span><span className={styles.hand}>30 Nov</span></span>
           <span className={styles.line}><span className={styles.small}>Eat by</span><span className={styles.hand}>2 Dec</span></span>
         </div>
