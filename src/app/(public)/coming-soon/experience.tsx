@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useTransition, type CSSProperties } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import { PhoneInput } from "@/components/public/phone-input";
 import { joinWaitlistAction } from "./actions";
-import { boxFor, totals, type Box, type Fasting, type Goal, type Part } from "./boxes";
+import { Logo } from "@/components/shell/logo";
+import { mealFor, type Fasting, type Goal, type Meal } from "./boxes";
 import styles from "./experience.module.css";
 
 const GOALS: { value: Goal; label: string }[] = [
@@ -18,42 +19,44 @@ const FASTING: { value: Fasting; label: string }[] = [
   { value: "seasons", label: "Wed, Fri and fasting seasons" },
 ];
 
-function Compartment({ part, grow, className }: { part: Part; grow: number; className?: string }) {
+function MealLabel({ meal, name, joined, position }: { meal: Meal; name: string; joined: boolean; position: number | null }) {
   return (
-    <div className={`${styles.cell} ${styles[part.texture]} ${className ?? ""}`} style={{ flexGrow: grow, "--tone": part.tone } as CSSProperties}>
-      <span className={styles.tag}>
-        <span className={styles.tagName}>{part.name}</span>
-        <span className={styles.tagGrams}>{part.grams} g</span>
-      </span>
-    </div>
-  );
-}
-
-function Tray({ box, closed, position }: { box: Box; closed: boolean; position: number | null }) {
-  const t = totals(box);
-  return (
-    <figure className={styles.trayWrap} aria-label={`Example box: ${box.protein.name} ${box.protein.grams} g, ${box.carb.name} ${box.carb.grams} g, ${box.veg.name} ${box.veg.grams} g. About ${t.kcal} kcal and ${t.protein} g protein.`}>
-      <div className={styles.tray}>
-        <div className={styles.row}>
-          <Compartment part={box.protein} grow={box.protein.grams} />
-          <Compartment part={box.carb} grow={box.carb.grams} />
+    <figure className={styles.sleeve} aria-label={`Example meal label: ${meal.name}, ${meal.kcal} kcal, ${meal.protein} g protein, ${meal.carbs} g carbs, ${meal.fat} g fat.`}>
+      <div className={styles.label}>
+        <div className={styles.labelTop}>
+          <Logo variant="horizontal" height={26} />
+          <span className={styles.labelTag}>Meal</span>
         </div>
-        <div className={styles.row} style={{ flexGrow: Math.max(70, box.veg.grams * 0.75) }}>
-          <Compartment part={box.veg} grow={1} />
+        <p className={styles.small}>Food item name</p>
+        <p className={`${styles.hand} ${styles.dish}`}>{meal.name}</p>
+        <div className={styles.macros}>
+          <div className={`${styles.box} ${styles.kcalBox}`}>
+            <span className={styles.small}>Calories</span>
+            <span><span className={`${styles.hand} ${styles.kcal}`}>{meal.kcal}</span> kcal</span>
+          </div>
+          {([["Protein", meal.protein], ["Carbs", meal.carbs], ["Fat", meal.fat]] as const).map(([k, v]) => (
+            <div key={k} className={styles.box}>
+              <span><span className={`${styles.hand} ${styles.gram}`}>{v}</span> g</span>
+              <span className={styles.small}>{k}</span>
+            </div>
+          ))}
         </div>
-        <div className={`${styles.lid} ${closed ? styles.lidClosed : ""}`} aria-hidden={!closed}>
-          <span className={styles.lidMark}>Quest</span>
-          <span className={styles.sticker}>
-            <span className={styles.stickerSmall}>On the list</span>
-            <span className={styles.stickerNo}>{position ? `No. ${position}` : "Saved"}</span>
+        <div className={styles.lines}>
+          <span className={styles.checks}>
+            <span className={styles.cb} /> Breakfast <span className={`${styles.cb} ${styles.cbOn}`} aria-hidden>✓</span> Lunch <span className={styles.cb} /> Dinner
           </span>
+          <span className={styles.line}><span className={styles.small}>Client name</span><span className={styles.hand}>{name.trim() || "\u00a0"}</span></span>
+          <span className={styles.line}><span className={styles.small}>Size</span><span className={styles.hand}>{meal.size}</span></span>
+          <span className={styles.line}><span className={styles.small}>Made</span><span className={styles.hand}>30 Nov</span></span>
+          <span className={styles.line}><span className={styles.small}>Eat by</span><span className={styles.hand}>2 Dec</span></span>
         </div>
+        <p className={styles.keep}>Keep 0–5°C | Reheat hot</p>
+        <span className={`${styles.stamp} ${joined ? styles.stampOn : ""}`} aria-hidden={!joined}>
+          <span className={styles.stampSmall}>On the list</span>
+          <span className={styles.stampNo}>{position ? `No. ${position}` : "Saved"}</span>
+        </span>
       </div>
-      <figcaption className={styles.readout}>
-        <span><strong className="tabular">{t.kcal}</strong> kcal</span>
-        <span><strong className="tabular">{t.protein} g</strong> protein</span>
-        <span className={styles.readoutNote}>For this one meal. An example: our nutritionist sets your real portions.</span>
-      </figcaption>
+      <figcaption className={styles.note}>Example meal. Our nutritionist sets your real portions.</figcaption>
     </figure>
   );
 }
@@ -87,7 +90,7 @@ export function Experience({ areas, source, daysLeft }: { areas: { id: string; n
   const [error, setError] = useState<string | null>(null);
   const [joined, setJoined] = useState<{ position: number | null } | null>(null);
   const [pending, start] = useTransition();
-  const box = boxFor(goal, fasting);
+  const meal = mealFor(goal, fasting);
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -111,9 +114,9 @@ export function Experience({ areas, source, daysLeft }: { areas: { id: string; n
       </div>
 
       <div className={styles.trayCol}>
-        <h2 className={styles.trayTitle}>{joined ? "Your spot is saved" : "This is your lunch box, seen from above"}</h2>
-        {joined ? null : <p className={styles.trayHint}>Pick your goal and fasting days. The portions change to match you.</p>}
-        <Tray box={box} closed={!!joined} position={joined?.position ?? null} />
+        <h2 className={styles.trayTitle}>{joined ? "Your spot is saved" : "Every box comes labelled with your numbers"}</h2>
+        {joined ? null : <p className={styles.trayHint}>Pick your goal and fasting days below and watch the label change.</p>}
+        <MealLabel meal={meal} name={name} joined={!!joined} position={joined?.position ?? null} />
         {joined ? null : (
           <div className={styles.controls}>
             <Pills name="goal" legend="What are you working toward?" value={goal} onChange={setGoal} options={GOALS} />

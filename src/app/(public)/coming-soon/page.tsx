@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Noto_Sans_Ethiopic } from "next/font/google";
+import { Caveat, Noto_Sans_Ethiopic } from "next/font/google";
 import { db } from "@db/client";
 import { Logo } from "@/components/shell/logo";
 import { signUpOptions } from "@/server/services/signup";
@@ -12,6 +12,7 @@ export const metadata: Metadata = {
   description: "Fresh, weighed meals portioned to your calories and protein, planned by coaches Dagi and Kidus. Fasting menu included. Save your spot.",
 };
 
+const hand = Caveat({ subsets: ["latin"], weight: ["600"], display: "swap", variable: "--font-hand" });
 const ethiopic = Noto_Sans_Ethiopic({ subsets: ["ethiopic"], weight: ["600"], display: "swap", variable: "--font-ethiopic", preload: false });
 
 /** Monday 30 November 2026, 00:00 Addis Ababa. */
@@ -22,7 +23,7 @@ export default async function ComingSoon({ searchParams }: { searchParams: Promi
   const { areas } = await signUpOptions(db).catch(() => ({ areas: [] as { id: string; name: string }[] }));
   const daysLeft = Math.max(0, Math.ceil((LAUNCH - Date.now()) / 86_400_000));
   return (
-    <main className={`${ethiopic.variable} min-h-dvh bg-[#E4DFD0]`}>
+    <main className={`${ethiopic.variable} ${hand.variable} min-h-dvh overflow-x-clip bg-[#E4DFD0]`}>
       <div className="mx-auto w-full max-w-6xl px-4 sm:px-8">
         <header className="flex h-20 items-center justify-between gap-4">
           <Logo variant="horizontal" height={28} priority />
