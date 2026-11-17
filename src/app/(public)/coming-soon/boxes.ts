@@ -5,12 +5,12 @@ export type Fasting = "wed_fri" | "seasons" | "none";
 export type Part = { name: string; grams: number; kcal: number; protein: number; tone: string; texture: "grain" | "fleck" | "leaf" | "flake" };
 export type Box = { protein: Part; carb: Part; veg: Part };
 
-const chicken = (g: number): Part => ({ name: "Grilled chicken", grams: g, kcal: Math.round(g * 1.65), protein: Math.round(g * 0.31), tone: "#B9774A", texture: "flake" });
+const chicken = (g: number): Part => ({ name: "Chicken", grams: g, kcal: Math.round(g * 1.65), protein: Math.round(g * 0.31), tone: "#B9774A", texture: "flake" });
 const misir = (g: number): Part => ({ name: "Misir and soy", grams: g, kcal: Math.round(g * 1.3), protein: Math.round(g * 0.15), tone: "#B4442C", texture: "fleck" });
-const fish = (g: number): Part => ({ name: "Grilled fish", grams: g, kcal: Math.round(g * 1.28), protein: Math.round(g * 0.26), tone: "#D9B48A", texture: "flake" });
+const fish = (g: number): Part => ({ name: "Fish", grams: g, kcal: Math.round(g * 1.28), protein: Math.round(g * 0.26), tone: "#D9B48A", texture: "flake" });
 const rice = (g: number): Part => ({ name: "Rice", grams: g, kcal: Math.round(g * 1.3), protein: Math.round(g * 0.027), tone: "#EFE3BF", texture: "grain" });
 const potato = (g: number): Part => ({ name: "Roast potato", grams: g, kcal: Math.round(g * 0.93), protein: Math.round(g * 0.025), tone: "#E1B866", texture: "grain" });
-const greens = (g: number): Part => ({ name: "Gomen and greens", grams: g, kcal: Math.round(g * 0.3), protein: Math.round(g * 0.02), tone: "#8BC53F", texture: "leaf" });
+const greens = (g: number): Part => ({ name: "Greens", grams: g, kcal: Math.round(g * 0.3), protein: Math.round(g * 0.02), tone: "#8BC53F", texture: "leaf" });
 
 const PORTIONS: Record<Goal, { p: number; c: number; v: number; lentil: number }> = {
   lose: { p: 170, c: 100, v: 160, lentil: 280 },

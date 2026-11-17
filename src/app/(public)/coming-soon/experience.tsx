@@ -52,7 +52,7 @@ function Tray({ box, closed, position }: { box: Box; closed: boolean; position: 
       <figcaption className={styles.readout}>
         <span><strong className="tabular">{t.kcal}</strong> kcal</span>
         <span><strong className="tabular">{t.protein} g</strong> protein</span>
-        <span className={styles.readoutNote}>Example box. Your nutritionist sets the real numbers.</span>
+        <span className={styles.readoutNote}>For this one meal. An example: our nutritionist sets your real portions.</span>
       </figcaption>
     </figure>
   );
@@ -111,7 +111,15 @@ export function Experience({ areas, source, daysLeft }: { areas: { id: string; n
       </div>
 
       <div className={styles.trayCol}>
+        <h2 className={styles.trayTitle}>{joined ? "Your spot is saved" : "This is your lunch box, seen from above"}</h2>
+        {joined ? null : <p className={styles.trayHint}>Pick your goal and fasting days. The portions change to match you.</p>}
         <Tray box={box} closed={!!joined} position={joined?.position ?? null} />
+        {joined ? null : (
+          <div className={styles.controls}>
+            <Pills name="goal" legend="What are you working toward?" value={goal} onChange={setGoal} options={GOALS} />
+            <Pills name="fasting" legend="Do you fast?" value={fasting} onChange={setFasting} options={FASTING} />
+          </div>
+        )}
       </div>
 
       <div className={styles.formCol}>
@@ -125,9 +133,8 @@ export function Experience({ areas, source, daysLeft }: { areas: { id: string; n
           </div>
         ) : (
           <form onSubmit={submit} noValidate className={styles.form}>
-            <h2 className={styles.formTitle}>Build yours, then save your spot</h2>
-            <Pills name="goal" legend="What are you working toward?" value={goal} onChange={setGoal} options={GOALS} />
-            <Pills name="fasting" legend="Do you fast?" value={fasting} onChange={setFasting} options={FASTING} />
+            <h2 className={styles.formTitle}>Save your spot</h2>
+            <p className={styles.formHint}>We’ll keep your choices and message you before we open.</p>
             <div className={styles.fields}>
               <label className={styles.field}>
                 <span>Your name</span>
