@@ -2,17 +2,18 @@
   --forest: #11301A; --lime: #8BC53F; --mist: #F3F9EB; --oat: #E4DFD0; --charcoal: #2E3830; --counter: #DCD5C2;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-areas: "copy" "form" "tray";
-  gap: 2rem;
+  grid-template-areas: "label" "copy" "form" "controls";
+  gap: 1.75rem;
   color: var(--charcoal);
 }
 @media (min-width: 1024px) {
-  .stage { grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); grid-template-areas: "copy tray" "form tray"; grid-template-rows: auto 1fr; column-gap: 4.5rem; row-gap: 1.75rem; }
+  .stage { grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); grid-template-areas: "copy label" "form label" "form controls"; grid-template-rows: auto auto 1fr; column-gap: 4.5rem; row-gap: 1.5rem; }
 }
 .copy { grid-area: copy; }
-.trayCol { grid-area: tray; }
+.labelCol { grid-area: label; }
+.controls { grid-area: controls; }
 .formCol { grid-area: form; }
-@media (min-width: 1024px) { .trayCol { position: sticky; top: 2rem; align-self: start; } }
+
 
 .headline {
   font-weight: 800; color: var(--forest);
@@ -118,7 +119,12 @@
   .write { animation: none; }
 }
 
-.trayTitle { font-size: 1.375rem; font-weight: 700; letter-spacing: -0.02em; color: var(--forest); }
+.trayTitle { display: none; margin-bottom: 1rem; font-size: 1.375rem; font-weight: 700; letter-spacing: -0.02em; color: var(--forest); }
 .trayHint { margin: 0.25rem 0 1rem; font-size: 0.9375rem; color: var(--charcoal); }
-.controls { margin-top: 1.25rem; display: flex; flex-direction: column; gap: 1.25rem; }
+.controls { display: flex; flex-direction: column; gap: 1.25rem; }
 .formHint { margin-top: -1rem; font-size: 0.9375rem; }
+
+@media (min-width: 1024px) { .trayTitle { display: block; } }
+.controlsTitle { font-size: 1.125rem; font-weight: 700; color: var(--forest); }
+.reassure { font-size: 0.875rem; text-align: center; opacity: 0.8; }
+.opens { margin-top: 0; }

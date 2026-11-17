@@ -99,13 +99,11 @@ function Pills<T extends string>({ name, legend, value, onChange, options }: {
   );
 }
 
-export function Experience({ areas, source, daysLeft }: { areas: { id: string; name: string }[]; source: string | null; daysLeft: number }) {
+export function Experience({ source, daysLeft }: { source: string | null; daysLeft: number }) {
   const [goal, setGoal] = useState<Goal>("healthy");
   const [fasting, setFasting] = useState<Fasting>("none");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [areaId, setAreaId] = useState("");
-  const [telegram, setTelegram] = useState(true);
   const [website, setWebsite] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [joined, setJoined] = useState<{ position: number | null } | null>(null);
@@ -116,7 +114,7 @@ export function Experience({ areas, source, daysLeft }: { areas: { id: string; n
     e.preventDefault();
     setError(null);
     start(async () => {
-      const r = await joinWaitlistAction({ name, phone, areaId: areaId || null, goal, fasting, telegram, source, website });
+      const r = await joinWaitlistAction({ name, phone, areaId: null, goal, fasting, telegram: false, source, website });
       if (r.ok) setJoined({ position: r.data.position });
       else setError(r.error);
     });
@@ -124,41 +122,33 @@ export function Experience({ areas, source, daysLeft }: { areas: { id: string; n
 
   return (
     <div className={styles.stage}>
-      <div className={styles.copy}>
-        <h1 className={styles.headline}>Fresh meals, portioned for your&nbsp;goal.</h1>
-        <p className={styles.amharic} lang="am">ምግብዎ፣ በግብዎ ልክ።</p>
-        <p className={styles.lede}>
-          Ready-to-eat meals delivered in Addis Ababa, cooked fresh and weighed to your calories and protein.
-          Planned by coaches Dagi and Kidus, with a fasting menu.
-        </p>
-        <p className={styles.opens}>
-          Opening Monday 30 November{daysLeft > 0 ? ` (in ${daysLeft} ${daysLeft === 1 ? "day" : "days"})` : ""}. Join the waitlist to get first access.
-        </p>
+      <div className={styles.labelCol}>
+        <h2 className={styles.trayTitle}>{joined ? "You’re on the waitlist" : "Every meal comes with a label like this"}</h2>
+        <MealLabel meal={meal} name={name} joined={!!joined} position={joined?.position ?? null} />
       </div>
 
-      <div className={styles.trayCol}>
-        <h2 className={styles.trayTitle}>{joined ? "You’re on the waitlist" : "Every meal comes with a label like this"}</h2>
-        {joined ? null : <p className={styles.trayHint}>Choose your goal and fasting days to see an example.</p>}
-        <MealLabel meal={meal} name={name} joined={!!joined} position={joined?.position ?? null} />
-        {joined ? null : (
-          <div className={styles.controls}>
-            <Pills name="goal" legend="What are you working toward?" value={goal} onChange={setGoal} options={GOALS} />
-            <Pills name="fasting" legend="Do you fast?" value={fasting} onChange={setFasting} options={FASTING} />
-          </div>
-        )}
+      <div className={styles.copy}>
+        <h1 className={styles.headline}>Healthy meals made for your&nbsp;goal.</h1>
+        <p className={styles.amharic} lang="am">ምግብዎ፣ በግብዎ ልክ።</p>
+        <p className={styles.lede}>
+          Fresh, ready-to-eat meals delivered in Addis Ababa. Weighed to your calories and protein, planned by coaches Dagi and Kidus. Fasting menu included.
+        </p>
       </div>
 
       <div className={styles.formCol}>
         {joined ? (
           <div className={styles.done} role="status">
             <h2 className={styles.formTitle}>{joined.position ? `You’re number ${joined.position} on the waitlist.` : "You’re on the waitlist."}</h2>
-            <p>We’ll message you before we open on Monday 30 November.</p>
+            <p>We’ll message you on WhatsApp before we open on Monday 30 November.</p>
             <p className={styles.doneLinks}>
               <Link href="/calculator">Find my exact calories</Link>
             </p>
           </div>
         ) : (
           <form onSubmit={submit} noValidate className={styles.form}>
+            <p className={styles.opens}>
+              We open Monday 30 November{daysLeft > 0 ? `, in ${daysLeft} ${daysLeft === 1 ? "day" : "days"}` : ""}. Waitlist members get first access.
+            </p>
             <div className={styles.fields}>
               <label className={styles.field}>
                 <span>Your name</span>
@@ -168,26 +158,22 @@ export function Experience({ areas, source, daysLeft }: { areas: { id: string; n
                 <span>WhatsApp number</span>
                 <PhoneInput placeholder="9XX XXX XXX" value={phone} onChange={(e) => setPhone(e.target.value)} required />
               </label>
-              {areas.length ? (
-                <label className={`${styles.field} ${styles.fieldWide}`}>
-                  <span>Where should we deliver?</span>
-                  <select className={styles.input} value={areaId} onChange={(e) => setAreaId(e.target.value)}>
-                    <option value="">I’ll choose later</option>
-                    {areas.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-                  </select>
-                </label>
-              ) : null}
             </div>
-            <label className={styles.check}>
-              <input type="checkbox" checked={telegram} onChange={(e) => setTelegram(e.target.checked)} />
-              Also message me on Telegram
-            </label>
             <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden className="hidden" value={website} onChange={(e) => setWebsite(e.target.value)} />
             {error ? <p className={styles.error} role="alert">{error}</p> : null}
-            <button type="submit" disabled={pending} className={styles.submit}>{pending ? "Joining…" : "Join the waitlist"}</button>
+            <button type="submit" disabled={pending} className={styles.submit}>{pending ? "Joining…" : "Join the free waitlist"}</button>
+            <p className={styles.reassure}>No payment now. We’ll WhatsApp you when we open.</p>
           </form>
         )}
       </div>
+
+      {joined ? null : (
+        <div className={styles.controls}>
+          <p className={styles.controlsTitle}>Make the label yours</p>
+          <Pills name="goal" legend="What are you working toward?" value={goal} onChange={setGoal} options={GOALS} />
+          <Pills name="fasting" legend="Do you fast?" value={fasting} onChange={setFasting} options={FASTING} />
+        </div>
+      )}
     </div>
   );
 }

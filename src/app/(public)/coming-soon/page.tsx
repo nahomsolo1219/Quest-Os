@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { Caveat, Noto_Sans_Ethiopic } from "next/font/google";
-import { db } from "@db/client";
 import { Logo } from "@/components/shell/logo";
-import { signUpOptions } from "@/server/services/signup";
 import { Experience } from "./experience";
 
 // Served at "/" on questaddis.com before launch (see src/middleware.ts).
@@ -20,7 +18,6 @@ const LAUNCH = Date.UTC(2026, 10, 29, 21, 0, 0);
 
 export default async function ComingSoon({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const q = await searchParams;
-  const { areas } = await signUpOptions(db).catch(() => ({ areas: [] as { id: string; name: string }[] }));
   const daysLeft = Math.max(0, Math.ceil((LAUNCH - Date.now()) / 86_400_000));
   return (
     <main className={`${ethiopic.variable} ${hand.variable} min-h-dvh overflow-x-clip bg-[#E4DFD0]`}>
@@ -30,7 +27,7 @@ export default async function ComingSoon({ searchParams }: { searchParams: Promi
           <p className="text-sm font-semibold text-[#11301A]">Opens Monday 30 November</p>
         </header>
         <div className="pb-16 pt-2 lg:pb-20 lg:pt-4">
-          <Experience areas={areas} source={q.src ?? q.utm_source ?? null} daysLeft={daysLeft} />
+          <Experience source={q.src ?? q.utm_source ?? null} daysLeft={daysLeft} />
         </div>
       </div>
       <footer className="border-t border-[#11301A]/15">
