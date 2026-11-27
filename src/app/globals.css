@@ -185,6 +185,11 @@
   body { @apply bg-background text-foreground; }
 }
 
+/* Brand leaf pattern (from the packaging). light = public pages, dark = Deep Forest panels, faint = client app */
+.bg-leaf { background-color: #EAF3DD; background-image: url("/brand/leaf-light.svg"); background-size: 80px 120px; }
+.bg-leaf-dark { background-color: #11301A; background-image: url("/brand/leaf-dark.svg"); background-size: 80px 120px; }
+.bg-leaf-faint { background-color: var(--background); background-image: url("/brand/leaf-faint.svg"); background-size: 80px 120px; }
+
 /* Large numbers for macros and money */
 .stat-number { font-variant-numeric: tabular-nums; font-weight: 600; letter-spacing: -0.02em; }
 /* Macros, money and counts line up in tables and lists */
