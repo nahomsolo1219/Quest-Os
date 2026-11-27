@@ -10,11 +10,13 @@ export const metadata = { title: "Calorie calculator" };
 export default async function CalculatorPage() {
   const settings = await publicCalculatorSettings(db);
   return (
+    <div className="min-h-dvh bg-leaf">
     <main className="mx-auto w-full max-w-xl px-4 pb-16 lg:max-w-5xl">
       <PublicHeader />
       <h1 className="mt-4 text-3xl font-bold tracking-tight text-primary">{S.title}</h1>
       <p className="mt-2 text-muted-foreground">{S.intro}</p>
       <CalculatorForm nutrition={settings.nutrition} />
     </main>
+    </div>
   );
 }

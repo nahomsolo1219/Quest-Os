@@ -2,6 +2,12 @@ export const S = {
   title: "Start your plan",
   intro: "Five short steps. It takes about three minutes.",
   steps: ["You", "Body", "Food", "Address", "Plan"],
+  whatNext: [
+    { title: "Create your account", text: "Your details, body stats and how you get your meals." },
+    { title: "Pay your first invoice", text: "In the app, then upload the receipt." },
+    { title: "We confirm your portions", text: "The nutritionist checks your size within 48 hours." },
+    { title: "Eat fresh", text: "Meals cooked daily, labelled with your macros." },
+  ],
   step: (n: number, total: number) => `Step ${n} of ${total}`,
   firstName: "First name",
   lastName: "Last name",

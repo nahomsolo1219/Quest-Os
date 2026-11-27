@@ -12,6 +12,7 @@ import { TourButton } from "@/components/tour/tour-button";
 /** Client app layout: slim top bar and a bottom tab bar sized for thumbs. */
 export function ClientShell({ unread, tour, children }: { unread?: number; tour?: TourBoot | null; children: ReactNode }) {
   return (
+    <div className="min-h-dvh bg-leaf-faint">
     <div className="mx-auto min-h-dvh max-w-xl pb-24">
       <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b bg-background/95 px-4 backdrop-blur">
         <Link href="/app" aria-label="Quest Meals home" className="flex min-h-11 items-center"><Logo variant="horizontal" height={24} priority /></Link>
@@ -27,6 +28,7 @@ export function ClientShell({ unread, tour, children }: { unread?: number; tour?
       <main className="p-4">{children}</main>
       <BottomTabs items={CLIENT_NAV} />
       {tour ? <Suspense fallback={null}><TourHost tours={tour.tours} progress={tour.progress} ctx={tour.ctx} /></Suspense> : null}
+    </div>
     </div>
   );
 }
